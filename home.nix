@@ -70,4 +70,59 @@
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  programs.git = {
+    enable = true;
+    userName = "Cyril Ledru";
+    userEmail = "cyril@lev-art.com";
+
+    ignores = [
+      ".idea"
+      "*.iml"
+      ".DS_Store"
+      "venv"
+      ".vscode"
+    ];
+
+    extraConfig = {
+      color = {
+        ui = true;
+        diff = {
+          whitespace = "red reverse";
+        };
+      };
+      core = {
+        editor = "vim";
+        ignorecase = false;
+      };
+      credential = {
+        helper = "osxkeychain";
+      };
+      fetch = {
+        prune = true;
+      };
+      init = {
+        defaultBranch = "master";
+      };
+      merge = {
+        tool = "p4merge";
+        conflictStyle = "diff3";
+      };
+      mergetool = {
+        keepBackup = false;
+        prompt = false;
+        p4merge = {
+          cmd = "p4merge \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"";
+          keepTemporaries = false;
+          trustExitCode = false;
+        };
+      };
+      pull = {
+        ff = "only";
+      };
+      push = {
+        default = "simple";
+      };
+    };
+  };
 }
