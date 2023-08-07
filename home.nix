@@ -35,8 +35,13 @@
     #   echo "Hello, ${config.home.username}!"
     # '')
 
-
+    pkgs.circleci-cli
+    pkgs.curl
+    pkgs.jq
+    pkgs.google-cloud-sdk
+    pkgs.lastpass-cli
     pkgs.nixpkgs-fmt
+    pkgs.ssm-session-manager-plugin
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
