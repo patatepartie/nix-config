@@ -60,6 +60,7 @@
     # '';
 
     ".aws/config".source = dotfiles/aws/config;
+    ".tmux".source = dotfiles/tmux;
   };
 
   # You can also manage environment variables but you will have to manually
@@ -147,5 +148,16 @@
         cof = "!id=\"$(gh pr list -L100 | fzf | cut -f1)\"; [ -n \"$id\" ] && gh pr checkout \"$id\"";
       };
     };
+  };
+
+  programs.tmux = {
+    enable = true;
+    clock24 = true;
+    historyLimit = 10000;
+
+    extraConfig = ''
+      bind-key -T copy-mode-vi 'y' send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
+      bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
+    '';
   };
 }
