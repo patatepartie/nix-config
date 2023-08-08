@@ -130,4 +130,19 @@
       };
     };
   };
+
+  programs.gh = {
+    enable = true;
+
+    settings = {
+      git_protocol = "https";
+      prompt = "enabled";
+
+      aliases = {
+        co = "pr checkout";
+        cw = "!git push -u origin HEAD && gh pr create -w";
+        cof = "!id=\"$(gh pr list -L100 | fzf | cut -f1)\"; [ -n \"$id\" ] && gh pr checkout \"$id\"";
+      };
+    };
+  };
 }
