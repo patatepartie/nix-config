@@ -35,6 +35,7 @@
     #   echo "Hello, ${config.home.username}!"
     # '')
 
+    pkgs.awscli2
     pkgs.circleci-cli
     pkgs.curl
     pkgs.jq
@@ -57,6 +58,8 @@
     #   org.gradle.console=verbose
     #   org.gradle.daemon.idletimeout=3600000
     # '';
+
+    ".aws/config".source = dotfiles/aws/config;
   };
 
   # You can also manage environment variables but you will have to manually
