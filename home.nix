@@ -59,7 +59,8 @@
     #   org.gradle.daemon.idletimeout=3600000
     # '';
 
-    ".aws/config".source = dotfiles/aws/config;
+    # This does not work well with docker, because it creates a symlink which cannot be bind-mounted.
+    # ".aws/config".source = dotfiles/aws/config;
     ".tmux".source = dotfiles/tmux;
   };
 
