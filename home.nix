@@ -1,6 +1,11 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
+  nixpkgs.config.allowUnfreePredicate = pkg:
+    builtins.elem (lib.getName pkg) [
+      "ngrok"
+    ];
+
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "cyrilledru";
@@ -42,6 +47,7 @@
     pkgs.google-cloud-sdk
     pkgs.lastpass-cli
     pkgs.nixpkgs-fmt
+    pkgs.ngrok
     pkgs.nmap
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
