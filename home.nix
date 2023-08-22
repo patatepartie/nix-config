@@ -42,6 +42,8 @@
     pkgs.google-cloud-sdk
     pkgs.lastpass-cli
     pkgs.nixpkgs-fmt
+    pkgs.nmap
+    pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
   ];
 
