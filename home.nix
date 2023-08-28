@@ -50,6 +50,7 @@
     pkgs.nixpkgs-fmt
     pkgs.ngrok
     pkgs.nmap
+    pkgs.mosquitto
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
   ];
@@ -71,6 +72,7 @@
     # This does not work well with docker, because it creates a symlink which cannot be bind-mounted.
     # ".aws/config".source = dotfiles/aws/config;
     ".tmux".source = dotfiles/tmux;
+    ".mosquitto".source = dotfiles/mosquitto;
   };
 
   # You can also manage environment variables but you will have to manually
