@@ -43,6 +43,7 @@
     pkgs.awscli2
     pkgs.circleci-cli
     pkgs.curl
+    pkgs.inetutils
     pkgs.jq
     pkgs.google-cloud-sdk
     pkgs.lastpass-cli
