@@ -108,9 +108,6 @@
     extraConfig = {
       color = {
         ui = true;
-        diff = {
-          whitespace = "red reverse";
-        };
       };
       core = {
         editor = "vim";
@@ -118,6 +115,9 @@
       };
       credential = {
         helper = "osxkeychain";
+      };
+      diff = {
+        wsErrorHighlight = "all";
       };
       fetch = {
         prune = true;
