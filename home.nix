@@ -73,6 +73,7 @@
     # ".aws/config".source = dotfiles/aws/config;
     ".tmux".source = dotfiles/tmux;
     ".mosquitto".source = dotfiles/mosquitto;
+    ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
   };
 
   # You can also manage environment variables but you will have to manually
@@ -171,5 +172,39 @@
       bind-key -T copy-mode-vi 'y' send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
       bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
     '';
+  };
+
+  programs.zsh = {
+    enable = true;
+    enableCompletion = true;
+
+    sessionVariables =
+      let
+        paths = [
+          "$BEALL_ROOT/bin"
+        ];
+        path = lib.concatStringsSep ":" paths;
+      in
+      {
+        LANG = "en_US.UTF-8";
+
+        PATH = "${path}:$PATH";
+
+        BEALL_ROOT = "$HOME/Tech/Bespoke/beall";
+
+        # Disable annoying docker scan warning message before each build command
+        DOCKER_SCAN_SUGGEST = "false";
+      };
+
+    initExtra = ''
+      . "$BEALL_ROOT/completion.zsh"
+    '';
+
+    oh-my-zsh = {
+      enable = true;
+      custom = "$HOME/.oh-my-zsh-custom";
+      theme = "af-magic";
+      plugins = [ "aliases" "brew" "git" "sublime" "tmux" "direnv" "gcloud" "beall-compose" ];
+    };
   };
 }
