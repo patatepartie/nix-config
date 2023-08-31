@@ -196,8 +196,13 @@
         DOCKER_SCAN_SUGGEST = "false";
       };
 
+    envExtra = ''
+      # See https://discourse.nixos.org/t/why-can-i-not-execute-a-new-version-of-nix-with-nix-shell/31032
+      [[ ! $(command -v nix) && -e "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]] && source "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+    '';
+
     initExtra = ''
-      . "$BEALL_ROOT/completion.zsh"
+      source "$BEALL_ROOT/completion.zsh"
     '';
 
     oh-my-zsh = {
