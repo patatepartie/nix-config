@@ -188,6 +188,8 @@
       {
         LANG = "en_US.UTF-8";
 
+        LESS = "--no-init --quit-if-one-screen -R";
+
         PATH = "${path}:$PATH";
 
         BEALL_ROOT = "$HOME/Tech/Bespoke/beall";
