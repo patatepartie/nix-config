@@ -178,6 +178,8 @@
     enable = true;
     enableCompletion = true;
 
+    history.share = false;
+
     sessionVariables =
       let
         paths = [
