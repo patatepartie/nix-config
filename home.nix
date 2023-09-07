@@ -1,11 +1,4 @@
-{ config, lib, pkgs, ... }:
-
-{
-  nixpkgs.config.allowUnfreePredicate = pkg:
-    builtins.elem (lib.getName pkg) [
-      "ngrok"
-    ];
-
+{ config, lib, pkgs, ... }: {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "cyrilledru";
