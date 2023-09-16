@@ -14,9 +14,13 @@
     };
   };
 
-  outputs = { nix-darwin, home-manager, ... }@inputs: {
+  outputs = { nixpkgs, nix-darwin, home-manager, ... }@inputs: {
     darwinConfigurations = {
       "cyrils-2018-macbook-pro" = import ./hosts/2018-macbook-pro { inherit inputs nix-darwin home-manager; };
+    };
+
+    nixosConfigurations = {
+      home-server = import ./hosts/home-server { inherit inputs nixpkgs; };
     };
   };
 }
