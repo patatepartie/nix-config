@@ -20,7 +20,7 @@
     };
 
     nixosConfigurations = {
-      home-server = import ./hosts/home-server { inherit inputs nixpkgs; };
+      home-server = import ./hosts/home-server { inherit inputs nixpkgs home-manager; };
     };
   };
 }
