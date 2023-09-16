@@ -20,7 +20,7 @@
         system = "x86_64-darwin";
 
         modules = [
-          ./configuration.nix
+          ./hosts/2018-macbook-pro.nix
           home-manager.darwinModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
