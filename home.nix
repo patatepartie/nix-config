@@ -172,6 +172,8 @@
   programs.zsh = {
     enable = true;
     enableCompletion = true;
+    enableAutosuggestions = true;
+    enableSyntaxHighlighting = true;
 
     history.share = false;
 
