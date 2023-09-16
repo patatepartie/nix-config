@@ -45,4 +45,19 @@
       };
     };
   };
+
+  programs.zsh = {
+    enable = true;
+    enableCompletion = true;
+    enableAutosuggestions = true;
+    syntaxHighlighting.enable = true;
+
+    history.share = false;
+
+    oh-my-zsh = {
+      enable = true;
+      theme = "af-magic";
+      plugins = [ "aliases" "git" ];
+    };
+  };
 }
