@@ -10,4 +10,39 @@
   # want to update the value, then make sure to first check the Home Manager
   # release notes.
   home.stateVersion = "23.05"; # Please read the comment before changing.
+
+  programs.git = {
+    enable = true;
+    userName = "Cyril Ledru";
+    userEmail = "cyril.ledru@gmail.com";
+
+    ignores = [
+      "*.swp"
+    ];
+
+    extraConfig = {
+      color = {
+        ui = true;
+      };
+      core = {
+        editor = "vim";
+        ignorecase = false;
+      };
+      diff = {
+        wsErrorHighlight = "all";
+      };
+      fetch = {
+        prune = true;
+      };
+      init = {
+        defaultBranch = "main";
+      };
+      pull = {
+        ff = "only";
+      };
+      push = {
+        default = "simple";
+      };
+    };
+  };
 }
