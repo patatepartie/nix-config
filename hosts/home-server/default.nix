@@ -9,6 +9,7 @@ nixpkgs.lib.nixosSystem {
     {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
+      home-manager.users.patate = import ./home.nix;
     }
   ];
 }
