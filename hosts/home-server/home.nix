@@ -57,7 +57,15 @@
     oh-my-zsh = {
       enable = true;
       theme = "af-magic";
-      plugins = [ "aliases" "git" ];
+      plugins = [ "aliases" "git" "tmux" ];
     };
+  };
+
+  programs.tmux = {
+    enable = true;
+    clock24 = true;
+    baseIndex = 1;
+    historyLimit = 10000;
+    mouse = true;
   };
 }
