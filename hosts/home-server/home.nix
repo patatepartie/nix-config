@@ -103,4 +103,8 @@
       region = "en_US.UTF-8";
     };
   };
+
+  home.packages = with pkgs; [
+    retroarchFull
+  ];
 }

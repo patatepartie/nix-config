@@ -112,6 +112,7 @@
     git
     vim
     gnome.gnome-tweaks
+    usbutils
   ];
 
   environment.variables.EDITOR = "vim";
