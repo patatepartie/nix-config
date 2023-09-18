@@ -68,4 +68,39 @@
     historyLimit = 10000;
     mouse = true;
   };
+
+  dconf.settings = with lib.hm.gvariant; {
+    "org/gnome/desktop/input-sources" = {
+      sources = [ (mkTuple [ "xkb" "jp" ]) (mkTuple [ "xkb" "us" ]) ];
+      xkb-options = [ "terminate:ctrl_alt_bksp" ];
+    };
+
+    "org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
+    };
+
+    "org/gnome/desktop/peripherals/keyboard" = {
+      numlock-state = true;
+    };
+
+    "org/gnome/desktop/remote-desktop/rdp" = {
+      enable = true;
+      tls-cert = "/home/patate/.local/share/gnome-remote-desktop/rdp-tls.crt";
+      tls-key = "/home/patate/.local/share/gnome-remote-desktop/rdp-tls.key";
+      view-only = false;
+    };
+
+    "org/gnome/desktop/session" = {
+      idle-delay = mkUint32 0;
+    };
+
+    "org/gnome/settings-daemon/plugins/power" = {
+      power-button-action = "interactive";
+      sleep-inactive-ac-type = "nothing";
+    };
+
+    "system/locale" = {
+      region = "en_US.UTF-8";
+    };
+  };
 }
