@@ -46,6 +46,7 @@
     pkgs.mosquitto
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
+    pkgs.obsidian
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
