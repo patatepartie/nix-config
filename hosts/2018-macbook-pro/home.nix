@@ -214,4 +214,15 @@
       plugins = [ "aliases" "brew" "git" "sublime" "tmux" "direnv" "gcloud" "beall-compose" ];
     };
   };
+
+  programs.vscode = {
+    enable = true;
+    package = (pkgs.vscode.override { isInsiders = true; }).overrideAttrs (oldAttrs: rec {
+      src = (builtins.fetchTarball {
+        url = "https://code.visualstudio.com/sha/download?build=insider&os=darwin";
+        sha256 = "1nkcv8qqxscmmc43rfng7dzkyha7ys81vp42vyvx2s6f2bsqhadq";
+      });
+      version = "latest";
+    });
+  };
 }
