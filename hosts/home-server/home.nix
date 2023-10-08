@@ -106,5 +106,8 @@
 
   home.packages = with pkgs; [
     retroarchFull
+    transmission_4-gtk
+    vlc
+    chromium
   ];
 }
