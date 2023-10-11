@@ -224,5 +224,10 @@
       });
       version = "latest";
     });
+    extensions = with pkgs.vscode-extensions; [
+      jnoortheen.nix-ide
+      github.copilot
+      github.copilot-chat
+    ];
   };
 }
