@@ -229,5 +229,24 @@
       github.copilot
       github.copilot-chat
     ];
+    userSettings = {
+      "files.autoSave" = "afterDelay";
+      "files.trimTrailingWhitespace" = true;
+      "files.insertFinalNewline" = true;
+      "files.trimFinalNewlines" = true;
+      "editor.tabSize" = 2;
+      "editor.minimap.enabled" = false;
+      "editor.inlineSuggest.enabled" = true;
+      "explorer.autoReveal" = false;
+      "explorer.confirmDelete" = false;
+      "github.copilot.enable" = {
+        "*" = true;
+        "plaintext" = false;
+        "markdown" = false;
+        "scminput" = false;
+        "yaml" = false;
+      };
+      "workbench.colorTheme" = "Default Dark+";
+    };
   };
 }
