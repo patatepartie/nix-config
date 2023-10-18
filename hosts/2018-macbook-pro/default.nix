@@ -4,7 +4,11 @@ nix-darwin.lib.darwinSystem {
   system = "x86_64-darwin";
 
   modules = [
-    ./configuration.nix
+    ./modules/nix-core.nix
+    ./modules/system.nix
+    ./modules/apps.nix
+    ./modules/host-users.nix
+
     home-manager.darwinModules.home-manager
     {
       home-manager.useGlobalPkgs = true;
