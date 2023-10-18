@@ -220,7 +220,7 @@
   programs.vscode = {
     enable = true;
     enableUpdateCheck = false;
-    mutableExtensionsDir = false;
+    mutableExtensionsDir = true;
     extensions = with pkgs.vscode-extensions; [
       jnoortheen.nix-ide
       esbenp.prettier-vscode
