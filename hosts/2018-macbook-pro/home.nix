@@ -1,8 +1,11 @@
-{ config, lib, pkgs, ... }: {
+{ lib, pkgs, ... }:
+let
+  username = "cyrilledru";
+in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
-  home.username = "cyrilledru";
-  home.homeDirectory = "/Users/cyrilledru";
+  home.username = username;
+  home.homeDirectory = "/Users/${username}";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
