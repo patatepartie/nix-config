@@ -1,6 +1,15 @@
 {
   description = "My systems";
 
+  # the nixConfig here only affects the flake itself, not the system configuration!
+  nixConfig = {
+    experimental-features = [ "nix-command" "flakes" ];
+
+    substituters = [
+      "https://cache.nixos.org"
+    ];
+  };
+
   inputs = {
     # Specify the source of Home Manager and Nixpkgs.
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
