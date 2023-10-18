@@ -1,4 +1,4 @@
-{ inputs, nix-darwin, home-manager, ... }:
+{ nix-darwin, home-manager, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "x86_64-darwin";
