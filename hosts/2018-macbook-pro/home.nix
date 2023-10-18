@@ -40,6 +40,7 @@
     pkgs.jq
     pkgs.google-cloud-sdk
     pkgs.lastpass-cli
+    pkgs.nil
     pkgs.nixpkgs-fmt
     pkgs.ngrok
     pkgs.nmap
@@ -47,6 +48,7 @@
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
     pkgs.obsidian
+    pkgs.ruby_3_2
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
@@ -217,17 +219,24 @@
 
   programs.vscode = {
     enable = true;
-    package = (pkgs.vscode.override { isInsiders = true; }).overrideAttrs (oldAttrs: rec {
-      src = (builtins.fetchTarball {
-        url = "https://code.visualstudio.com/sha/download?build=insider&os=darwin";
-        sha256 = "1nkcv8qqxscmmc43rfng7dzkyha7ys81vp42vyvx2s6f2bsqhadq";
-      });
-      version = "latest";
-    });
+    enableUpdateCheck = false;
+    mutableExtensionsDir = false;
     extensions = with pkgs.vscode-extensions; [
       jnoortheen.nix-ide
+      esbenp.prettier-vscode
       github.copilot
       github.copilot-chat
+      hashicorp.terraform
+      ms-python.python
+      mechatroner.rainbow-csv
+      redhat.vscode-yaml
+    ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+      {
+        name = "ruby-lsp";
+        publisher = "shopify";
+        version = "0.4.10";
+        sha256 = "0rw2y5mmjqn97jk7za7jkqx3hd42i3pad84fkqrj33l9kfyazf0x";
+      }
     ];
     userSettings = {
       "files.autoSave" = "afterDelay";
@@ -239,12 +248,42 @@
       "editor.inlineSuggest.enabled" = true;
       "explorer.autoReveal" = false;
       "explorer.confirmDelete" = false;
+      "extensions.autoUpdate" = false;
       "github.copilot.enable" = {
         "*" = true;
         "plaintext" = false;
         "markdown" = false;
         "scminput" = false;
         "yaml" = false;
+      };
+      "nix.enableLanguageServer" = true;
+      "nix.serverPath" = "nil";
+      "nix.serverSettings" = {
+        "nil" = {
+          "formatting" = {
+            "command" = [
+              "nixpkgs-fmt"
+            ];
+          };
+        };
+      };
+      "[css]" = {
+        "editor.defaultFormatter" = "esbenp.prettier-vscode";
+      };
+      "[html]" = {
+        "editor.defaultFormatter" = "esbenp.prettier-vscode";
+      };
+      "[javascript]" = {
+        "editor.defaultFormatter" = "esbenp.prettier-vscode";
+      };
+      "[json]" = {
+        "editor.defaultFormatter" = "esbenp.prettier-vscode";
+      };
+      "[jsonc]" = {
+        "editor.defaultFormatter" = "esbenp.prettier-vscode";
+      };
+      "[nix]" = {
+        "editor.defaultFormatter" = "jnoortheen.nix-ide";
       };
       "workbench.colorTheme" = "Default Dark+";
     };
