@@ -258,6 +258,7 @@ in {
         "markdown" = false;
         "scminput" = false;
         "yaml" = false;
+        "ruby" = false;
       };
       "nix.enableLanguageServer" = true;
       "nix.serverPath" = "nil";
