@@ -240,8 +240,15 @@ in {
         version = "0.4.10";
         sha256 = "0rw2y5mmjqn97jk7za7jkqx3hd42i3pad84fkqrj33l9kfyazf0x";
       }
+      {
+        name = "aws-toolkit-vscode";
+        publisher = "AmazonWebServices";
+        version = "1.96.0";
+        sha256 = "sha256:ul6hmWG7rttwCn+LAbA4XrZnNjblEmRTT20nyrtUXQw=";
+      }
     ];
     userSettings = {
+      "aws.samcli.lambdaTimeout" = 1234;
       "files.autoSave" = "afterDelay";
       "files.trimTrailingWhitespace" = true;
       "files.insertFinalNewline" = true;
