@@ -1,7 +1,8 @@
 { lib, pkgs, ... }:
 let
   username = "cyrilledru";
-in {
+in
+{
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = username;
@@ -265,7 +266,6 @@ in {
         "markdown" = false;
         "scminput" = false;
         "yaml" = false;
-        "ruby" = false;
       };
       "nix.enableLanguageServer" = true;
       "nix.serverPath" = "nil";
@@ -295,6 +295,10 @@ in {
       };
       "[nix]" = {
         "editor.defaultFormatter" = "jnoortheen.nix-ide";
+      };
+      "[python]" = {
+        "editor.insertSpaces" = true;
+        "editor.tabSize" = 4;
       };
       "workbench.colorTheme" = "Default Dark+";
     };
