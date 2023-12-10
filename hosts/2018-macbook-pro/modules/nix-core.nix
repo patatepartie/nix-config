@@ -22,5 +22,5 @@
 
   # Nix automatically detects files in the store that have identical contents,
   # and replaces them with hard links to a single copy.
-  nix.settings.auto-optimise-store = true;
+  nix.settings.auto-optimise-store = false;
 }
