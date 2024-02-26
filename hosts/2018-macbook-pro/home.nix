@@ -232,6 +232,7 @@ in
       github.copilot-chat
       hashicorp.terraform
       ms-python.python
+      ms-vscode-remote.remote-containers
       mechatroner.rainbow-csv
       redhat.vscode-yaml
     ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
