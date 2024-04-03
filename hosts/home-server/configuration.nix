@@ -112,6 +112,7 @@
     git
     vim
     gnome.gnome-tweaks
+    gnomeExtensions.dock-from-dash
     usbutils
   ];
 
