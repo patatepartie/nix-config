@@ -98,6 +98,8 @@ in
     userName = "Cyril Ledru";
     userEmail = "cyril@lev-art.com";
 
+    lfs.enable = true;
+
     ignores = [
       ".idea"
       "*.iml"
