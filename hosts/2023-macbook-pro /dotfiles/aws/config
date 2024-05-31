@@ -1,0 +1,49 @@
+[default]
+region = ap-northeast-1
+output = json
+glue_role_arn=arn:aws:iam::179804159098:role/aws-glue-service-role-dev
+
+[profile experiment]
+region = ap-northeast-1
+role_arn = arn:aws:iam::593747323307:role/OrganizationAccountAccessRole
+source_profile = default
+
+[profile dev]
+region = ap-northeast-1
+role_arn = arn:aws:iam::339961817185:role/developer
+source_profile = default
+
+[profile training]
+region = ap-northeast-1
+role_arn = arn:aws:iam::761908734366:role/OrganizationAccountAccessRole
+source_profile = default
+
+[profile r-and-d]
+region = ap-northeast-1
+role_arn = arn:aws:iam::752285284605:role/OrganizationAccountAccessRole
+source_profile = default
+
+[profile bi]
+region = ap-northeast-1
+role_arn = arn:aws:iam::179804159098:role/business-intelligence
+source_profile = default
+
+[profile superadmin_as_developer]
+region = ap-northeast-1
+role_arn = arn:aws:iam::179804159098:role/superadmin-as-developer
+source_profile = default
+
+[profile redshift_admin]
+region = ap-northeast-1
+role_arn = arn:aws:iam::179804159098:role/redshift-superadmin
+source_profile = default
+
+[profile dev_admin]
+region = ap-northeast-1
+role_arn = arn:aws:iam::339961817185:role/OrganizationAccountAccessRole
+source_profile = default
+
+[profile shared_admin]
+region = ap-northeast-1
+role_arn = arn:aws:iam::455291528537:role/OrganizationAccountAccessRole
+source_profile = default
