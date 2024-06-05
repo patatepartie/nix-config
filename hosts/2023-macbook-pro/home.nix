@@ -40,8 +40,10 @@ in
     pkgs.awscli2
     pkgs.circleci-cli
     pkgs.curl
+    pkgs.fzf
     pkgs.inetutils
     pkgs.jq
+    pkgs.joplin-desktop
     pkgs.google-cloud-sdk
     pkgs.lastpass-cli
     pkgs.nil

@@ -18,18 +18,23 @@
     };
 
     brews = [
+      "docker-credential-helper-ecr"
     ];
 
     casks = [
       "anki"
       "balenaetcher"
       "firefox"
+      "google-chrome"
+      "microsoft-remote-desktop"
       "p4v"
       "postman"
+      "slack"
       "spotify"
       "steam"
       "transmission"
       "vlc"
+      "zoom"
     ];
   };
 }
