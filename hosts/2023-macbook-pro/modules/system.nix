@@ -12,6 +12,7 @@
     keyboard = {
       enableKeyMapping = true;
       remapCapsLockToControl = true;
+      nonUS.remapTilde = true;
     };
 
     defaults = {
@@ -38,8 +39,9 @@
       };
 
       dock = {
-        autohide = true;
+        autohide = false;
         largesize = 128;
+        orientation = "right";
       };
 
       finder = {
