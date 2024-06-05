@@ -13,7 +13,7 @@
     enable = true;
     onActivation = {
       autoUpdate = true;
-      cleanup = "none"; # Do not uninstall non-listed packages
+      cleanup = "zap";
       upgrade = true;
     };
 
