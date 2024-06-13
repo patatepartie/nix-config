@@ -264,6 +264,7 @@ in
       "explorer.autoReveal" = false;
       "explorer.confirmDelete" = false;
       "extensions.autoUpdate" = false;
+      "extensions.ignoreRecommendations" = true;
       "github.copilot.enable" = {
         "*" = true;
         "plaintext" = false;
