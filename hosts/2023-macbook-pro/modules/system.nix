@@ -41,7 +41,7 @@
       dock = {
         autohide = false;
         largesize = 128;
-        orientation = "right";
+        orientation = "left";
       };
 
       finder = {
@@ -75,5 +75,4 @@
   environment = {
     loginShell = pkgs.zsh;
   };
-
 }
