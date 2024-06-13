@@ -13,7 +13,7 @@
 
 alias bc='beall-compose'
 alias bcb='beall-compose build'
-alias bccu='beall-compose up mysql redis duckling'
+alias bccu='beall-compose up mysql redis'
 alias bcwu='beall-compose up --build webchat'
 alias bchu='beall-compose up --build hachi hachi_threaded hachi_async sidekiq'
 alias bchuh='beall-compose -a honeycomb up --build hachi hachi_threaded hachi_async sidekiq'
