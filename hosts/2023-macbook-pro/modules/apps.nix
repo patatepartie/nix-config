@@ -24,8 +24,10 @@
     casks = [
       "anki"
       "balenaetcher"
+      "deepl"
       "firefox"
       "google-chrome"
+      "karabiner-elements"
       "microsoft-remote-desktop"
       "p4v"
       "postman"
