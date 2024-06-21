@@ -50,6 +50,7 @@ in
     pkgs.nixpkgs-fmt
     pkgs.ngrok
     pkgs.nmap
+    pkgs.pipx
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
     pkgs.obsidian
@@ -183,7 +184,6 @@ in
     enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
-
 
     history.share = false;
 
