@@ -213,6 +213,7 @@ in
     '';
 
     initExtra = ''
+      eval "$(/opt/homebrew/bin/brew shellenv)"
       source "$BEALL_ROOT/completion.zsh"
     '';
 
