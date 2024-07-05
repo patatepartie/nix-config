@@ -221,7 +221,7 @@ in
       enable = true;
       custom = "$HOME/.oh-my-zsh-custom";
       theme = "af-magic";
-      plugins = [ "aliases" "brew" "git" "sublime" "tmux" "direnv" "gcloud" "beall-compose" ];
+      plugins = [ "aliases" "aws" "beall-compose" "brew" "direnv" "docker" "docker-compose" "git" "gcloud" "sublime" "tmux" ];
     };
   };
 
