@@ -304,6 +304,7 @@ in
         "editor.insertSpaces" = true;
         "editor.tabSize" = 4;
       };
+      "editor.stickyScroll.enabled" = false;
       "workbench.colorTheme" = "Default Dark+";
     };
   };
