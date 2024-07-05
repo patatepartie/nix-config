@@ -22,6 +22,7 @@
       "google-chrome"
       "karabiner-elements"
       "microsoft-remote-desktop"
+      "nordvpn"
       "p4v"
       "postman"
       "slack"
