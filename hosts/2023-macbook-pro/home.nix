@@ -228,7 +228,7 @@ in
   programs.vscode = {
     enable = true;
     enableUpdateCheck = false;
-    mutableExtensionsDir = true;
+    mutableExtensionsDir = false;
     extensions = with pkgs.vscode-extensions; [
       jnoortheen.nix-ide
       esbenp.prettier-vscode
@@ -243,14 +243,8 @@ in
       {
         name = "ruby-lsp";
         publisher = "shopify";
-        version = "0.4.10";
-        sha256 = "0rw2y5mmjqn97jk7za7jkqx3hd42i3pad84fkqrj33l9kfyazf0x";
-      }
-      {
-        name = "aws-toolkit-vscode";
-        publisher = "AmazonWebServices";
-        version = "1.96.0";
-        sha256 = "sha256:ul6hmWG7rttwCn+LAbA4XrZnNjblEmRTT20nyrtUXQw=";
+        version = "0.7.9";
+        sha256 = "70bfcd11e74669be2d0e3e2f5c530d962d52cfdb2fddd54ea0fd67989b32ad4e";
       }
     ];
     userSettings = {
