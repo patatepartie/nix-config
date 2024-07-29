@@ -16,6 +16,7 @@
 
     casks = [
       "anki"
+      "android-platform-tools"
       "balenaetcher"
       "deepl"
       "firefox"
@@ -25,6 +26,7 @@
       "nordvpn"
       "p4v"
       "postman"
+      "skype"
       "slack"
       "spotify"
       "steam"
