@@ -237,22 +237,68 @@ in
     enable = true;
     enableUpdateCheck = false;
     mutableExtensionsDir = false;
-    extensions = with pkgs.vscode-extensions; [
-      jnoortheen.nix-ide
-      esbenp.prettier-vscode
-      github.copilot
-      github.copilot-chat
-      hashicorp.terraform
-      ms-python.python
-      ms-vscode-remote.remote-containers
-      mechatroner.rainbow-csv
-      redhat.vscode-yaml
-    ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+    # To upgrade an extension, find the new version on the marketplace, replace it, then use lib.sha256 for the sha256 attribute.
+    # Apply the change, then copy the "got" value from the error message and paste it in the sha256 attribute.
+    extensions = pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+      {
+        name = "copilot";
+        publisher = "github";
+        version = "1.222.0";
+        sha256 = "sha256-VnZkBXm4lU+QMAVF4D5jpwOiRwBf80EWeKZoxN2gKfs=";
+      }
+      {
+        name = "copilot-chat";
+        publisher = "github";
+        version = "0.19.2024073102";
+        sha256 = "sha256-ekRBmJiAav1gITWlqBOuWtZMt1YZeseF+3fw326db/s=";
+      }
+      {
+        name = "nix-ide";
+        publisher = "jnoortheen";
+        version = "0.3.3";
+        sha256 = "sha256-/vBbErwwecQhsqQwnw8ijooof8DPWt85symLQQtBC+Y=";
+      }
+      {
+        name = "prettier-vscode";
+        publisher = "esbenp";
+        version = "10.4.0";
+        sha256 = "sha256-8+90cZpqyH+wBgPFaX5GaU6E02yBWUoB+T9C2z2Ix8c=";
+      }
+      {
+        name = "python";
+        publisher = "ms-python";
+        version = "2024.13.2024081301";
+        sha256 = "sha256-XHx7DOw27k945+KNjfbod0D6AqUnfLHDTXKCz0e38ho=";
+      }
+      {
+        name = "rainbow-csv";
+        publisher = "mechatroner";
+        version = "3.12.0";
+        sha256 = "sha256-pnHaszLa4a4ptAubDUY+FQX3F6sQQUQ/sHAxyZsbhcQ=";
+      }
+      {
+        name = "remote-containers";
+        publisher = "ms-vscode-remote";
+        version = "0.381.0";
+        sha256 = "sha256-qGDLpEHQBB1x++KD+xrcJTs8oGmZJXjsUojfG3TwczI=";
+      }
       {
         name = "ruby-lsp";
         publisher = "shopify";
-        version = "0.7.9";
-        sha256 = "70bfcd11e74669be2d0e3e2f5c530d962d52cfdb2fddd54ea0fd67989b32ad4e";
+        version = "0.7.15";
+        sha256 = "sha256-8Ycoq8M9DT7aTOH4qb/oknLl3KpINDdbrQxf44mV+KQ";
+      }
+      {
+        name = "terraform";
+        publisher = "hashicorp";
+        version = "2.33.2024080812";
+        sha256 = "sha256-4tr77tXoE/HUM3YU0Kz1760tfBOlXDygpdlPaa+PrSg=";
+      }
+      {
+        name = "vscode-yaml";
+        publisher = "redhat";
+        version = "1.15.0";
+        sha256 = "sha256-NhlLNYJryKKRv+qPWOj96pT2wfkiQeqEip27rzl2C0M=";
       }
     ];
     userSettings = {
