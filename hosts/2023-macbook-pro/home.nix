@@ -43,7 +43,6 @@ in
     pkgs.fzf
     pkgs.inetutils
     pkgs.jq
-    pkgs.joplin-desktop
     pkgs.google-cloud-sdk
     pkgs.lastpass-cli
     pkgs.nil
