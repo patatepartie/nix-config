@@ -55,6 +55,15 @@ in
     pkgs.ssm-session-manager-plugin
     pkgs.obsidian
     pkgs.ruby_3_3
+
+    (pkgs.writeShellScriptBin "capture.zsh"
+      (pkgs.fetchFromGitHub {
+          owner = "Valodim";
+          repo = "zsh-capture-completion";
+          rev = "740fce754393513d57408bc585fde14e4404ba5a";
+          sha256 = "ZfIYwSX5lW/sh0dU13BUXR4nh4m9ozsIgC5oNl8LaBw=";
+      } + "/capture.zsh")
+    )
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
