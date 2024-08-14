@@ -21,6 +21,7 @@
       "deepl"
       "firefox"
       "google-chrome"
+      "joplin"
       "karabiner-elements"
       "microsoft-remote-desktop"
       "nordvpn"
