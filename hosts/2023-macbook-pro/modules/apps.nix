@@ -21,6 +21,7 @@
       "deepl"
       "firefox"
       "google-chrome"
+      "gnucash"
       "joplin"
       "karabiner-elements"
       "microsoft-remote-desktop"
