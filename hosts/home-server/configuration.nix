@@ -51,8 +51,10 @@
 
   # Configure keymap in X11
   services.xserver = {
-    layout = "jp";
-    xkbVariant = "";
+    xkb = {
+      variant = "";
+      layout = "jp";
+    };
   };
 
   # Configure console keymap
@@ -61,8 +63,6 @@
   # Enable CUPS to print documents.
   services.printing.enable = false;
 
-  # Enable sound with pipewire.
-  sound.enable = true;
   hardware.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
@@ -94,8 +94,8 @@
   };
 
   # Enable automatic login for the user.
-  services.xserver.displayManager.autoLogin.enable = true;
-  services.xserver.displayManager.autoLogin.user = "patate";
+  services.displayManager.autoLogin.enable = true;
+  services.displayManager.autoLogin.user = "patate";
 
   # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
   systemd.services."getty@tty1".enable = false;
@@ -111,7 +111,7 @@
     #  wget
     git
     vim
-    gnome.gnome-tweaks
+    gnome-tweaks
     gnomeExtensions.dock-from-dash
     usbutils
   ];
@@ -153,20 +153,20 @@
   programs.dconf.enable = true;
 
   environment.gnome.excludePackages = (with pkgs; [
-    gnome-photos
-    gnome-tour
-  ]) ++ (with pkgs.gnome; [
     cheese # webcam tool
-    gnome-music
-    gedit # text editor
     epiphany # web browser
     geary # email reader
+    gnome-photos
+    gnome-tour
+    gedit
+    yelp # Help view
+  ]) ++ (with pkgs.gnome; [
+    gnome-music
     gnome-characters
     tali # poker game
     iagno # go game
     hitori # sudoku game
     atomix # puzzle game
-    yelp # Help view
     gnome-contacts
     gnome-initial-setup
   ]);
