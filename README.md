@@ -51,3 +51,33 @@ Following runs, once nix tools are installed globally:
 ```bash
 darwin-rebuild -- switch --flake .
 ```
+
+### GnuCash
+
+While the software works well when installed using HomeBrew (I didn't try with direct nix install),
+I couldn't not figure out a declarative way to make the automatic retrieval of exchange rates work.
+
+Using multiple currencies is explained [here](https://www.gnucash.org/docs/v5/C/gnucash-guide/chapter_currency.html)
+but making the automatic retrieval is explained [here](https://www.gnucash.org/docs/v5/C/gnucash-manual/finance-quote.html).
+
+The main command is to run `sudo /Applications/Gnucash.app/Contents/Resources/bin/gnc-fq-update`.
+Unfortunately, this does not work fully.
+The rest is explained [here](https://www.reddit.com/r/GnuCash/comments/12c250i/online_quotes_stopped_working/).
+
+I'm not 100% sure what are the minimal steps to make it work, but those ended up working:
+- Follow [those steps](https://www.reddit.com/r/GnuCash/comments/12c250i/comment/jh1y9ao/)
+  - `sudo perl -MCPAN -e shell`
+  - `install App::cpanminus`
+  - `exit`
+  - `sudo cpanm --uninstall Finance::Quote`
+  - `sudo cpanm --uninstall JSON::Parse`
+  - Quit Terminal and re-open with Rosetta enabled
+  - `sudo /Applications/Gnucash.app/Contents/Resources/bin/gnc-fq-update`
+- Now, following [this](https://www.reddit.com/r/GnuCash/comments/12c250i/comment/kuq2fgq/), run:
+  - `sudo cpanm --force Finance::Quote`
+- And back to the first link, test that it worked:
+  - `/Applications/Gnucash.app/Contents/MacOS/gnucash-cli --quotes info`
+  - It works if you get a list of APIs and not an error message
+- Lastly, one step that was harder to find, following [this](https://wiki.gnucash.org/wiki/Online_Quotes#Source_Alphavantage.2C_US):
+  - Get a Free API key on the Alpha Vantage [site](https://www.alphavantage.co/) (I already have one in LastPass, in `AlphaVantage API key`)
+  - Set it in `GnuCash Preferences > Online Quotes > Alpha Vantage API Key`
