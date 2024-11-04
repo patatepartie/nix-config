@@ -37,7 +37,6 @@ in
     #   echo "Hello, ${config.home.username}!"
     # '')
 
-    pkgs.awscli2
     pkgs.circleci-cli
     pkgs.curl
     pkgs.fzf
