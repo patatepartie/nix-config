@@ -8,7 +8,12 @@
 
   homebrew = {
     enable = true;
-    global.autoUpdate = true;
+    global.autoUpdate = false;
+
+    onActivation = {
+      autoUpdate = true;
+      upgrade = true;
+    };
 
     brews = [
       "docker-credential-helper-ecr"

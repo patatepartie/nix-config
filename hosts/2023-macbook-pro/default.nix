@@ -1,4 +1,4 @@
-{ nix-darwin, home-manager, nix-homebrew, ... }:
+{ nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "aarch64-darwin";
@@ -17,6 +17,11 @@ nix-darwin.lib.darwinSystem {
 
         # User owning the Homebrew prefix
         user = "cyrilledru";
+
+        taps = {
+          "homebrew/homebrew-core" = homebrew-core;
+          "homebrew/homebrew-cask" = homebrew-cask;
+        };
       };
     }
 
