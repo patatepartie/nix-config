@@ -30,7 +30,6 @@
       "gnucash"
       "joplin"
       "karabiner-elements"
-      "kitty"
       "microsoft-remote-desktop"
       "nordvpn"
       "p4v"
