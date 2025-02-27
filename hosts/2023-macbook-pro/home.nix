@@ -118,8 +118,17 @@ in
     ];
 
     extraConfig = {
+      branch = {
+        sort = "committerdate";
+      };
       color = {
         ui = true;
+      };
+      column = {
+        ui = "auto";
+      };
+      commit = {
+        verbose = true;
       };
       core = {
         editor = "vim";
@@ -129,17 +138,26 @@ in
         helper = "osxkeychain";
       };
       diff = {
+        algorithm = "histogram";
+        colorMoved = true;
+        mnemonicPrefix = true;
+        renames = true;
         wsErrorHighlight = "all";
       };
       fetch = {
         prune = true;
+        pruneTags = true;
+        all = true;
+      };
+      help = {
+        autocorrect = "prompt";
       };
       init = {
         defaultBranch = "master";
       };
       merge = {
         tool = "p4merge";
-        conflictStyle = "diff3";
+        conflictStyle = "zdiff3";
       };
       mergetool = {
         keepBackup = false;
@@ -155,6 +173,18 @@ in
       };
       push = {
         default = "simple";
+        autoSetupRemote = true;
+      };
+      rebase = {
+        autoSquash = true;
+        updateRefs = true;
+      };
+      rerere = {
+        enabled = true;
+        autoUpdate = true;
+      };
+      tag = {
+        sort = "version:refname";
       };
     };
   };
