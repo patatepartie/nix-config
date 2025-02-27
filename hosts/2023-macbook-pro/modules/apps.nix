@@ -26,6 +26,7 @@
       "balenaetcher"
       "deepl"
       "firefox"
+      "ghostty"
       "google-chrome"
       "gnucash"
       "joplin"
