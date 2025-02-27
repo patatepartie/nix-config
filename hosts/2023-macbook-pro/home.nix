@@ -239,68 +239,71 @@ in
     mutableExtensionsDir = false;
     profiles.default = {
       enableUpdateCheck = false;
-      # To upgrade an extension, find the new version on the marketplace, replace it, then use lib.sha256 for the sha256 attribute.
+      # To upgrade an extension, find the new version on the marketplace, replace it below, then use lib.fakeSha256 as the value for the sha256 attribute.
       # Apply the change, then copy the "got" value from the error message and paste it in the sha256 attribute.
       extensions = pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "copilot";
           publisher = "github";
-          version = "1.222.0";
-          sha256 = "sha256-VnZkBXm4lU+QMAVF4D5jpwOiRwBf80EWeKZoxN2gKfs=";
+          version = "1.276.1400";
+          sha256 = "sha256-yi2uqrSmFfMl8hz7e17PE483binEWJAunpfaP+8y1Uk=";
         }
+        # To find the correct version, check the vscode version in the About dialog, then use the following command:
+        # nix run nixpkgs#vsce -- show github.copilot-chat --json | less
+        # and look for the version that matches the vscode version.
         {
           name = "copilot-chat";
           publisher = "github";
-          version = "0.19.2024073102";
-          sha256 = "sha256-ekRBmJiAav1gITWlqBOuWtZMt1YZeseF+3fw326db/s=";
+          version = "0.24.2025021302";
+          sha256 = "sha256-+lb+fo5PvEvWrQlyMi72SJ8bVwd8zTU2tDK+jJJSkPA=";
         }
         {
           name = "nix-ide";
           publisher = "jnoortheen";
-          version = "0.3.3";
-          sha256 = "sha256-/vBbErwwecQhsqQwnw8ijooof8DPWt85symLQQtBC+Y=";
+          version = "0.4.12";
+          sha256 = "sha256-3pXypgAwg/iEBUqPeNsyoX2oYqlKMVdemEhmhy1PuGU=";
         }
         {
           name = "prettier-vscode";
           publisher = "esbenp";
-          version = "10.4.0";
-          sha256 = "sha256-8+90cZpqyH+wBgPFaX5GaU6E02yBWUoB+T9C2z2Ix8c=";
+          version = "11.0.0";
+          sha256 = "sha256-pNjkJhof19cuK0PsXJ/Q/Zb2H7eoIkfXJMLZJ4lDn7k=";
         }
         {
           name = "python";
           publisher = "ms-python";
-          version = "2024.13.2024081301";
-          sha256 = "sha256-XHx7DOw27k945+KNjfbod0D6AqUnfLHDTXKCz0e38ho=";
+          version = "2025.1.2025022501";
+          sha256 = "sha256-hPVT86Uvok4BAKbbB6FhjWxQoEY/TWVKCliEn/+QNWY=";
         }
         {
           name = "rainbow-csv";
           publisher = "mechatroner";
-          version = "3.12.0";
-          sha256 = "sha256-pnHaszLa4a4ptAubDUY+FQX3F6sQQUQ/sHAxyZsbhcQ=";
+          version = "3.17.0";
+          sha256 = "sha256-qny0LU0+Q38H0BMC4Njk173KDuLjebxZN3Bg8vSDVLA=";
         }
         {
           name = "remote-containers";
           publisher = "ms-vscode-remote";
-          version = "0.381.0";
-          sha256 = "sha256-qGDLpEHQBB1x++KD+xrcJTs8oGmZJXjsUojfG3TwczI=";
+          version = "0.400.0";
+          sha256 = "sha256-UXgyFzzM19Elpdtza6zwXxSGg69ddBwVIe+m0anc9AE=";
         }
         {
           name = "ruby-lsp";
           publisher = "shopify";
-          version = "0.7.15";
-          sha256 = "sha256-8Ycoq8M9DT7aTOH4qb/oknLl3KpINDdbrQxf44mV+KQ";
+          version = "0.9.7";
+          sha256 = "sha256-7vLT5vvqqwT0Tlt/iHXW0ktp2It7l+lxUWNJEljIp4c=";
         }
         {
           name = "terraform";
           publisher = "hashicorp";
-          version = "2.33.2024080812";
-          sha256 = "sha256-4tr77tXoE/HUM3YU0Kz1760tfBOlXDygpdlPaa+PrSg=";
+          version = "2.34.2025012311";
+          sha256 = "sha256-SmADVhgysDDvmI2/FZHoNWfgSrcxQfJTJj4ZgxOxjhc=";
         }
         {
           name = "vscode-yaml";
           publisher = "redhat";
-          version = "1.15.0";
-          sha256 = "sha256-NhlLNYJryKKRv+qPWOj96pT2wfkiQeqEip27rzl2C0M=";
+          version = "1.16.0";
+          sha256 = "sha256-3cuonI98gVFE/GwPA7QCA1LfSC8oXqgtV4i6iOngwhk=";
         }
       ];
       userSettings = {
