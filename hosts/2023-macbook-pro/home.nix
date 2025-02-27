@@ -55,12 +55,13 @@ in
     pkgs.ruby_3_3
 
     (pkgs.writeShellScriptBin "capture.zsh"
-      (pkgs.fetchFromGitHub {
+      (pkgs.fetchFromGitHub
+        {
           owner = "Valodim";
           repo = "zsh-capture-completion";
           rev = "740fce754393513d57408bc585fde14e4404ba5a";
           sha256 = "ZfIYwSX5lW/sh0dU13BUXR4nh4m9ozsIgC5oNl8LaBw=";
-      } + "/capture.zsh")
+        } + "/capture.zsh")
     )
   ];
 
@@ -235,127 +236,129 @@ in
 
   programs.vscode = {
     enable = true;
-    enableUpdateCheck = false;
     mutableExtensionsDir = false;
-    # To upgrade an extension, find the new version on the marketplace, replace it, then use lib.sha256 for the sha256 attribute.
-    # Apply the change, then copy the "got" value from the error message and paste it in the sha256 attribute.
-    extensions = pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-      {
-        name = "copilot";
-        publisher = "github";
-        version = "1.222.0";
-        sha256 = "sha256-VnZkBXm4lU+QMAVF4D5jpwOiRwBf80EWeKZoxN2gKfs=";
-      }
-      {
-        name = "copilot-chat";
-        publisher = "github";
-        version = "0.19.2024073102";
-        sha256 = "sha256-ekRBmJiAav1gITWlqBOuWtZMt1YZeseF+3fw326db/s=";
-      }
-      {
-        name = "nix-ide";
-        publisher = "jnoortheen";
-        version = "0.3.3";
-        sha256 = "sha256-/vBbErwwecQhsqQwnw8ijooof8DPWt85symLQQtBC+Y=";
-      }
-      {
-        name = "prettier-vscode";
-        publisher = "esbenp";
-        version = "10.4.0";
-        sha256 = "sha256-8+90cZpqyH+wBgPFaX5GaU6E02yBWUoB+T9C2z2Ix8c=";
-      }
-      {
-        name = "python";
-        publisher = "ms-python";
-        version = "2024.13.2024081301";
-        sha256 = "sha256-XHx7DOw27k945+KNjfbod0D6AqUnfLHDTXKCz0e38ho=";
-      }
-      {
-        name = "rainbow-csv";
-        publisher = "mechatroner";
-        version = "3.12.0";
-        sha256 = "sha256-pnHaszLa4a4ptAubDUY+FQX3F6sQQUQ/sHAxyZsbhcQ=";
-      }
-      {
-        name = "remote-containers";
-        publisher = "ms-vscode-remote";
-        version = "0.381.0";
-        sha256 = "sha256-qGDLpEHQBB1x++KD+xrcJTs8oGmZJXjsUojfG3TwczI=";
-      }
-      {
-        name = "ruby-lsp";
-        publisher = "shopify";
-        version = "0.7.15";
-        sha256 = "sha256-8Ycoq8M9DT7aTOH4qb/oknLl3KpINDdbrQxf44mV+KQ";
-      }
-      {
-        name = "terraform";
-        publisher = "hashicorp";
-        version = "2.33.2024080812";
-        sha256 = "sha256-4tr77tXoE/HUM3YU0Kz1760tfBOlXDygpdlPaa+PrSg=";
-      }
-      {
-        name = "vscode-yaml";
-        publisher = "redhat";
-        version = "1.15.0";
-        sha256 = "sha256-NhlLNYJryKKRv+qPWOj96pT2wfkiQeqEip27rzl2C0M=";
-      }
-    ];
-    userSettings = {
-      "aws.samcli.lambdaTimeout" = 1234;
-      "files.autoSave" = "afterDelay";
-      "files.trimTrailingWhitespace" = true;
-      "files.insertFinalNewline" = true;
-      "files.trimFinalNewlines" = true;
-      "editor.tabSize" = 2;
-      "editor.minimap.enabled" = false;
-      "editor.inlineSuggest.enabled" = true;
-      "explorer.autoReveal" = false;
-      "explorer.confirmDelete" = false;
-      "extensions.autoUpdate" = false;
-      "extensions.ignoreRecommendations" = true;
-      "github.copilot.enable" = {
-        "*" = true;
-        "plaintext" = false;
-        "markdown" = false;
-        "scminput" = false;
-        "yaml" = false;
-      };
-      "nix.enableLanguageServer" = true;
-      "nix.serverPath" = "nil";
-      "nix.serverSettings" = {
-        "nil" = {
-          "formatting" = {
-            "command" = [
-              "nixpkgs-fmt"
-            ];
+    profiles.default = {
+      enableUpdateCheck = false;
+      # To upgrade an extension, find the new version on the marketplace, replace it, then use lib.sha256 for the sha256 attribute.
+      # Apply the change, then copy the "got" value from the error message and paste it in the sha256 attribute.
+      extensions = pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+        {
+          name = "copilot";
+          publisher = "github";
+          version = "1.222.0";
+          sha256 = "sha256-VnZkBXm4lU+QMAVF4D5jpwOiRwBf80EWeKZoxN2gKfs=";
+        }
+        {
+          name = "copilot-chat";
+          publisher = "github";
+          version = "0.19.2024073102";
+          sha256 = "sha256-ekRBmJiAav1gITWlqBOuWtZMt1YZeseF+3fw326db/s=";
+        }
+        {
+          name = "nix-ide";
+          publisher = "jnoortheen";
+          version = "0.3.3";
+          sha256 = "sha256-/vBbErwwecQhsqQwnw8ijooof8DPWt85symLQQtBC+Y=";
+        }
+        {
+          name = "prettier-vscode";
+          publisher = "esbenp";
+          version = "10.4.0";
+          sha256 = "sha256-8+90cZpqyH+wBgPFaX5GaU6E02yBWUoB+T9C2z2Ix8c=";
+        }
+        {
+          name = "python";
+          publisher = "ms-python";
+          version = "2024.13.2024081301";
+          sha256 = "sha256-XHx7DOw27k945+KNjfbod0D6AqUnfLHDTXKCz0e38ho=";
+        }
+        {
+          name = "rainbow-csv";
+          publisher = "mechatroner";
+          version = "3.12.0";
+          sha256 = "sha256-pnHaszLa4a4ptAubDUY+FQX3F6sQQUQ/sHAxyZsbhcQ=";
+        }
+        {
+          name = "remote-containers";
+          publisher = "ms-vscode-remote";
+          version = "0.381.0";
+          sha256 = "sha256-qGDLpEHQBB1x++KD+xrcJTs8oGmZJXjsUojfG3TwczI=";
+        }
+        {
+          name = "ruby-lsp";
+          publisher = "shopify";
+          version = "0.7.15";
+          sha256 = "sha256-8Ycoq8M9DT7aTOH4qb/oknLl3KpINDdbrQxf44mV+KQ";
+        }
+        {
+          name = "terraform";
+          publisher = "hashicorp";
+          version = "2.33.2024080812";
+          sha256 = "sha256-4tr77tXoE/HUM3YU0Kz1760tfBOlXDygpdlPaa+PrSg=";
+        }
+        {
+          name = "vscode-yaml";
+          publisher = "redhat";
+          version = "1.15.0";
+          sha256 = "sha256-NhlLNYJryKKRv+qPWOj96pT2wfkiQeqEip27rzl2C0M=";
+        }
+      ];
+      userSettings = {
+        "aws.samcli.lambdaTimeout" = 1234;
+        "files.autoSave" = "afterDelay";
+        "files.trimTrailingWhitespace" = true;
+        "files.insertFinalNewline" = true;
+        "files.trimFinalNewlines" = true;
+        "editor.tabSize" = 2;
+        "editor.minimap.enabled" = false;
+        "editor.inlineSuggest.enabled" = true;
+        "explorer.autoReveal" = false;
+        "explorer.confirmDelete" = false;
+        "extensions.autoUpdate" = false;
+        "extensions.ignoreRecommendations" = true;
+        "github.copilot.enable" = {
+          "*" = true;
+          "plaintext" = false;
+          "markdown" = false;
+          "scminput" = false;
+          "yaml" = false;
+        };
+        "nix.enableLanguageServer" = true;
+        "nix.serverPath" = "nil";
+        "nix.serverSettings" = {
+          "nil" = {
+            "formatting" = {
+              "command" = [
+                "nixpkgs-fmt"
+              ];
+            };
           };
         };
+        "[css]" = {
+          "editor.defaultFormatter" = "esbenp.prettier-vscode";
+        };
+        "[html]" = {
+          "editor.defaultFormatter" = "esbenp.prettier-vscode";
+        };
+        "[javascript]" = {
+          "editor.defaultFormatter" = "esbenp.prettier-vscode";
+        };
+        "[json]" = {
+          "editor.defaultFormatter" = "esbenp.prettier-vscode";
+        };
+        "[jsonc]" = {
+          "editor.defaultFormatter" = "esbenp.prettier-vscode";
+        };
+        "[nix]" = {
+          "editor.defaultFormatter" = "jnoortheen.nix-ide";
+        };
+        "[python]" = {
+          "editor.insertSpaces" = true;
+          "editor.tabSize" = 4;
+        };
+        "editor.stickyScroll.enabled" = false;
+        "workbench.colorTheme" = "Default Dark+";
       };
-      "[css]" = {
-        "editor.defaultFormatter" = "esbenp.prettier-vscode";
-      };
-      "[html]" = {
-        "editor.defaultFormatter" = "esbenp.prettier-vscode";
-      };
-      "[javascript]" = {
-        "editor.defaultFormatter" = "esbenp.prettier-vscode";
-      };
-      "[json]" = {
-        "editor.defaultFormatter" = "esbenp.prettier-vscode";
-      };
-      "[jsonc]" = {
-        "editor.defaultFormatter" = "esbenp.prettier-vscode";
-      };
-      "[nix]" = {
-        "editor.defaultFormatter" = "jnoortheen.nix-ide";
-      };
-      "[python]" = {
-        "editor.insertSpaces" = true;
-        "editor.tabSize" = 4;
-      };
-      "editor.stickyScroll.enabled" = false;
-      "workbench.colorTheme" = "Default Dark+";
     };
   };
 }

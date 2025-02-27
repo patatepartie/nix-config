@@ -1,7 +1,4 @@
 { pkgs, ... }: {
-  # Make sure the nix daemon always runs
-  services.nix-daemon.enable = true;
-
   # Necessary for using flakes on this system.
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
