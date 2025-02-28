@@ -37,9 +37,9 @@ in
     #   echo "Hello, ${config.home.username}!"
     # '')
 
-    pkgs.awscli2
     pkgs.circleci-cli
     pkgs.curl
+    pkgs.fzf
     pkgs.inetutils
     pkgs.jq
     pkgs.google-cloud-sdk
@@ -48,11 +48,21 @@ in
     pkgs.nixpkgs-fmt
     pkgs.ngrok
     pkgs.nmap
-    pkgs.mosquitto
+    pkgs.pipx
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
     pkgs.obsidian
-    pkgs.ruby_3_2
+    pkgs.ruby_3_3
+
+    (pkgs.writeShellScriptBin "capture.zsh"
+      (pkgs.fetchFromGitHub
+        {
+          owner = "Valodim";
+          repo = "zsh-capture-completion";
+          rev = "740fce754393513d57408bc585fde14e4404ba5a";
+          sha256 = "ZfIYwSX5lW/sh0dU13BUXR4nh4m9ozsIgC5oNl8LaBw=";
+        } + "/capture.zsh")
+    )
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
@@ -72,7 +82,6 @@ in
     # This does not work well with docker, because it creates a symlink which cannot be bind-mounted.
     # ".aws/config".source = dotfiles/aws/config;
     ".tmux".source = dotfiles/tmux;
-    ".mosquitto".source = dotfiles/mosquitto;
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
   };
 
@@ -109,8 +118,17 @@ in
     ];
 
     extraConfig = {
+      branch = {
+        sort = "committerdate";
+      };
       color = {
         ui = true;
+      };
+      column = {
+        ui = "auto";
+      };
+      commit = {
+        verbose = true;
       };
       core = {
         editor = "vim";
@@ -120,17 +138,26 @@ in
         helper = "osxkeychain";
       };
       diff = {
+        algorithm = "histogram";
+        colorMoved = true;
+        mnemonicPrefix = true;
+        renames = true;
         wsErrorHighlight = "all";
       };
       fetch = {
         prune = true;
+        pruneTags = true;
+        all = true;
+      };
+      help = {
+        autocorrect = "prompt";
       };
       init = {
         defaultBranch = "master";
       };
       merge = {
         tool = "p4merge";
-        conflictStyle = "diff3";
+        conflictStyle = "zdiff3";
       };
       mergetool = {
         keepBackup = false;
@@ -146,6 +173,18 @@ in
       };
       push = {
         default = "simple";
+        autoSetupRemote = true;
+      };
+      rebase = {
+        autoSquash = true;
+        updateRefs = true;
+      };
+      rerere = {
+        enabled = true;
+        autoUpdate = true;
+      };
+      tag = {
+        sort = "version:refname";
       };
     };
   };
@@ -173,6 +212,7 @@ in
     mouse = true;
 
     extraConfig = ''
+      set-option -g default-command "reattach-to-user-namespace -l zsh"
       bind-key -T copy-mode-vi 'y' send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
       bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
     '';
@@ -183,7 +223,6 @@ in
     enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
-
 
     history.share = false;
 
@@ -213,6 +252,7 @@ in
     '';
 
     initExtra = ''
+      eval "$(/opt/homebrew/bin/brew shellenv)"
       source "$BEALL_ROOT/completion.zsh"
     '';
 
@@ -220,7 +260,7 @@ in
       enable = true;
       custom = "$HOME/.oh-my-zsh-custom";
       theme = "af-magic";
-      plugins = [ "aliases" "brew" "git" "sublime" "tmux" "direnv" "gcloud" "beall-compose" ];
+      plugins = [ "aliases" "aws" "beall-compose" "brew" "direnv" "docker" "docker-compose" "git" "gcloud" "sublime" "tmux" ];
     };
   };
 
