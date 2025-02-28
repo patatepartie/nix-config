@@ -1,4 +1,4 @@
-{ nix-darwin, home-manager, ... }:
+{ nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "x86_64-darwin";
@@ -6,6 +6,25 @@ nix-darwin.lib.darwinSystem {
   modules = [
     ./modules/nix-core.nix
     ./modules/system.nix
+
+    nix-homebrew.darwinModules.nix-homebrew {
+      nix-homebrew = {
+        # Install Homebrew under the default prefix
+        enable = true;
+
+        # Apple Silicon Only: Also install Homebrew under the default Intel prefix for Rosetta 2
+        enableRosetta = true;
+
+        # User owning the Homebrew prefix
+        user = "cyrilledru";
+
+        taps = {
+          "homebrew/homebrew-core" = homebrew-core;
+          "homebrew/homebrew-cask" = homebrew-cask;
+        };
+      };
+    }
+
     ./modules/apps.nix
     ./modules/host-users.nix
 
