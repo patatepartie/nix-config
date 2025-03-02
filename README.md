@@ -1,4 +1,10 @@
-Login to LP
+### Installation
+
+#### Install nix
+
+Use the determinate installer: https://docs.determinate.systems/getting-started/individuals/
+
+#### Generate a new SSH Key
 
 https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 
@@ -35,13 +41,18 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-
 ssh -T git@github.com
 ```
 
+Create an entry for the SSH key in LastPass.
+
+#### Checkout the repository
+
 ```bash
 mkdir ~/Tech
 cd ~/Tech
-nix run nixpkgs#git -- clone git@github.com:patatepartie/nix-config.git
+nix run nixpkgs#git clone git@github.com:patatepartie/nix-config.git
 cd nix-config
 ```
 
+#### Initial
 First run:
 ```bash
 nix run nix-darwin -- switch --flake .
