@@ -39,7 +39,7 @@
 
   outputs = { nixpkgs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, ... }@inputs: {
     darwinConfigurations = {
-      "Cyrils-2018-MacBook-Pro" = import ./hosts/2018-macbook-pro { inherit inputs nix-darwin home-manager; };
+      "Cyrils-2018-MacBook-Pro" = import ./hosts/2018-macbook-pro { inherit inputs nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask; };
       "Cyrils-MacBook-Pro" = import ./hosts/2023-macbook-pro { inherit inputs nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask; };
     };
 
