@@ -28,6 +28,7 @@
       "firefox"
       "ghostty"
       "google-chrome"
+      "google-drive"
       "gnucash"
       "joplin"
       "karabiner-elements"
