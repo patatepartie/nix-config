@@ -108,6 +108,6 @@
     retroarchFull
     transmission_4-gtk
     vlc
-    chromium
+    google-chrome
   ];
 }
