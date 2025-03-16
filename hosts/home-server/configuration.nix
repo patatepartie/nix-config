@@ -63,7 +63,7 @@
   # Enable CUPS to print documents.
   services.printing.enable = false;
 
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -152,24 +152,23 @@
 
   programs.dconf.enable = true;
 
-  environment.gnome.excludePackages = (with pkgs; [
+  environment.gnome.excludePackages = with pkgs; [
+    atomix # puzzle game
     cheese # webcam tool
     epiphany # web browser
     geary # email reader
-    gnome-photos
-    gnome-tour
-    gedit
-    yelp # Help view
-  ]) ++ (with pkgs.gnome; [
-    gnome-music
     gnome-characters
-    tali # poker game
-    iagno # go game
-    hitori # sudoku game
-    atomix # puzzle game
     gnome-contacts
     gnome-initial-setup
-  ]);
+    gnome-music
+    gnome-photos
+    gnome-tour
+    iagno # go game
+    hitori # sudoku game
+    tali
+    gedit
+    yelp # Help view
+  ];
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
