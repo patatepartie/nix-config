@@ -17,6 +17,7 @@
 
     defaults = {
       NSGlobalDomain = {
+        ApplePressAndHoldEnabled = true;
         AppleShowAllExtensions = true;
         AppleTemperatureUnit = "Celsius";
         InitialKeyRepeat = 30;

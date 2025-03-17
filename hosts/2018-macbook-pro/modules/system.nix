@@ -16,6 +16,7 @@
 
     defaults = {
       NSGlobalDomain = {
+        ApplePressAndHoldEnabled = true;
         AppleShowAllExtensions = true;
         AppleTemperatureUnit = "Celsius";
         InitialKeyRepeat = 30;
@@ -38,8 +39,9 @@
       };
 
       dock = {
-        autohide = true;
+        autohide = false;
         largesize = 128;
+        orientation = "left";
       };
 
       finder = {
