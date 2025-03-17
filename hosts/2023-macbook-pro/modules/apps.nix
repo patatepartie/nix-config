@@ -18,6 +18,7 @@
     brews = [
       "awscli"
       "docker-credential-helper-ecr"
+      "mise"
     ];
 
     casks = [

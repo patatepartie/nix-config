@@ -335,6 +335,12 @@ in
           version = "1.16.0";
           sha256 = "sha256-3cuonI98gVFE/GwPA7QCA1LfSC8oXqgtV4i6iOngwhk=";
         }
+        {
+          name = "mise-vscode";
+          publisher = "hverlin";
+          version = "0.47.9";
+          sha256 = "sha256-tn97ARX5RC60z7W8I6Xg55E0KtK6ITUXA2sneRuMwa8=";
+        }
       ];
       userSettings = {
         "aws.samcli.lambdaTimeout" = 1234;
