@@ -1,4 +1,4 @@
-{ nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, ... }:
+{ nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "x86_64-darwin";
@@ -18,7 +18,11 @@ nix-darwin.lib.darwinSystem {
         taps = {
           "homebrew/homebrew-core" = homebrew-core;
           "homebrew/homebrew-cask" = homebrew-cask;
+          "homebrew/homebrew-bundle" = homebrew-bundle;
         };
+
+        autoMigrate = true;
+        mutableTaps = false;
       };
     }
 
