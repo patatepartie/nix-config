@@ -21,7 +21,6 @@ nix-darwin.lib.darwinSystem {
           "homebrew/homebrew-bundle" = homebrew-bundle;
         };
 
-        autoMigrate = true;
         mutableTaps = false;
       };
     }
