@@ -2,7 +2,8 @@
 
 #### Install nix
 
-Use the determinate installer: https://docs.determinate.systems/getting-started/individuals/
+Use the determinate installer: https://github.com/DeterminateSystems/nix-installer
+Make sure you reply "no" to the first question, so that you install the NixOS installer and not the determinate one.
 
 #### Generate a new SSH Key
 
@@ -53,14 +54,20 @@ cd nix-config
 ```
 
 #### Initial
-First run:
+
+Ensure your machine has the correct hostname (the one used in flake.nix), otherwise change it using:
+```bash
+sudo scutil --set HostName <newi_hostname>
+```
+
+Now, execute the first run:
 ```bash
 nix run nix-darwin -- switch --flake .
 ```
 
-Following runs, once nix tools are installed globally:
+The following runs, once nix tools are installed globally, will be:
 ```bash
-darwin-rebuild -- switch --flake .
+darwin-rebuild switch --flake .
 ```
 
 ### GnuCash
