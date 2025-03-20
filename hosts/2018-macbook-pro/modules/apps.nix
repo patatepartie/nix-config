@@ -20,14 +20,8 @@
     ];
 
     casks = [
-      "anki"
-      "balenaetcher"
       "firefox"
       "p4v"
-      "postman"
-      "spotify"
-      "steam"
-      "transmission"
       "vlc"
     ];
   };
