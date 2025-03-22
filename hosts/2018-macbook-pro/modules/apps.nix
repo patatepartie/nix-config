@@ -20,8 +20,11 @@
     ];
 
     casks = [
+      "google-chrome"
       "firefox"
+      "obsidian"
       "p4v"
+      "visual-studio-code@insiders"
       "vlc"
     ];
   };
