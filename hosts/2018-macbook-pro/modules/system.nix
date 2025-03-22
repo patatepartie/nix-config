@@ -46,8 +46,47 @@
 
       dock = {
         autohide = false;
-        largesize = 128;
         orientation = "left";
+        tilesize = 48;
+        largesize = 128;
+
+        show-recents = false;
+        mru-spaces = false;
+
+        persistent-apps = [
+          {
+            app = "/System/Applications/Launchpad.app";
+          }
+          {
+            app = "/Applications/Google Chrome.app";
+          }
+          {
+            app = "/Applications/Visual Studio Code - Insiders.app";
+          }
+          {
+            app = "/Applications/Obsidian.app";
+          }
+          {
+            app = "/Applications/Slack.app";
+          }
+          {
+            app = "/System/Applications/Utilities/Terminal.app";
+          }
+          {
+            app = "/Applications/Spotify.app";
+          }
+          {
+            app = "/System/Applications/Utilities/Activity Monitor.app";
+          }
+          {
+            app = "/System/Applications/System Settings.app";
+          }
+        ];
+
+        persistent-others = [
+          "/Users/cyrilledru/Tech"
+          "/Users/cyrilledru/Downloads"
+        ];
       };
 
       finder = {
