@@ -51,7 +51,6 @@ in
     pkgs.pipx
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
-    pkgs.obsidian
     pkgs.ruby_3_3
 
     (pkgs.writeShellScriptBin "capture.zsh"
