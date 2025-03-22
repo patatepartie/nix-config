@@ -32,6 +32,12 @@
         "com.apple.mouse.scaling" = 1.5;
       };
 
+      CustomUserPreferences = {
+        "com.apple.AppleMultitouchTrackpad" = {
+          TrackpadCornerSecondaryClick = 2;
+        };
+      };
+
       ActivityMonitor = {
         IconType = 6;
         OpenMainWindow = true;
