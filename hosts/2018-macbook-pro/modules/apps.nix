@@ -22,8 +22,11 @@
     casks = [
       "google-chrome"
       "firefox"
+      "microsoft-remote-desktop"
       "obsidian"
       "p4v"
+      "slack"
+      "spotify"
       "visual-studio-code@insiders"
       "vlc"
     ];
