@@ -25,7 +25,7 @@ nix-darwin.lib.darwinSystem {
       };
     }
 
-    ./modules/apps.nix
+    ./modules/apps
     ./modules/host-users.nix
 
     home-manager.darwinModules.home-manager
