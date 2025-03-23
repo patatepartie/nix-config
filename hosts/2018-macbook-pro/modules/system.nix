@@ -61,7 +61,7 @@
             app = "/Applications/Google Chrome.app";
           }
           {
-            app = "/Applications/Visual Studio Code - Insiders.app";
+            app = "/Applications/Visual Studio Code.app";
           }
           {
             app = "/Applications/Obsidian.app";
