@@ -9,7 +9,7 @@
     "google-drive"
     "gnucash"
     "karabiner-elements"
-    "microsoft-remote-desktop"
+    "windows-app"
     "obsidian"
     "nordvpn"
     "p4v"
