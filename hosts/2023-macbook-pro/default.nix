@@ -22,10 +22,12 @@ nix-darwin.lib.darwinSystem {
           "homebrew/homebrew-core" = homebrew-core;
           "homebrew/homebrew-cask" = homebrew-cask;
         };
+
+        autoMigrate = true;
       };
     }
 
-    ./modules/apps.nix
+    ./modules/apps
     ./modules/host-users.nix
 
     home-manager.darwinModules.home-manager

@@ -33,6 +33,12 @@
         "com.apple.mouse.scaling" = 1.5;
       };
 
+      CustomUserPreferences = {
+        "com.apple.AppleMultitouchTrackpad" = {
+          TrackpadCornerSecondaryClick = 2;
+        };
+      };
+
       ActivityMonitor = {
         IconType = 6;
         OpenMainWindow = true;
@@ -41,8 +47,65 @@
 
       dock = {
         autohide = false;
-        largesize = 128;
         orientation = "left";
+        tilesize = 48;
+        largesize = 128;
+
+        show-recents = false;
+        mru-spaces = false;
+
+        persistent-apps = [
+          {
+            app = "/System/Applications/Launchpad.app";
+          }
+          {
+            app = "/Applications/Google Chrome.app";
+          }
+          {
+            app = "/Applications/Firefox.app";
+          }
+          {
+            app = "/Applications/Visual Studio Code.app";
+          }
+          {
+            app = "/Applications/Slack.app";
+          }
+          {
+            app = "/System/Applications/Utilities/Terminal.app";
+          }
+          {
+            app = "/Applications/Obsidian.app";
+          }
+          {
+            app = "/Applications/Spotify.app";
+          }
+          {
+            app = "/System/Applications/Utilities/Activity Monitor.app";
+          }
+          {
+            app = "/Applications/Gnucash.app";
+          }
+          {
+            app = "/System/Applications/System Settings.app";
+          }
+          {
+            app = "/System/Applications/Calculator.app";
+          }
+          {
+            app = "/Applications/DeepL.app";
+          }
+          {
+            app = "/Applications/VLC.app";
+          }
+          {
+            app = "/Applications/Windows App.app";
+          }
+        ];
+
+        persistent-others = [
+          "/Users/cyrilledru/Tech"
+          "/Users/cyrilledru/Downloads"
+        ];
       };
 
       finder = {
