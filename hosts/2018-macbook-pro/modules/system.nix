@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ ... }: {
   system = {
     # Used for backwards compatibility, please read the changelog before changing.
     # $ darwin-rebuild changelog
@@ -26,6 +26,8 @@
 
         "com.apple.springing.enabled" = true;
         "com.apple.springing.delay" = 0.5;
+
+        "com.apple.trackpad.scaling" = 2.0;
       };
 
       ".GlobalPreferences" = {
