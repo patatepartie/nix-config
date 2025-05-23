@@ -83,6 +83,9 @@
           {
             app = "/System/Applications/System Settings.app";
           }
+          {
+            app = "/Applications/Gnucash.app";
+          }
         ];
 
         persistent-others = [
