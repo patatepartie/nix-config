@@ -83,9 +83,6 @@
             app = "/System/Applications/Utilities/Activity Monitor.app";
           }
           {
-            app = "/Applications/Gnucash.app";
-          }
-          {
             app = "/System/Applications/System Settings.app";
           }
           {

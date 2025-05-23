@@ -7,7 +7,6 @@
     "ghostty"
     "google-chrome"
     "google-drive"
-    "gnucash"
     "karabiner-elements"
     "windows-app"
     "obsidian"
