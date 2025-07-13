@@ -4,7 +4,9 @@
     # $ darwin-rebuild changelog
     stateVersion = 5;
 
-    activationScripts.postUserActivation.text = ''
+    primaryUser = "cyrilledru";
+
+    activationScripts.activateSettings.text = ''
       # Following line should allow us to avoid a logout/login cycle
       /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     '';

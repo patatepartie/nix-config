@@ -1,10 +1,12 @@
-{ pkgs, ... }: {
+{ ... }: {
   system = {
     # Used for backwards compatibility, please read the changelog before changing.
     # $ darwin-rebuild changelog
     stateVersion = 4;
 
-    activationScripts.postUserActivation.text = ''
+    primaryUser = "cyrilledru";
+
+    activationScripts.activateSettings.text = ''
       # Following line should allow us to avoid a logout/login cycle
       /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     '';

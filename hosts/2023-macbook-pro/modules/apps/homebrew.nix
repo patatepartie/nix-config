@@ -1,6 +1,6 @@
 { config, ... }: {
   # Install homebrew and prerequisites if not already present
-  system.activationScripts.preUserActivation.text = ''
+  system.activationScripts.ensureXcodeIsInstalled.text = ''
     if ! xcode-select --version 2>/dev/null; then
       $DRY_RUN_CMD xcode-select --install
     fi
