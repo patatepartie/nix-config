@@ -1,6 +1,6 @@
 { ... }: {
   homebrew.casks = [
-    "docker"
+    "docker-desktop"
     "google-chrome"
     "google-drive"
     "gnucash"
