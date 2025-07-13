@@ -1,7 +1,7 @@
 { ... }: {
   homebrew.casks = ["visual-studio-code"];
 
-  system.activationScripts.postUserActivation.text = ''
+  system.activationScripts.installVSCodeExtensions.text = ''
     install_command="/usr/local/bin/code"
     for package in esbenp.prettier-vscode github.copilot github.copilot-chat hashicorp.terraform jnoortheen.nix-ide \
       mechatroner.rainbow-csv ms-python.python ms-vscode-remote.remote-containers redhat.vscode-yaml shopify.ruby-lsp; do
