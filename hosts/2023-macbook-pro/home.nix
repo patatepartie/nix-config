@@ -83,6 +83,7 @@ in
     # ".aws/config".source = dotfiles/aws/config;
     ".tmux".source = dotfiles/tmux;
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
+    ".config/mise/config.toml".source = dotfiles/mise/config.toml;
   };
 
   # You can also manage environment variables but you will have to manually
