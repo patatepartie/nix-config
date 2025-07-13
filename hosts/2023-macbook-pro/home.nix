@@ -115,6 +115,7 @@ in
       ".DS_Store"
       "venv"
       ".vscode"
+      ".venv"
     ];
 
     extraConfig = {
