@@ -1,19 +1,20 @@
 { ... }: {
   homebrew.casks = [
-    "anki"
-    "balenaetcher"
-    "deepl"
+    { name = "anki"; greedy = true; }
+    { name = "balenaetcher"; greedy = true; }
+    { name = "deepl"; greedy = true; }
+    { name = "ghostty"; greedy = true; }
+    { name = "google-drive"; greedy = true; }
+    { name = "karabiner-elements"; greedy = true; }
+    { name = "windows-app"; greedy = true; }
+    { name = "obsidian"; greedy = true; }
+    { name = "nordvpn"; greedy = true; }
+    { name = "p4v"; greedy = true; }
+    { name = "spotify"; greedy = true; }
+    { name = "vlc"; greedy = true; }
+  ] ++ [
     "firefox"
-    "ghostty"
     "google-chrome"
-    "google-drive"
-    "karabiner-elements"
-    "windows-app"
-    "obsidian"
-    "nordvpn"
-    "p4v"
     "slack"
-    "spotify"
-    "vlc"
   ];
 }
