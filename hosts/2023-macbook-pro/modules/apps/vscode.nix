@@ -1,5 +1,7 @@
 { ... }: {
-  homebrew.casks = ["visual-studio-code"];
+  homebrew.casks = [
+    { name = "visual-studio-code"; greedy = true; }
+  ];
 
   system.activationScripts.installVSCodeExtensions.text = ''
     install_command="/opt/homebrew/bin/code"
