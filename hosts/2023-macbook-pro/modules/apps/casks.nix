@@ -2,6 +2,7 @@
   homebrew.casks = [
     { name = "anki"; greedy = true; }
     { name = "balenaetcher"; greedy = true; }
+    { name = "claude-code"; greedy = true; }
     { name = "deepl"; greedy = true; }
     { name = "ghostty"; greedy = true; }
     { name = "google-drive"; greedy = true; }
