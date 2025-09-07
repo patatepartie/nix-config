@@ -21,6 +21,7 @@
       "docker-credential-helper-ecr"
       "libyaml"
       "mise"
+      "uv"
     ];
 
     casks = [
