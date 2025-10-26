@@ -103,20 +103,11 @@ in
 
   programs.git = {
     enable = true;
-    userName = "Cyril Ledru";
-    userEmail = "cyril@lev-art.com";
 
-    lfs.enable = true;
+    settings = {
+      user.name = "Cyril Ledru";
+      user.email = "cyril@lev-art.com";
 
-    ignores = [
-      ".idea"
-      "*.iml"
-      ".DS_Store"
-      "venv"
-      ".vscode"
-    ];
-
-    extraConfig = {
       branch = {
         sort = "committerdate";
       };
@@ -186,6 +177,16 @@ in
         sort = "version:refname";
       };
     };
+
+    lfs.enable = true;
+
+    ignores = [
+      ".idea"
+      "*.iml"
+      ".DS_Store"
+      "venv"
+      ".vscode"
+    ];
   };
 
   programs.gh = {

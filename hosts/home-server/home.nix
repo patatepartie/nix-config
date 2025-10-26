@@ -13,14 +13,11 @@
 
   programs.git = {
     enable = true;
-    userName = "Cyril Ledru";
-    userEmail = "cyril.ledru@gmail.com";
 
-    ignores = [
-      "*.swp"
-    ];
+    settings = {
+      user.name = "Cyril Ledru";
+      user.email = "cyril.ledru@gmail.com";
 
-    extraConfig = {
       color = {
         ui = true;
       };
@@ -44,6 +41,10 @@
         default = "simple";
       };
     };
+
+    ignores = [
+      "*.swp"
+    ];
   };
 
   programs.zsh = {
