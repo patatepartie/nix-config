@@ -85,7 +85,7 @@
   users.users.patate = {
     isNormalUser = true;
     description = "Cyril Ledru";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "docker" "networkmanager" "wheel" ];
     packages = with pkgs; [
       firefox
       #  thunderbird
@@ -140,6 +140,10 @@
         settings.allow_anonymous = true;
       }
     ];
+  };
+
+  virtualisation.docker = {
+    enable = true;
   };
 
   # Open ports in the firewall.
