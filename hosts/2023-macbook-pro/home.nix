@@ -52,7 +52,7 @@ in
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
     pkgs.obsidian
-    pkgs.ruby_3_3
+    pkgs.ffmpeg
 
     (pkgs.writeShellScriptBin "capture.zsh"
       (pkgs.fetchFromGitHub
