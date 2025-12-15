@@ -38,6 +38,7 @@ in
     # '')
 
     pkgs.circleci-cli
+    pkgs.azure-cli
     pkgs.curl
     pkgs.fzf
     pkgs.inetutils
