@@ -37,9 +37,10 @@ in
     #   echo "Hello, ${config.home.username}!"
     # '')
 
+    (pkgs.azure-cli.withExtensions [ pkgs.azure-cli.extensions.quota ])
     pkgs.circleci-cli
-    pkgs.azure-cli
     pkgs.curl
+    pkgs.ffmpeg
     pkgs.fzf
     pkgs.inetutils
     pkgs.jq
@@ -52,8 +53,7 @@ in
     pkgs.pipx
     pkgs.reattach-to-user-namespace
     pkgs.ssm-session-manager-plugin
-    pkgs.obsidian
-    pkgs.ffmpeg
+    pkgs.terraform
 
     (pkgs.writeShellScriptBin "capture.zsh"
       (pkgs.fetchFromGitHub
