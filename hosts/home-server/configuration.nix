@@ -152,6 +152,32 @@
     ];
   };
 
+  # Enable Avahi daemon for mDNS
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;  # Enable .local resolution for the server itself
+    nssmdns6 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+      userServices = true;
+    };
+  };
+
+  systemd.services.avahi-publish-cash22 = {
+    description = "Publish cash22.local mDNS address";
+    after = [ "avahi-daemon.service" "network-online.target" ];
+    requires = [ "avahi-daemon.service" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.avahi}/bin/avahi-publish -a -R cash22.local 192.168.0.17";
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+  };
+
   virtualisation.docker = {
     enable = true;
   };
