@@ -178,6 +178,13 @@
     };
   };
 
+  # Backup directories for container data (bind-mounted into containers)
+  # Subdirectories owned by 1000:1000 to match container user
+  systemd.tmpfiles.rules = [
+    "d /var/lib/backup 0755 - - -"
+    "d /var/lib/backup/cash22 0755 1000 1000 -"
+  ];
+
   virtualisation.docker = {
     enable = true;
   };
