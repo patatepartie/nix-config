@@ -65,16 +65,19 @@
             app = "/Applications/Google Chrome.app";
           }
           {
-            app = "/Applications/Visual Studio Code.app";
+            app = "/Applications/Firefox.app";
           }
           {
-            app = "/Applications/Obsidian.app";
+            app = "/Applications/Visual Studio Code.app";
           }
           {
             app = "/Applications/Slack.app";
           }
           {
             app = "/System/Applications/Utilities/Terminal.app";
+          }
+          {
+            app = "/Applications/Obsidian.app";
           }
           {
             app = "/Applications/Spotify.app";
@@ -86,7 +89,16 @@
             app = "/System/Applications/System Settings.app";
           }
           {
+            app = "/System/Applications/Calculator.app";
+          }
+          {
             app = "/Applications/Gnucash.app";
+          }
+           {
+            app = "/Applications/VLC.app";
+          }
+          {
+            app = "/Applications/Windows App.app";
           }
         ];
 
