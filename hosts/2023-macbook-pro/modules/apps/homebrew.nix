@@ -15,16 +15,5 @@
     };
 
     taps = builtins.attrNames config.nix-homebrew.taps;
-
-    brews = [
-      "awscli"
-      "docker-credential-helper-ecr"
-      "libyaml"
-      "mise"
-      "uv"
-    ];
-
-    casks = [
-    ];
   };
 }
