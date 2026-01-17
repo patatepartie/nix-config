@@ -7,6 +7,7 @@
     { name = "ghostty"; greedy = true; }
     { name = "google-drive"; greedy = true; }
     { name = "karabiner-elements"; greedy = true; }
+    { name = "musescore"; greedy = true; }
     { name = "nordvpn"; greedy = true; }
     { name = "obsidian"; greedy = true; }
     { name = "p4v"; greedy = true; }
