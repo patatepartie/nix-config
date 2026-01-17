@@ -67,7 +67,7 @@ nix run nix-darwin -- switch --flake .
 
 The following runs, once nix tools are installed globally, will be:
 ```bash
-darwin-rebuild switch --flake .
+darwin-rebuild switch --sudo --flake .
 ```
 
 ### GnuCash
