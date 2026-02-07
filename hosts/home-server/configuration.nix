@@ -189,6 +189,39 @@
     enable = true;
   };
 
+  services.samba = {
+    enable = true;
+    openFirewall = true;
+    settings = {
+      global = {
+        workgroup = "WORKGROUP";
+        "server string" = "home-server";
+        "netbios name" = "home-server";
+        security = "user";
+        "hosts allow" = "192.168.0. 127.0.0.1 localhost";
+        "hosts deny" = "0.0.0.0/0";
+        "guest account" = "nobody";
+        "map to guest" = "bad user";
+      };
+      Downloads = {
+        path = "/home/patate/Downloads";
+        browseable = "yes";
+        "read only" = "no";
+        "guest ok" = "no";
+        "valid users" = "patate";
+        "create mask" = "0644";
+        "directory mask" = "0755";
+        "force user" = "patate";
+        "force group" = "users";
+      };
+    };
+  };
+
+  services.samba-wsdd = {
+    enable = true;
+    openFirewall = true;
+  };
+
   # Open ports in the firewall.
   networking.firewall.allowedTCPPorts = [ 1883 3389 51413 ];
   # networking.firewall.allowedUDPPorts = [ ... ];
