@@ -14,6 +14,7 @@
     { name = "vlc"; greedy = true; }
     { name = "windows-app"; greedy = true; }
   ] ++ [
+    "claude"
     "firefox"
     "google-chrome"
     "slack"
