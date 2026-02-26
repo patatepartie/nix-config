@@ -1,4 +1,4 @@
-{ nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, ... }:
+{ inputs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "aarch64-darwin";
@@ -35,9 +35,9 @@ nix-darwin.lib.darwinSystem {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
       home-manager.users."cyrilledru" = import ./home.nix;
-
-      # Optionally, use home-manager.extraSpecialArgs to pass
-      # arguments to home.nix
+      home-manager.extraSpecialArgs = {
+        pkgs-azure = inputs.nixpkgs-azure.legacyPackages.aarch64-darwin;
+      };
     }
   ];
 }

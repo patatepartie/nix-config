@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, pkgs-azure, ... }:
 let
   username = "cyrilledru";
 in
@@ -37,7 +37,7 @@ in
     #   echo "Hello, ${config.home.username}!"
     # '')
 
-    (pkgs.azure-cli.withExtensions [ pkgs.azure-cli.extensions.quota ])
+    (pkgs-azure.azure-cli.withExtensions [ pkgs-azure.azure-cli.extensions.quota ])
     pkgs.circleci-cli
     pkgs.curl
     pkgs.ffmpeg
