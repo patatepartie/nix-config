@@ -76,6 +76,9 @@
             app = "/System/Applications/Utilities/Terminal.app";
           }
           {
+            app = "/Applications/Ghostty.app";
+          }
+          {
             app = "/Applications/Obsidian.app";
           }
           {
