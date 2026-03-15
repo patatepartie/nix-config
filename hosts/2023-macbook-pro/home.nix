@@ -36,23 +36,32 @@ in
     # '')
 
     (pkgs-azure.azure-cli.withExtensions [ pkgs-azure.azure-cli.extensions.quota ])
+    pkgs.bat
+    pkgs.btop
     pkgs.circleci-cli
     pkgs.curl
+    pkgs.dust
+    pkgs.eza
+    pkgs.fd
     pkgs.ffmpeg
     pkgs.fzf
+    pkgs.google-cloud-sdk
     pkgs.inetutils
     pkgs.jq
     pkgs.just
-    pkgs.google-cloud-sdk
     pkgs.lastpass-cli
+    pkgs.ngrok
     pkgs.nil
     pkgs.nixpkgs-fmt
-    pkgs.ngrok
     pkgs.nmap
     pkgs.pipx
     pkgs.reattach-to-user-namespace
+    pkgs.ripgrep
+    pkgs.sd
     pkgs.ssm-session-manager-plugin
     pkgs.terraform
+    pkgs.tldr
+    pkgs.zoxide
 
     (pkgs.writeShellScriptBin "capture.zsh"
       (pkgs.fetchFromGitHub
@@ -291,6 +300,18 @@ in
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
+    shellAliases = {
+      cat = "bat --plain";
+      ls = "eza";
+      ll = "eza -l";
+      la = "eza -la";
+      tree = "eza --tree";
+      grep = "rg";
+      find = "fd";
+      du = "dust";
+      top = "btop";
+    };
+
     history.share = false;
 
     sessionVariables =
@@ -320,6 +341,7 @@ in
 
     initContent = ''
       eval "$(/opt/homebrew/bin/brew shellenv)"
+      eval "$(zoxide init zsh)"
       source "$BEALL_ROOT/completion.zsh"
     '';
 
