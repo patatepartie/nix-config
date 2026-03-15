@@ -106,6 +106,7 @@
   };
 
   home.packages = with pkgs; [
+    just
     transmission_4-gtk
     vlc
     google-chrome

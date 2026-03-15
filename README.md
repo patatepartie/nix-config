@@ -67,8 +67,18 @@ nix run nix-darwin -- switch --flake .
 
 The following runs, once nix tools are installed globally, will be:
 ```bash
-darwin-rebuild switch --sudo --flake .
+just switch
 ```
+
+### Common Commands
+
+All commands are defined in the `justfile`. Run `just` to see available recipes.
+
+| Command | Description |
+|---------|-------------|
+| `just update` | Update flake inputs |
+| `just switch` | Apply configuration (auto-detects machine) |
+| `just upgrade` | Update and apply in one step |
 
 ### GnuCash
 

@@ -42,6 +42,7 @@ in
     pkgs.fzf
     pkgs.inetutils
     pkgs.jq
+    pkgs.just
     pkgs.google-cloud-sdk
     pkgs.lastpass-cli
     pkgs.nil
