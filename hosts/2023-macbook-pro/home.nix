@@ -268,6 +268,18 @@ in
     '';
   };
 
+  programs.ghostty = {
+    enable = true;
+    package = null;
+    enableZshIntegration = true;
+    settings = {
+      theme = "Catppuccin Mocha";
+      desktop-notifications = true;
+      keybind = "option+backspace=text:\\x1b\\x7f";
+      macos-option-as-alt = true;
+    };
+  };
+
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
