@@ -40,6 +40,7 @@ in
     pkgs.btop
     pkgs.circleci-cli
     pkgs.curl
+    pkgs.delta
     pkgs.dust
     pkgs.eza
     pkgs.fd
@@ -134,13 +135,21 @@ in
       core = {
         editor = "vim";
         ignorecase = false;
+        pager = "delta";
       };
       credential = {
         helper = "osxkeychain";
       };
+      delta = {
+        navigate = true;
+        syntax-theme = "Catppuccin Mocha";
+        line-numbers = true;
+        side-by-side = true;
+        keep-plus-minus-markers = true;
+      };
       diff = {
         algorithm = "histogram";
-        colorMoved = true;
+        colorMoved = "default";
         mnemonicPrefix = true;
         renames = true;
         wsErrorHighlight = "all";
@@ -155,6 +164,9 @@ in
       };
       init = {
         defaultBranch = "master";
+      };
+      interactive = {
+        diffFilter = "delta --color-only";
       };
       merge = {
         tool = "p4merge";
