@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch",
+      "Bash(nix search:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:nixos.wiki)",
       "WebFetch(domain:nix-darwin.github.io)",
