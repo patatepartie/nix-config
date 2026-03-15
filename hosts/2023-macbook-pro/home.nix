@@ -286,6 +286,17 @@ in
       # Vi copy mode: v for visual selection, C-v for block selection
       bind -T copy-mode-vi v send -X begin-selection
       bind -T copy-mode-vi C-v send -X rectangle-toggle
+
+      # Fuzzy session switcher (replaces built-in tree picker)
+      bind s display-popup -E "tmux list-sessions -F '#S' | fzf --reverse | xargs tmux switch-client -t"
+
+      # Create new session from project directory
+      bind S display-popup -E "\
+        fd -t d --max-depth 5 --exclude '.*' --exclude node_modules . ~ | fzf --reverse | while read dir; do \
+          name=\$(basename \"\$dir\" | tr . _); \
+          tmux new-session -d -s \"\$name\" -c \"\$dir\" 2>/dev/null; \
+          tmux switch-client -t \"\$name\"; \
+        done"
     '';
   };
 
