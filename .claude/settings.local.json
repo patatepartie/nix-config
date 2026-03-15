@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(nix search:*)",
+      "Bash(just switch:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:nixos.wiki)",
       "WebFetch(domain:nix-darwin.github.io)",
