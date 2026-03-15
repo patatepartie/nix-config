@@ -26,9 +26,7 @@ in
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
-    # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
-    # # fonts?
-    # (pkgs.nerdfonts.override { fonts = [ "FantasqueSansMono" ]; })
+    pkgs.nerd-fonts.jetbrains-mono
 
     # # You can also create simple shell scripts directly inside your
     # # configuration. For example, this adds a command 'my-hello' to your
@@ -209,16 +207,63 @@ in
   };
 
   programs.tmux = {
-    enable = true;
-    clock24 = true;
+    aggressiveResize = true;
     baseIndex = 1;
-    historyLimit = 10000;
+    clock24 = true;
+    enable = true;
+    historyLimit = 100000;
     mouse = true;
+    keyMode = "vi";
+    plugins = with pkgs.tmuxPlugins; [
+      {
+        plugin = catppuccin;
+        extraConfig = ''
+          set -g @catppuccin_flavor "mocha"
+          set -g @catppuccin_window_status_style "rounded"
+          set -g @catppuccin_window_text " #W#{?window_zoomed_flag, Z,}"
+          set -g @catppuccin_window_current_text " #W#{?window_zoomed_flag, Z,}"
+        '';
+      }
+    ];
+    terminal = "tmux-256color";
 
     extraConfig = ''
-      set-option -g default-command "reattach-to-user-namespace -l zsh"
-      bind-key -T copy-mode-vi 'y' send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
-      bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
+      # Clipboard: pbcopy works in all macOS terminals; when fully on Ghostty,
+      # replace with OSC 52 clipboard passthrough (terminal-native, no pipe):
+      #   set -s set-clipboard on
+      set -s copy-command 'pbcopy'
+
+      # No delay after Escape (essential for vi copy mode)
+      set -s escape-time 0
+      set -g display-time 3000
+
+      # Keep explicit window names set by scripts
+      set -g allow-rename off
+      set -g automatic-rename off
+
+      # Status bar: session name on the right, window list on the left
+      set -g status-right-length 100
+      set -g status-right "#{E:@catppuccin_status_session}"
+      # Vi mode for copy, emacs for command prompt (prefix+:) where vi is lacking
+      set -g status-keys emacs
+
+      bind r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"
+
+      # Vim-style pane navigation (repeatable, re-zooms if zoomed)
+      bind -r h if -F "#{window_zoomed_flag}" "select-pane -L ; resize-pane -Z" "select-pane -L"
+      bind -r j if -F "#{window_zoomed_flag}" "select-pane -D ; resize-pane -Z" "select-pane -D"
+      bind -r k if -F "#{window_zoomed_flag}" "select-pane -U ; resize-pane -Z" "select-pane -U"
+      bind -r l if -F "#{window_zoomed_flag}" "select-pane -R ; resize-pane -Z" "select-pane -R"
+
+      # Vim-style pane resizing (repeatable, 5 cells per step)
+      bind -r H resize-pane -L 5
+      bind -r J resize-pane -D 5
+      bind -r K resize-pane -U 5
+      bind -r L resize-pane -R 5
+
+      # Vi copy mode: v for visual selection, C-v for block selection
+      bind -T copy-mode-vi v send -X begin-selection
+      bind -T copy-mode-vi C-v send -X rectangle-toggle
     '';
   };
 
