@@ -297,6 +297,9 @@ in
       bind -T copy-mode-vi v send -X begin-selection
       bind -T copy-mode-vi C-v send -X rectangle-toggle
 
+      # Toggle last session
+      bind Tab switch-client -l
+
       # Fuzzy session switcher (replaces built-in tree picker)
       bind s display-popup -E "tmux list-sessions -F '#S' | fzf --reverse | xargs tmux switch-client -t"
 
