@@ -36,7 +36,7 @@ in
     # '')
 
     (pkgs-azure.azure-cli.withExtensions [ pkgs-azure.azure-cli.extensions.quota ])
-    pkgs.bat
+    # bat installed via programs.bat below
     pkgs.btop
     pkgs.circleci-cli
     pkgs.curl
@@ -112,6 +112,16 @@ in
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  programs.bat = {
+    enable = true;
+    themes = {
+      "Catppuccin Mocha" = {
+        src = pkgs.catppuccin.override { variant = "mocha"; themeList = [ "bat" ]; };
+        file = "bat/Catppuccin Mocha.tmTheme";
+      };
+    };
+  };
 
   programs.git = {
     enable = true;
