@@ -6,6 +6,7 @@ let
 
   autoUpdateScript = pkgs.writeShellScript "nix-auto-update" ''
     set -euo pipefail
+    export PATH=/run/current-system/sw/bin:/usr/bin:/bin
 
     log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*"; }
 
