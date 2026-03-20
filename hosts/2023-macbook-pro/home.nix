@@ -1,4 +1,4 @@
-{ lib, pkgs, pkgs-azure, ... }:
+{ config, lib, pkgs, pkgs-azure, ... }:
 let
   username = "cyrilledru";
 in
@@ -93,6 +93,8 @@ in
     ".tmux".source = dotfiles/tmux;
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
     ".config/mise/config.toml".source = dotfiles/mise/config.toml;
+    ".config/karabiner".source = config.lib.file.mkOutOfStoreSymlink
+      "/Users/cyrilledru/Tech/nix-config/hosts/2023-macbook-pro/dotfiles/karabiner";
   };
 
   # You can also manage environment variables but you will have to manually
