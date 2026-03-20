@@ -1,18 +1,20 @@
-{ ... }: {
+{ ... }:
+let greedy = name: { inherit name; greedy = true; };
+in {
   homebrew.casks = [
-    { name = "anki"; greedy = true; }
-    { name = "balenaetcher"; greedy = true; }
-    { name = "claude-code"; greedy = true; }
-    { name = "deepl"; greedy = true; }
-    { name = "ghostty"; greedy = true; }
-    { name = "google-drive"; greedy = true; }
-    { name = "karabiner-elements"; greedy = true; }
-    { name = "nordvpn"; greedy = true; }
-    { name = "obsidian"; greedy = true; }
-    { name = "p4v"; greedy = true; }
-    { name = "spotify"; greedy = true; }
-    { name = "vlc"; greedy = true; }
-    { name = "windows-app"; greedy = true; }
+    (greedy "anki")
+    (greedy "balenaetcher")
+    (greedy "claude-code")
+    (greedy "deepl")
+    (greedy "ghostty")
+    (greedy "google-drive")
+    (greedy "karabiner-elements")
+    (greedy "nordvpn")
+    (greedy "obsidian")
+    (greedy "p4v")
+    (greedy "spotify")
+    (greedy "vlc")
+    (greedy "windows-app")
   ] ++ [
     "claude"
     "firefox"

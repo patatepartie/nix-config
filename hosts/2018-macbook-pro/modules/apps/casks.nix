@@ -1,13 +1,15 @@
-{ ... }: {
+{ ... }:
+let greedy = name: { inherit name; greedy = true; };
+in {
   homebrew.casks = [
-    { name = "gnucash"; greedy = true; }
-    { name = "google-drive"; greedy = true; }
-    { name = "obsidian"; greedy = true; }
-    { name = "p4v"; greedy = true; }
-    { name = "spotify"; greedy = true; }
-    { name = "vlc"; greedy = true; }
-    { name = "windows-app"; greedy = true; }
-  ]  ++ [
+    (greedy "gnucash")
+    (greedy "google-drive")
+    (greedy "obsidian")
+    (greedy "p4v")
+    (greedy "spotify")
+    (greedy "vlc")
+    (greedy "windows-app")
+  ] ++ [
     "docker-desktop"
     "firefox"
     "ghostty"
