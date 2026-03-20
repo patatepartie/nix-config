@@ -56,7 +56,6 @@ in
     pkgs.nixpkgs-fmt
     pkgs.nmap
     pkgs.pipx
-    pkgs.reattach-to-user-namespace
     pkgs.ripgrep
     pkgs.sd
     pkgs.ssm-session-manager-plugin
@@ -260,10 +259,8 @@ in
     terminal = "tmux-256color";
 
     extraConfig = ''
-      # Clipboard: pbcopy works in all macOS terminals; when fully on Ghostty,
-      # replace with OSC 52 clipboard passthrough (terminal-native, no pipe):
-      #   set -s set-clipboard on
-      set -s copy-command 'pbcopy'
+      set -s set-clipboard on
+      set -g default-command zsh
 
       # No delay after Escape (essential for vi copy mode)
       set -s escape-time 0
