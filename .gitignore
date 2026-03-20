@@ -1,0 +1,8 @@
+result
+.direnv/
+
+# Secrets and credentials
+.env*
+*.key
+*.pem
+**/dotfiles/aws/
