@@ -105,6 +105,25 @@
     };
   };
 
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "video/mp4" = [ "vlc.desktop" ];
+      "video/x-matroska" = [ "vlc.desktop" ];
+      "video/x-msvideo" = [ "vlc.desktop" ];
+      "video/webm" = [ "vlc.desktop" ];
+      "video/ogg" = [ "vlc.desktop" ];
+      "video/quicktime" = [ "vlc.desktop" ];
+      "video/x-flv" = [ "vlc.desktop" ];
+      "video/mpeg" = [ "vlc.desktop" ];
+      "audio/mpeg" = [ "vlc.desktop" ];
+      "audio/ogg" = [ "vlc.desktop" ];
+      "audio/flac" = [ "vlc.desktop" ];
+      "audio/x-wav" = [ "vlc.desktop" ];
+      "audio/mp4" = [ "vlc.desktop" ];
+    };
+  };
+
   home.packages = with pkgs; [
     just
     transmission_4-gtk
