@@ -60,7 +60,6 @@ in
   ];
 
   home.file = {
-    ".tmux".source = dotfiles/tmux;
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
   };
 

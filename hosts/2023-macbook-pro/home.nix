@@ -90,7 +90,6 @@ in
 
     # This does not work well with docker, because it creates a symlink which cannot be bind-mounted.
     # ".aws/config".source = dotfiles/aws/config;
-    ".tmux".source = dotfiles/tmux;
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
     ".config/mise/config.toml".source = dotfiles/mise/config.toml;
     ".config/karabiner".source = config.lib.file.mkOutOfStoreSymlink
