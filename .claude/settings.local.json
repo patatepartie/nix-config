@@ -5,6 +5,7 @@
       "Bash(nix-prefetch-url:*)",
       "Bash(just switch:*)",
       "Bash(claude hooks:*)",
+      "Bash(command tmux:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:nixos.wiki)",
       "WebFetch(domain:nix-darwin.github.io)",
