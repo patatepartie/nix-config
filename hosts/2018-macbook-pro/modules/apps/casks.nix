@@ -10,6 +10,7 @@
   ]  ++ [
     "docker-desktop"
     "firefox"
+    "ghostty"
     "google-chrome"
     "slack"
   ];

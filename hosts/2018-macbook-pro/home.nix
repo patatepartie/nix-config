@@ -20,39 +20,33 @@ in
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = [
-    # # Adds the 'hello' command to your environment. It prints a friendly
-    # # "Hello, world!" when run.
-    # pkgs.hello
+    pkgs.nerd-fonts.jetbrains-mono
 
-    # # It is sometimes useful to fine-tune packages, for example, by applying
-    # # overrides. You can do that directly here, just don't forget the
-    # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
-    # # fonts?
-    # (pkgs.nerdfonts.override { fonts = [ "FantasqueSansMono" ]; })
-
-    # # You can also create simple shell scripts directly inside your
-    # # configuration. For example, this adds a command 'my-hello' to your
-    # # environment:
-    # (pkgs.writeShellScriptBin "my-hello" ''
-    #   echo "Hello, ${config.home.username}!"
-    # '')
-
+    pkgs.btop
     pkgs.circleci-cli
     pkgs.curl
+    pkgs.delta
+    pkgs.dust
+    pkgs.eza
+    pkgs.fd
+    pkgs.ffmpeg
     pkgs.fzf
+    pkgs.google-cloud-sdk
     pkgs.inetutils
     pkgs.jq
     pkgs.just
-    pkgs.google-cloud-sdk
     pkgs.lastpass-cli
     pkgs.nil
     pkgs.nixpkgs-fmt
     pkgs.ngrok
     pkgs.nmap
     pkgs.pipx
-    pkgs.reattach-to-user-namespace
-    pkgs.ssm-session-manager-plugin
+    pkgs.ripgrep
     pkgs.ruby_3_3
+    pkgs.sd
+    pkgs.ssm-session-manager-plugin
+    pkgs.tldr
+    pkgs.zoxide
 
     (pkgs.writeShellScriptBin "capture.zsh"
       (pkgs.fetchFromGitHub
@@ -65,42 +59,26 @@ in
     )
   ];
 
-  # Home Manager is pretty good at managing dotfiles. The primary way to manage
-  # plain files is through 'home.file'.
   home.file = {
-    # # Building this configuration will create a copy of 'dotfiles/screenrc' in
-    # # the Nix store. Activating the configuration will then make '~/.screenrc' a
-    # # symlink to the Nix store copy.
-    # ".screenrc".source = dotfiles/screenrc;
-
-    # # You can also set the file content immediately.
-    # ".gradle/gradle.properties".text = ''
-    #   org.gradle.console=verbose
-    #   org.gradle.daemon.idletimeout=3600000
-    # '';
-
-    # This does not work well with docker, because it creates a symlink which cannot be bind-mounted.
-    # ".aws/config".source = dotfiles/aws/config;
     ".tmux".source = dotfiles/tmux;
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
   };
 
-  # You can also manage environment variables but you will have to manually
-  # source
-  #
-  #  ~/.nix-profile/etc/profile.d/hm-session-vars.sh
-  #
-  # or
-  #
-  #  /etc/profiles/per-user/cyrilledru/etc/profile.d/hm-session-vars.sh
-  #
-  # if you don't want to manage your shell through Home Manager.
   home.sessionVariables = {
-    # EDITOR = "emacs";
   };
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  programs.bat = {
+    enable = true;
+    themes = {
+      "Catppuccin Mocha" = {
+        src = pkgs.catppuccin.override { variant = "mocha"; themeList = [ "bat" ]; };
+        file = "bat/Catppuccin Mocha.tmTheme";
+      };
+    };
+  };
 
   programs.git = {
     enable = true;
@@ -124,13 +102,21 @@ in
       core = {
         editor = "vim";
         ignorecase = false;
+        pager = "delta";
       };
       credential = {
         helper = "osxkeychain";
       };
+      delta = {
+        navigate = true;
+        syntax-theme = "Catppuccin Mocha";
+        line-numbers = true;
+        side-by-side = true;
+        keep-plus-minus-markers = true;
+      };
       diff = {
         algorithm = "histogram";
-        colorMoved = true;
+        colorMoved = "default";
         mnemonicPrefix = true;
         renames = true;
         wsErrorHighlight = "all";
@@ -145,6 +131,9 @@ in
       };
       init = {
         defaultBranch = "master";
+      };
+      interactive = {
+        diffFilter = "delta --color-only";
       };
       merge = {
         tool = "p4merge";
@@ -187,6 +176,7 @@ in
       ".DS_Store"
       "venv"
       ".vscode"
+      ".venv"
     ];
   };
 
@@ -206,17 +196,93 @@ in
   };
 
   programs.tmux = {
-    enable = true;
-    clock24 = true;
+    aggressiveResize = true;
     baseIndex = 1;
-    historyLimit = 10000;
+    clock24 = true;
+    enable = true;
+    historyLimit = 100000;
     mouse = true;
+    keyMode = "vi";
+    plugins = with pkgs.tmuxPlugins; [
+      {
+        plugin = catppuccin;
+        extraConfig = ''
+          set -g @catppuccin_flavor "mocha"
+          set -g @catppuccin_window_status_style "rounded"
+          set -g @catppuccin_window_text " #W#{?window_zoomed_flag, Z,}"
+          set -g @catppuccin_window_current_text " #W#{?window_zoomed_flag, Z,}"
+        '';
+      }
+    ];
+    terminal = "tmux-256color";
 
     extraConfig = ''
-      set-option -g default-command "reattach-to-user-namespace -l zsh"
-      bind-key -T copy-mode-vi 'y' send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
-      bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel 'reattach-to-user-namespace pbcopy'
+      set -s set-clipboard on
+      set -g default-command zsh
+
+      # No delay after Escape (essential for vi copy mode)
+      set -s escape-time 0
+      set -g display-time 3000
+
+      # Keep explicit window names set by scripts
+      set -g allow-rename off
+      set -g automatic-rename off
+
+      # Status bar: session name on the right, window list on the left
+      set -g status-right-length 100
+      set -g status-right "#{E:@catppuccin_status_session}"
+      # Vi mode for copy, emacs for command prompt (prefix+:) where vi is lacking
+      set -g status-keys emacs
+
+      bind r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"
+
+      # Vim-style pane navigation (repeatable, re-zooms if zoomed)
+      bind -r h if -F "#{window_zoomed_flag}" "select-pane -L ; resize-pane -Z" "select-pane -L"
+      bind -r j if -F "#{window_zoomed_flag}" "select-pane -D ; resize-pane -Z" "select-pane -D"
+      bind -r k if -F "#{window_zoomed_flag}" "select-pane -U ; resize-pane -Z" "select-pane -U"
+      bind -r l if -F "#{window_zoomed_flag}" "select-pane -R ; resize-pane -Z" "select-pane -R"
+
+      # Vim-style pane resizing (repeatable, 5 cells per step)
+      bind -r H resize-pane -L 5
+      bind -r J resize-pane -D 5
+      bind -r K resize-pane -U 5
+      bind -r L resize-pane -R 5
+
+      # Vi copy mode: v for visual selection, C-v for block selection
+      bind -T copy-mode-vi v send -X begin-selection
+      bind -T copy-mode-vi C-v send -X rectangle-toggle
+
+      # Toggle last session
+      bind Tab switch-client -l
+
+      # Fuzzy session switcher (replaces built-in tree picker)
+      bind s display-popup -E "tmux list-sessions -F '#S' | fzf --reverse | xargs tmux switch-client -t"
+
+      # Create new session from project directory
+      bind S display-popup -E "\
+        fd -t d --max-depth 5 --exclude '.*' --exclude node_modules . ~ | fzf --reverse | while read dir; do \
+          name=\$(basename \"\$dir\" | tr . _); \
+          tmux new-session -d -s \"\$name\" -c \"\$dir\" 2>/dev/null; \
+          tmux switch-client -t \"\$name\"; \
+        done"
     '';
+  };
+
+  programs.ghostty = {
+    enable = true;
+    package = null;
+    enableZshIntegration = true;
+    settings = {
+      theme = "Catppuccin Mocha";
+      desktop-notifications = true;
+      keybind = "option+backspace=text:\\x1b\\x7f";
+      macos-option-as-alt = true;
+    };
+  };
+
+  programs.fzf = {
+    enable = true;
+    enableZshIntegration = true;
   };
 
   programs.zsh = {
@@ -224,6 +290,18 @@ in
     enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
+
+    shellAliases = {
+      cat = "bat --plain";
+      ls = "eza";
+      ll = "eza -l";
+      la = "eza -la";
+      tree = "eza --tree";
+      grep = "rg";
+      find = "fd";
+      du = "dust";
+      top = "btop";
+    };
 
     history.share = false;
 
@@ -253,6 +331,8 @@ in
     '';
 
     initContent = ''
+      eval "$(/usr/local/bin/brew shellenv)"
+      eval "$(zoxide init zsh)"
       source "$BEALL_ROOT/completion.zsh"
     '';
 
