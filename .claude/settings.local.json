@@ -2,11 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(nix:*)",
+      "Bash(nix-prefetch-url:*)",
       "Bash(just switch:*)",
+      "Bash(claude hooks:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:nixos.wiki)",
       "WebFetch(domain:nix-darwin.github.io)",
-      "WebFetch(domain:discourse.nixos.org)"
+      "WebFetch(domain:discourse.nixos.org)",
+      "Read(//nix/store/**)",
+      "Glob(//nix/store/**)",
+      "Grep(//nix/store/**)"
     ]
   }
 }
