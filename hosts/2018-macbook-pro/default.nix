@@ -6,6 +6,7 @@ nix-darwin.lib.darwinSystem {
   modules = [
     ./modules/nix-core.nix
     ./modules/system.nix
+    ./modules/auto-update.nix
 
     nix-homebrew.darwinModules.nix-homebrew {
       nix-homebrew = {
