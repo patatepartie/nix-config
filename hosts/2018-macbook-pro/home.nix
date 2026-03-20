@@ -301,6 +301,7 @@ in
     settings = {
       theme = "Catppuccin Mocha";
       desktop-notifications = true;
+      command = "zsh -l -c 'tmux new-session -As main'";
       keybind = "option+backspace=text:\\x1b\\x7f";
       macos-option-as-alt = true;
     };
