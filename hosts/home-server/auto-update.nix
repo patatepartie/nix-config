@@ -55,6 +55,8 @@ in
   systemd.services.nix-auto-update = {
     description = "Auto-update nix configuration from GitHub";
     path = [ pkgs.git pkgs.nixos-rebuild ];
+    restartIfChanged = false;
+    stopIfChanged = false;
     serviceConfig = {
       Type = "oneshot";
       ExecStart = autoUpdateScript;
