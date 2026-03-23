@@ -11,6 +11,11 @@
       /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     '';
 
+    activationScripts.enableScreenSharing.text = ''
+      /bin/launchctl enable system/com.apple.screensharing
+      /bin/launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+    '';
+
     keyboard = {
       enableKeyMapping = true;
       remapCapsLockToControl = true;
