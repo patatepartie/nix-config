@@ -1,18 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(nix:*)",
-      "Bash(nix-prefetch-url:*)",
-      "Bash(just:*)",
       "Bash(claude hooks:*)",
       "Bash(command tmux:*)",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:nixos.wiki)",
-      "WebFetch(domain:nix-darwin.github.io)",
-      "WebFetch(domain:discourse.nixos.org)",
-      "Read(//nix/store/**)",
+      "Bash(gh run:*)",
+      "Bash(gh search:*)",
+      "Bash(just:*)",
+      "Bash(nix-prefetch-url:*)",
+      "Bash(nix:*)",
       "Glob(//nix/store/**)",
-      "Grep(//nix/store/**)"
+      "Grep(//nix/store/**)",
+      "Read(//nix/store/**)",
+      "WebFetch(domain:discourse.nixos.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:nix-darwin.github.io)",
+      "WebFetch(domain:nixos.wiki)",
+      "WebFetch(domain:support.apple.com)",
+      "WebFetch(domain:www.unix.com)"
     ]
   }
 }
