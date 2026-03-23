@@ -210,6 +210,8 @@ in
           set -g @catppuccin_window_status_style "rounded"
           set -g @catppuccin_window_text " #W#{?window_zoomed_flag, Z,}"
           set -g @catppuccin_window_current_text " #W#{?window_zoomed_flag, Z,}"
+          set -g status-right-length 100
+          set -g status-right "#{E:@catppuccin_status_session}"
         '';
       }
       {
@@ -245,6 +247,13 @@ in
       set -s set-clipboard on
       set -g default-command zsh
 
+      # Continuum's auto-restore races with plugin load order: it backgrounds
+      # restore from its run-shell, before assistant-resurrect sets the
+      # post-restore hooks. Disable it and trigger from here instead, after
+      # all plugins and extraConfig have loaded.
+      set -g @continuum-restore 'off'
+      run-shell 'start=$(tmux display-message -p -F "#{start_time}"); now=$(date +%s); if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ]; then sleep 1; "$(tmux show-option -gqv @resurrect-restore-script-path)"; fi &'
+
       # No delay after Escape (essential for vi copy mode)
       set -s escape-time 0
       set -g display-time 3000
@@ -253,9 +262,6 @@ in
       set -g allow-rename off
       set -g automatic-rename off
 
-      # Status bar: session name on the right, window list on the left
-      set -g status-right-length 100
-      set -g status-right "#{E:@catppuccin_status_session}"
       # Vi mode for copy, emacs for command prompt (prefix+:) where vi is lacking
       set -g status-keys emacs
 
