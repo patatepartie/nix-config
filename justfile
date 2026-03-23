@@ -8,12 +8,11 @@ update:
 
 # Apply configuration for the current machine
 switch:
-    #!/usr/bin/env bash
-    if [ "$(uname)" = "Darwin" ]; then
-        sudo darwin-rebuild switch --flake .
-    else
-        nixos-rebuild switch --sudo --flake .
-    fi
+    {{ if os() == "macos" { "sudo darwin-rebuild switch --flake ." } else { "nixos-rebuild switch --sudo --flake ." } }}
+
+# Build configuration without applying
+build:
+    {{ if os() == "macos" { "darwin-rebuild build --flake ." } else { "nixos-rebuild build --sudo --flake ." } }}
 
 # Update flake inputs and apply configuration
 upgrade: update switch
