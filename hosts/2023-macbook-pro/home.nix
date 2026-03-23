@@ -154,7 +154,7 @@ in
         navigate = true;
         syntax-theme = "Catppuccin Mocha";
         line-numbers = true;
-        side-by-side = true;
+        side-by-side = false;
         keep-plus-minus-markers = true;
       };
       diff = {
