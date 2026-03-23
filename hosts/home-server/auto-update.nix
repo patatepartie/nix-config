@@ -67,7 +67,7 @@ in
     description = "Daily nix auto-update";
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      OnCalendar = "*-*-* 19:00:00 UTC";
+      OnCalendar = "*-*-* 22:30:00 UTC";
       Persistent = true;
     };
   };

@@ -55,7 +55,7 @@ in
   launchd.daemons.nix-auto-update = {
     serviceConfig = {
       ProgramArguments = [ "${autoUpdateScript}" ];
-      StartCalendarInterval = [{ Hour = 4; Minute = 0; }];
+      StartCalendarInterval = [{ Hour = 7; Minute = 30; }];
       StandardOutPath = "/var/log/nix-auto-update.log";
       StandardErrorPath = "/var/log/nix-auto-update.log";
     };
