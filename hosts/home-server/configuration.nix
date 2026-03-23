@@ -145,6 +145,7 @@
     enable = true;
     listeners = [
       {
+        address = "192.168.0.17";
         acl = [ "pattern readwrite #" ];
         omitPasswordAuth = true;
         settings.allow_anonymous = true;
