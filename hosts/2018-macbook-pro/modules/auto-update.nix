@@ -35,9 +35,11 @@ let
 
     cd ${checkoutPath}
 
-    log "Pulling latest changes"
+    log "Syncing from origin"
     BEFORE=$(git rev-parse HEAD)
-    git pull --ff-only
+    git fetch origin
+    git reset --hard origin/main
+    git clean -fd
 
     AFTER=$(git rev-parse HEAD)
     if [ "$BEFORE" = "$AFTER" ]; then
@@ -46,7 +48,10 @@ let
     fi
 
     log "Rebuilding system ($BEFORE -> $AFTER)"
-    darwin-rebuild switch --flake ${checkoutPath}
+    if ! darwin-rebuild switch --flake ${checkoutPath}; then
+      notify_failure "darwin-rebuild switch failed ($BEFORE -> $AFTER)"
+      exit 1
+    fi
 
     log "Update complete"
   '';
