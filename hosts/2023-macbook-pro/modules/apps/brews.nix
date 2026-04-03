@@ -9,5 +9,6 @@
     "playwright-cli"
     "terminal-notifier"
     "uv"
+    "yt-dlp"
   ];
 }
