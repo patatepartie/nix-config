@@ -3,8 +3,6 @@
     "allow": [
       "Bash(claude hooks:*)",
       "Bash(command tmux:*)",
-      "Bash(gh run:*)",
-      "Bash(gh search:*)",
       "Bash(just:*)",
       "Bash(nix-prefetch-url:*)",
       "Bash(nix:*)",
@@ -18,5 +16,11 @@
       "WebFetch(domain:support.apple.com)",
       "WebFetch(domain:www.unix.com)"
     ]
+  },
+  "sandbox": {
+    "excludedCommands": ["just build", "just switch", "just upgrade"],
+    "filesystem": {
+      "allowWrite": ["~/.cache/nix"]
+    }
   }
 }
