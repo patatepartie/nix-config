@@ -4,7 +4,7 @@ in {
   homebrew.casks = [
     (greedy "anki")
     (greedy "balenaetcher")
-    (greedy "claude-code")
+    (greedy "claude-code@latest")
     (greedy "deepl")
     (greedy "ghostty")
     (greedy "google-drive")
