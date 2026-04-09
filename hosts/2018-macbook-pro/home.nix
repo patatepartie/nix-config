@@ -330,7 +330,6 @@ in
       ll = "eza -l";
       la = "eza -la";
       tree = "eza --tree";
-      grep = "rg";
       find = "fd";
       du = "dust";
       top = "btop";
