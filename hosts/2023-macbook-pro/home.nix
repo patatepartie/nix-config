@@ -416,7 +416,7 @@ in
 
     oh-my-zsh = {
       enable = true;
-      custom = "$HOME/.oh-my-zsh-custom";
+      custom = "/Users/${username}/.oh-my-zsh-custom";
       theme = "af-magic";
       plugins = [ "aliases" "aws" "beall-compose" "docker" "docker-compose" "git" "gcloud" "mise" "tmux" ];
     };
