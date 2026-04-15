@@ -246,6 +246,7 @@ in
 
     extraConfig = ''
       set -s set-clipboard on
+      set -g focus-events on
       set -g default-command zsh
 
       # Continuum's auto-restore races with plugin load order: it backgrounds
