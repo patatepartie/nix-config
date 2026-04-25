@@ -24,7 +24,13 @@
 
     nixpkgs-azure.url = "github:nixos/nixpkgs/d6c71932130818840fc8fe9509cf50be8c64634f";
 
-    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    nix-homebrew = {
+      url = "github:zhaofengli/nix-homebrew";
+      # Override pinned brew 5.1.1 with 5.1.7 to support new `depends_on :macos`
+      # cask syntax (bulk-migrated upstream 2026-04-24). Drop once nix-homebrew
+      # merges https://github.com/zhaofengli/nix-homebrew/pull/133.
+      inputs.brew-src.url = "github:Homebrew/brew/5.1.7";
+    };
 
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
