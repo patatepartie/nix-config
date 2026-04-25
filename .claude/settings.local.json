@@ -6,6 +6,17 @@
       "Bash(just:*)",
       "Bash(nix-prefetch-url:*)",
       "Bash(nix:*)",
+      "Bash(ssh home-server.local cat:*)",
+      "Bash(ssh home-server.local journalctl:*)",
+      "Bash(ssh home-server.local ls:*)",
+      "Bash(ssh home-server.local nixos-version:*)",
+      "Bash(ssh home-server.local systemctl is-active:*)",
+      "Bash(ssh home-server.local systemctl list-timers:*)",
+      "Bash(ssh home-server.local systemctl list-units:*)",
+      "Bash(ssh home-server.local systemctl status:*)",
+      "Bash(ssh home-server.local systemd-inhibit:*)",
+      "Bash(ssh home-server.local uname:*)",
+      "Bash(ssh home-server.local uptime:*)",
       "Glob(//nix/store/**)",
       "Grep(//nix/store/**)",
       "Read(//nix/store/**)",
@@ -18,7 +29,12 @@
     ]
   },
   "sandbox": {
-    "excludedCommands": ["just build", "just switch", "just upgrade"],
+    "excludedCommands": [
+      "just build",
+      "just switch",
+      "just upgrade",
+      "ssh home-server.local *"
+    ],
     "filesystem": {
       "allowWrite": ["~/.cache/nix"]
     }
