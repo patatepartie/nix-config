@@ -55,10 +55,7 @@ let
     switch_log=$(mktemp)
     trap 'rm -f "$switch_log"' EXIT
 
-    nixos-rebuild switch --flake ${checkoutPath} 2>&1 | tee "$switch_log" || true
-    switch_status=''${PIPESTATUS[0]}
-
-    if [ "$switch_status" -eq 0 ]; then
+    if nixos-rebuild switch --flake ${checkoutPath} 2>&1 | tee "$switch_log"; then
       log "Update complete"
       exit 0
     fi
