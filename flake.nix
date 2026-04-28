@@ -12,7 +12,13 @@
 
   inputs = {
     # Specify the source of Home Manager and Nixpkgs.
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # Pinned to a master rev containing the fix from nixpkgs PR #513971
+    # (issue #513543): the autoconf 2.73 / C23 stdenv-darwin migration
+    # broke zsh's `zsh_cv_sys_sigsuspend` probe, defining
+    # BROKEN_POSIX_SIGSUSPEND and compiling the racy sigprocmask+pause
+    # fallback in Src/signals.c. Tmux-spawned zsh hung on every `$(...)`.
+    # Bump back to nixos-unstable once the channel advances past a504cf27.
+    nixpkgs.url = "github:nixos/nixpkgs/c491dc050f21c536f3084c4d9975dd5e1be804d0";
     nix-darwin = {
       url = "github:LnL7/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,13 +30,7 @@
 
     nixpkgs-azure.url = "github:nixos/nixpkgs/d6c71932130818840fc8fe9509cf50be8c64634f";
 
-    nix-homebrew = {
-      url = "github:zhaofengli/nix-homebrew";
-      # Override pinned brew 5.1.1 with 5.1.7 to support new `depends_on :macos`
-      # cask syntax (bulk-migrated upstream 2026-04-24). Drop once nix-homebrew
-      # merges https://github.com/zhaofengli/nix-homebrew/pull/133.
-      inputs.brew-src.url = "github:Homebrew/brew/5.1.7";
-    };
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
 
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
