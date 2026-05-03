@@ -11,31 +11,31 @@ This is a Nix flake-based configuration for managing multiple machines:
 
 ## Common Commands
 
-### macOS (nix-darwin)
+Day-to-day operations go through `just` recipes (run `just --list` to see all of them):
 
-First-time setup:
+```bash
+just switch    # Apply configuration for the current machine
+just build     # Build without applying
+just update    # Update flake inputs (nix flake update)
+just upgrade   # update + switch
+```
+
+`just switch` dispatches on OS: `darwin-rebuild` on macOS, `nixos-rebuild` on NixOS. On the home-server, run it from a shell on the server itself.
+
+First-time setup on a new macOS host (before `just` is available):
+
 ```bash
 nix run nix-darwin -- switch --flake .
 ```
 
-Apply configuration changes:
-```bash
-sudo darwin-rebuild switch --flake .
-```
+## Conventions
 
-### NixOS (home-server)
+- Homebrew is managed declaratively by nix-homebrew. Never run mutating brew commands (`brew install`, `uninstall`, `bundle`, `cleanup`); declare casks/brews in `hosts/<host>/modules/apps/{casks,brews}.nix` and apply via `just switch`. Read-only commands (`brew list`, `brew info`) are fine.
+- Use `just` recipes for rebuilds rather than invoking `darwin-rebuild` / `nixos-rebuild` directly.
 
-Apply configuration changes (run on the server):
-```bash
-nixos-rebuild switch  --sudo --flake .
-```
+## Troubleshooting
 
-### Updating
-
-Update flake inputs:
-```bash
-nix flake update
-```
+When a rebuild or `just switch` fails with a recurring symptom, read `agents/instructions/troubleshooting.md` before attempting a fix. Currently covers: Homebrew cask install conflicts.
 
 ## Architecture
 
