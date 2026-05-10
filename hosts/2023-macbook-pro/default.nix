@@ -1,4 +1,4 @@
-{ inputs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, ... }:
+{ inputs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-gascity, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "aarch64-darwin";
@@ -22,6 +22,7 @@ nix-darwin.lib.darwinSystem {
         taps = {
           "homebrew/homebrew-core" = homebrew-core;
           "homebrew/homebrew-cask" = homebrew-cask;
+          "gastownhall/gascity" = homebrew-gascity;
         };
 
         autoMigrate = true;

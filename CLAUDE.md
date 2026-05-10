@@ -31,7 +31,7 @@ nix run nix-darwin -- switch --flake .
 ## Conventions
 
 - Homebrew is managed declaratively by nix-homebrew. Never run mutating brew commands (`brew install`, `uninstall`, `bundle`, `cleanup`); declare casks/brews in `hosts/<host>/modules/apps/{casks,brews}.nix` and apply via `just switch`. Read-only commands (`brew list`, `brew info`) are fine.
-- Use `just` recipes for rebuilds rather than invoking `darwin-rebuild` / `nixos-rebuild` directly.
+- Use `just` recipes for rebuilds rather than invoking `darwin-rebuild` / `nixos-rebuild` directly. Run `just switch` directly — do not ask the user to run it.
 
 ## Troubleshooting
 
