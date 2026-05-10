@@ -1,8 +1,9 @@
 { ... }: {
   homebrew.brews = [
     "awscli"
-    "gastownhall/gascity/gascity"
     "beads"
+    "flock"
+    "gastownhall/gascity/gascity"
     "docker-credential-helper-ecr"
     "googleworkspace-cli"
     "libyaml"

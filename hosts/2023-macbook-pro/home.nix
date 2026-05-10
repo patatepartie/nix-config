@@ -1,6 +1,22 @@
 { config, lib, pkgs, pkgs-azure, ... }:
 let
   username = "cyrilledru";
+  ghosttyTabInitScript = pkgs.writeShellScript "ghostty-tab-init" ''
+    decision=$(/opt/homebrew/bin/flock /tmp/ghostty-tab-init.lock /bin/sh -c '
+      if ! /opt/homebrew/bin/tmux has-session -t main 2>/dev/null; then
+        echo main
+      elif ! /opt/homebrew/bin/tmux -L gascity has-session -t gascity 2>/dev/null; then
+        echo gascity
+      else
+        echo shell
+      fi
+    ')
+    case "$decision" in
+      main)    exec zsh -l -c "tmux new-session -As main" ;;
+      gascity) exec zsh -l -c "/opt/homebrew/bin/tmux -L gascity new-session -As gascity" ;;
+      *)       exec zsh -l ;;
+    esac
+  '';
 in
 {
   # Home Manager needs a bit of information about you and the paths it should
@@ -298,7 +314,7 @@ in
       # post-restore hooks. Disable it and trigger from here instead, after
       # all plugins and extraConfig have loaded.
       set -g @continuum-restore 'off'
-      run-shell 'start=$(tmux display-message -p -F "#{start_time}"); now=$(date +%s); if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ]; then sleep 1; "$(tmux show-option -gqv @resurrect-restore-script-path)"; fi &'
+      run-shell 'start=$(tmux display-message -p -F "#{start_time}"); now=$(date +%s); socket=$(tmux display-message -p -F "#{socket_path}"); case "$socket" in */default) restore=1 ;; *) restore=0 ;; esac; if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ] && [ "$restore" = "1" ]; then sleep 1; "$(tmux show-option -gqv @resurrect-restore-script-path)"; fi &'
 
       # No delay after Escape (essential for vi copy mode)
       set -s escape-time 0
@@ -334,7 +350,7 @@ in
       bind Tab switch-client -l
 
       # Fuzzy session switcher (replaces built-in tree picker)
-      bind s display-popup -E "tmux list-sessions -F '#S' | fzf --reverse | xargs tmux switch-client -t"
+      bind s display-popup -E "/opt/homebrew/bin/tmux list-sessions -F '#S' | fzf --reverse | xargs /opt/homebrew/bin/tmux switch-client -t"
 
       # Create new session from project directory
       bind S display-popup -E "\
@@ -353,7 +369,7 @@ in
     settings = {
       theme = "Catppuccin Mocha";
       desktop-notifications = true;
-      command = "zsh -l -c 'tmux new-session -As main'";
+      command = "${ghosttyTabInitScript}";
       keybind = "option+backspace=text:\\x1b\\x7f";
       macos-option-as-alt = true;
     };
@@ -422,4 +438,5 @@ in
       plugins = [ "aliases" "aws" "beall-compose" "docker" "docker-compose" "git" "gcloud" "mise" "tmux" ];
     };
   };
+
 }
