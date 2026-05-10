@@ -226,6 +226,9 @@ in
       tag = {
         sort = "version:refname";
       };
+      beads = {
+        role = "maintainer";
+      };
     };
 
     lfs.enable = true;
