@@ -357,7 +357,7 @@ in
 
       # Create new session from project directory
       bind S display-popup -E "\
-        fd -t d --max-depth 5 --exclude '.*' --exclude node_modules . ~ | fzf --reverse | while read dir; do \
+        fd -t d --no-ignore-vcs --max-depth 5 --exclude '.*' --exclude node_modules . ~ | fzf --reverse | while read dir; do \
           name=\$(basename \"\$dir\" | tr . _); \
           tmux new-session -d -s \"\$name\" -c \"\$dir\" 2>/dev/null; \
           tmux switch-client -t \"\$name\"; \
