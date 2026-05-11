@@ -79,3 +79,7 @@ User environment configuration (dotfiles, shell config, git) is in `home.nix` fo
 ### Differences Between Hosts
 
 The two MacBook configurations are intentionally similar. When modifying one, consider whether the change should apply to both. The home-server has a different purpose (NixOS with GNOME desktop, Docker, Mosquitto MQTT, SSH server).
+
+## Working conventions
+
+@agents/instructions/working-in-this-repo.md
