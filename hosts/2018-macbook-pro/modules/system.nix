@@ -77,9 +77,6 @@
             app = "/Applications/Obsidian.app";
           }
           {
-            app = "/Applications/Claude.app";
-          }
-          {
             app = "/Applications/Spotify.app";
           }
           {

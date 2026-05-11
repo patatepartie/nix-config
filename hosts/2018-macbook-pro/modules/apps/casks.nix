@@ -9,7 +9,7 @@ in {
     (greedy "vlc")
     (greedy "windows-app")
   ] ++ [
-    "claude"
+    "claude-code"
     "firefox"
     "ghostty"
     "google-chrome"
