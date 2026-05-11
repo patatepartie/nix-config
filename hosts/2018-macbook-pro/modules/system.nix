@@ -68,16 +68,16 @@
             app = "/Applications/Firefox.app";
           }
           {
-            app = "/Applications/Visual Studio Code.app";
-          }
-          {
             app = "/Applications/Slack.app";
           }
           {
-            app = "/System/Applications/Utilities/Terminal.app";
+            app = "/Applications/Ghostty.app";
           }
           {
             app = "/Applications/Obsidian.app";
+          }
+          {
+            app = "/Applications/Claude.app";
           }
           {
             app = "/Applications/Spotify.app";
@@ -94,7 +94,7 @@
           {
             app = "/Applications/Gnucash.app";
           }
-           {
+          {
             app = "/Applications/VLC.app";
           }
           {

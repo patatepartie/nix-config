@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ pkgs, ... }:
 let
   username = "cyrilledru";
 in
@@ -23,7 +23,6 @@ in
     pkgs.nerd-fonts.jetbrains-mono
 
     pkgs.btop
-    pkgs.circleci-cli
     pkgs.curl
     pkgs.delta
     pkgs.dust
@@ -31,20 +30,12 @@ in
     pkgs.fd
     pkgs.ffmpeg
     pkgs.fzf
-    pkgs.google-cloud-sdk
     pkgs.inetutils
     pkgs.jq
     pkgs.just
-    pkgs.lastpass-cli
-    pkgs.nil
-    pkgs.nixpkgs-fmt
-    pkgs.ngrok
     pkgs.nmap
-    pkgs.pipx
     pkgs.ripgrep
-    pkgs.ruby_3_3
     pkgs.sd
-    pkgs.ssm-session-manager-plugin
     pkgs.tldr
     pkgs.zoxide
 
@@ -59,9 +50,7 @@ in
     )
   ];
 
-  home.file = {
-    ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
-  };
+  home.file = {};
 
   home.sessionVariables = {
   };
@@ -136,17 +125,12 @@ in
         diffFilter = "delta --color-only";
       };
       merge = {
-        tool = "p4merge";
+        tool = "vimdiff";
         conflictStyle = "zdiff3";
       };
       mergetool = {
         keepBackup = false;
         prompt = false;
-        p4merge = {
-          cmd = "p4merge \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"";
-          keepTemporaries = false;
-          trustExitCode = false;
-        };
       };
       pull = {
         ff = "only";
@@ -178,21 +162,6 @@ in
       ".vscode"
       ".venv"
     ];
-  };
-
-  programs.gh = {
-    enable = true;
-
-    settings = {
-      git_protocol = "https";
-      prompt = "enabled";
-
-      aliases = {
-        co = "pr checkout";
-        cw = "!git push -u origin HEAD && gh pr create -w";
-        cof = "!id=\"$(gh pr list -L100 | fzf | cut -f1)\"; [ -n \"$id\" ] && gh pr checkout \"$id\"";
-      };
-    };
   };
 
   programs.tmux = {
@@ -338,25 +307,10 @@ in
 
     history.share = false;
 
-    sessionVariables =
-      let
-        paths = [
-          "$BEALL_ROOT/bin"
-        ];
-        path = lib.concatStringsSep ":" paths;
-      in
-      {
-        LANG = "en_US.UTF-8";
-
-        LESS = "--no-init --quit-if-one-screen -R";
-
-        PATH = "${path}:$PATH";
-
-        BEALL_ROOT = "$HOME/Tech/Bespoke/beall";
-
-        # Disable annoying docker scan warning message before each build command
-        DOCKER_SCAN_SUGGEST = "false";
-      };
+    sessionVariables = {
+      LANG = "en_US.UTF-8";
+      LESS = "--no-init --quit-if-one-screen -R";
+    };
 
     envExtra = ''
       # See https://discourse.nixos.org/t/why-can-i-not-execute-a-new-version-of-nix-with-nix-shell/31032
@@ -366,14 +320,12 @@ in
     initContent = ''
       eval "$(/usr/local/bin/brew shellenv)"
       eval "$(zoxide init zsh)"
-      source "$BEALL_ROOT/completion.zsh"
     '';
 
     oh-my-zsh = {
       enable = true;
-      custom = "/Users/${username}/.oh-my-zsh-custom";
       theme = "af-magic";
-      plugins = [ "aliases" "aws" "beall-compose" "docker" "docker-compose" "git" "gcloud" "tmux" ];
+      plugins = [ "aliases" "git" "tmux" ];
     };
   };
 }

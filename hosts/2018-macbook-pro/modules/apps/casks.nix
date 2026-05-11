@@ -5,11 +5,11 @@ in {
     (greedy "gnucash")
     (greedy "google-drive")
     (greedy "obsidian")
-    (greedy "p4v")
     (greedy "spotify")
     (greedy "vlc")
     (greedy "windows-app")
   ] ++ [
+    "claude"
     "firefox"
     "ghostty"
     "google-chrome"
