@@ -9,7 +9,6 @@ in {
     (greedy "ghostty")
     (greedy "google-drive")
     (greedy "karabiner-elements")
-    (greedy "nordvpn")
     (greedy "obsidian")
     (greedy "p4v")
     (greedy "spotify")
