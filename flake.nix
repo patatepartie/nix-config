@@ -30,7 +30,10 @@
 
     nixpkgs-azure.url = "github:nixos/nixpkgs/d6c71932130818840fc8fe9509cf50be8c64634f";
 
-    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    nix-homebrew = {
+      url = "github:zhaofengli/nix-homebrew";
+      inputs.brew-src.url = "github:Homebrew/brew/5.1.11";
+    };
 
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
