@@ -30,14 +30,7 @@
 
     nixpkgs-azure.url = "github:nixos/nixpkgs/d6c71932130818840fc8fe9509cf50be8c64634f";
 
-    nix-homebrew = {
-      url = "github:zhaofengli/nix-homebrew";
-      # Workaround: nix-homebrew is pinned to Homebrew 5.1.10, which misparses
-      # recent cask formulae (balenaetcher, nordvpn, spotify failed with a
-      # bogus "does not run on macOS Monterey" error). 5.1.11 fixes it.
-      # Drop this override once nix-homebrew bumps past 5.1.11 — see issue #140.
-      inputs.brew-src.url = "github:Homebrew/brew/5.1.11";
-    };
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
 
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
