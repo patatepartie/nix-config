@@ -35,9 +35,20 @@ There are two independent mechanisms.
 
 **To force an immediate update on every host:** run `just upgrade` locally, then commit and push `flake.lock`. Each host's daemon will pick the new commit up on its next scheduled run. To skip the wait, also run `just switch` (or the underlying `darwin-rebuild` / `nixos-rebuild switch`) on each host. `just upgrade` alone only fixes the machine you ran it on.
 
-**Pinned inputs to watch for in `flake.nix`:**
-- `nixpkgs.url` may be set to an exact commit when an upstream regression breaks us. Check the comment immediately above the line — it should explain what the pin works around and when to remove it.
-- `nix-homebrew.inputs.brew-src.url` is pinned to a Homebrew CLI tag (e.g. `github:Homebrew/brew/5.1.11`). Independent of `flake update`; bump manually when needed.
+**Pinned inputs to watch for in `flake.nix`:** these are temporary workarounds, not established patterns — each one tracks a specific upstream issue and should be removed when it's resolved.
+- `nixpkgs.url` is currently pinned to a specific commit (not `nixos-unstable`) to work around an upstream regression. Check the comment immediately above the line for context and the unpin trigger.
+- `nix-homebrew.inputs.brew-src.url` is currently overridden to a specific Homebrew CLI tag (e.g. `github:Homebrew/brew/5.1.11`) to front-run a delayed nix-homebrew bump. Tracked by an upstream issue (currently nix-homebrew#140 for 5.1.11); drop the override once nix-homebrew bumps past the pinned version. The override is independent of `flake update` and must be bumped manually.
+
+To check whether either pin can be removed, see `agents/scripts/flake-input-freshness.sh`.
+
+## Diagnostic scripts
+
+Under `agents/scripts/`. Run from the repo root.
+
+- `agents/scripts/cask-version-gap.sh <cask-name>` — prints the cask version locked by `flake.lock`, the version `formulae.brew.sh` is currently advertising (this is the source claude-code's banner compares against), and the locally-installed version. Used to diagnose "Update available" banners and similar version-skew symptoms without manually curling raw.githubusercontent.com.
+- `agents/scripts/flake-input-freshness.sh [input-name]` — reports each `flake.lock` input's staleness against its upstream default branch via the GitHub commits API. With no argument scans every input; with an input name scans only that one. Useful to verify whether `nixpkgs` / `nix-homebrew` pins can be dropped, and to gauge how far behind `flake.lock` is overall.
+
+Both scripts use only the GitHub commits API and `formulae.brew.sh` — read-only public endpoints, no auth required. Prefer running them over ad-hoc `curl`s to `raw.githubusercontent.com` or similar.
 
 ## Homebrew
 

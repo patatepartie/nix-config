@@ -14,7 +14,12 @@ if echo "$prompt" | grep -qiE 'auto[- ]?update|cron|launchd|systemd timer|schedu
 fi
 
 if echo "$prompt" | grep -qiE 'claude[- ]?code|update available|brew upgrade claude'; then
-  context="${context}- The 'Update available! Run: brew upgrade claude-code' banner is emitted by claude-code itself (PackageManagerAutoUpdater), polling https://formulae.brew.sh/api/cask/claude-code.json on startup. brew bundle is bound to the homebrew-cask rev locked in flake.lock; the banner reflects upstream homebrew-cask, not your locked rev. See agents/instructions/troubleshooting.md and commit f78ccbe for the stable/latest channel history.
+  context="${context}- The 'Update available! Run: brew upgrade claude-code' banner is emitted by claude-code itself (PackageManagerAutoUpdater), polling https://formulae.brew.sh/api/cask/claude-code.json on startup. brew bundle is bound to the homebrew-cask rev locked in flake.lock; the banner reflects upstream homebrew-cask, not your locked rev. See agents/instructions/troubleshooting.md and commit f78ccbe for the stable/latest channel history. To diagnose without curling raw.githubusercontent.com, run agents/scripts/cask-version-gap.sh claude-code.
+"
+fi
+
+if echo "$prompt" | grep -qiE 'flake\.lock|flake input|pinned|brew-src|nixpkgs pin'; then
+  context="${context}- For pinned inputs and flake.lock freshness: agents/scripts/flake-input-freshness.sh [input-name] reports how far each locked input is behind its upstream default branch via the GitHub commits API. The brew-src and nixpkgs pins in flake.nix are tracked workarounds, not established practice — read the comments above the lines for the open upstream issue and the trigger to drop the override.
 "
 fi
 
