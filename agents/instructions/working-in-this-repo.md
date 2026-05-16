@@ -35,11 +35,7 @@ There are two independent mechanisms.
 
 **To force an immediate update on every host:** run `just upgrade` locally, then commit and push `flake.lock`. Each host's daemon will pick the new commit up on its next scheduled run. To skip the wait, also run `just switch` (or the underlying `darwin-rebuild` / `nixos-rebuild switch`) on each host. `just upgrade` alone only fixes the machine you ran it on.
 
-**Pinned inputs to watch for in `flake.nix`:** these are temporary workarounds, not established patterns — each one tracks a specific upstream issue and should be removed when it's resolved.
-- `nixpkgs.url` is currently pinned to a specific commit (not `nixos-unstable`) to work around an upstream regression. Check the comment immediately above the line for context and the unpin trigger.
-- `nix-homebrew.inputs.brew-src.url` is currently overridden to a specific Homebrew CLI tag (e.g. `github:Homebrew/brew/5.1.11`) to front-run a delayed nix-homebrew bump. Tracked by an upstream issue (currently nix-homebrew#140 for 5.1.11); drop the override once nix-homebrew bumps past the pinned version. The override is independent of `flake update` and must be bumped manually.
-
-To check whether either pin can be removed, see `agents/scripts/flake-input-freshness.sh`.
+**Watch for pinned inputs in `flake.nix`.** None active right now. When upstream regressions force a temporary pin (commit-pinned `nixpkgs.url`, an explicit `inputs.<name>.url` override on a sub-flake, etc.), the pin should carry a comment above the line explaining what it works around and the trigger to drop it. Treat any pin as a workaround that needs removing — not as established configuration. To check whether a pin can now be removed, run `agents/scripts/flake-input-freshness.sh [input-name]` and verify the upstream issue tracked by the pin's comment is resolved.
 
 ## Diagnostic scripts
 
