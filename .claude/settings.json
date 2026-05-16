@@ -1,7 +1,7 @@
 {
   "model": "sonnet",
   "alwaysThinkingEnabled": false,
-  "effortLevel": "low",
+  "effortLevel": "medium",
   "enabledPlugins": {
     "code-review@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": false,
@@ -36,6 +36,18 @@
       "WebFetch(domain:nixos.wiki)",
       "WebFetch(domain:support.apple.com)",
       "WebFetch(domain:www.unix.com)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-context.sh"
+          }
+        ]
+      }
     ]
   },
   "sandbox": {
