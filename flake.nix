@@ -11,14 +11,7 @@
   };
 
   inputs = {
-    # Specify the source of Home Manager and Nixpkgs.
-    # Pinned to a master rev containing the fix from nixpkgs PR #513971
-    # (issue #513543): the autoconf 2.73 / C23 stdenv-darwin migration
-    # broke zsh's `zsh_cv_sys_sigsuspend` probe, defining
-    # BROKEN_POSIX_SIGSUSPEND and compiling the racy sigprocmask+pause
-    # fallback in Src/signals.c. Tmux-spawned zsh hung on every `$(...)`.
-    # Bump back to nixos-unstable once the channel advances past a504cf27.
-    nixpkgs.url = "github:nixos/nixpkgs/c491dc050f21c536f3084c4d9975dd5e1be804d0";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nix-darwin = {
       url = "github:LnL7/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
