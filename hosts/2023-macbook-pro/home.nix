@@ -71,7 +71,6 @@ in
     pkgs.nil
     pkgs.nixpkgs-fmt
     pkgs.nmap
-    pkgs.pipx
     pkgs.ripgrep
     pkgs.sd
     pkgs.ssm-session-manager-plugin
