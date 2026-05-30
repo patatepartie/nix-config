@@ -7,6 +7,7 @@ in {
     (greedy "claude-code")
     (greedy "deepl")
     (greedy "ghostty")
+    (greedy "gnucash")
     (greedy "google-drive")
     (greedy "karabiner-elements")
     (greedy "obsidian")
