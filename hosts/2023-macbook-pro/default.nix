@@ -36,6 +36,7 @@ nix-darwin.lib.darwinSystem {
     {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
+      home-manager.backupFileExtension = "backup";
       home-manager.users."cyrilledru" = import ./home.nix;
       home-manager.extraSpecialArgs = {
         pkgs-azure = inputs.nixpkgs-azure.legacyPackages.aarch64-darwin;

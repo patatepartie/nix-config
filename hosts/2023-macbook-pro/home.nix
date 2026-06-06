@@ -405,6 +405,7 @@ in
       let
         paths = [
           "$BEALL_ROOT/bin"
+          "/Applications/Obsidian.app/Contents/MacOS"
         ];
         path = lib.concatStringsSep ":" paths;
       in
