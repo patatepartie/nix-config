@@ -20,5 +20,6 @@ in {
     "firefox"
     "google-chrome"
     "slack"
+    "transmission"
   ];
 }
