@@ -26,6 +26,8 @@ nix-darwin.lib.darwinSystem {
         };
 
         autoMigrate = true;
+
+        trust.taps = [ "gastownhall/gascity" ];
       };
     }
 
