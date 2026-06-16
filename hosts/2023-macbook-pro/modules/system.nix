@@ -68,9 +68,6 @@
             app = "/Applications/Slack.app";
           }
           {
-            app = "/System/Applications/Utilities/Terminal.app";
-          }
-          {
             app = "/Applications/Ghostty.app";
           }
           {
