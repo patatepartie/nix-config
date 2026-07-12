@@ -26,6 +26,33 @@ Some casks bundle multiple apps under one cask name. If the failing cask is know
 
 **Before doing this:** confirm the `.app` is actually unmanaged. The exact `.app` named in the error is the one to remove — do not extend the cleanup to other apps unless they are explicitly listed as bundled by the same cask.
 
+## Homebrew cask upgrade fails: "uninstall script does not exist"
+
+**Symptom.** `just switch` prints an error mid-upgrade but reports success anyway, and the cask ends up not installed:
+
+```
+Upgrading <cask>
+Upgrading <cask> has failed!
+Error: <cask>: uninstall script /Library/Application Support/<vendor>/scripts/uninstall/remove_files.sh does not exist.
+==> Purging files for version X.Y.Z of Cask <cask>
+==> Upgraded 1 outdated package
+<cask> A.B.C -> X.Y.Z
+`brew bundle` complete!
+```
+
+Despite the "Upgraded" line, `brew info --cask <cask>` shows the old version `(does not exist)` and the app is not actually present.
+
+**Cause.** The cask's uninstall step tries to run a script shipped by the old version's pkg (e.g. a driver kit uninstaller). If a previous failed upgrade or the app's own auto-updater already removed that script, Homebrew can't cleanly uninstall the old version, so the new pkg never installs. Homebrew's receipt DB still records the old version, causing subsequent `just switch` runs to attempt an upgrade (rather than a fresh install) and hit the same error in a loop.
+
+**Resolution.** Remove the cask from `casks.nix`, apply to uninstall it, then restore it to reinstall fresh:
+
+1. Comment out the cask in `hosts/<host>/modules/apps/casks.nix`
+2. `just switch` — nix-homebrew's `brew bundle --cleanup` uninstalls it, skipping the missing scripts with warnings
+3. Restore the cask in `casks.nix`
+4. `just switch` — installs the new version cleanly
+
+The app's user config (e.g. `~/.config/karabiner/`) is not touched by this process. After reinstall, macOS may prompt to re-approve a system extension if the app uses one.
+
 ## "Update available! Run: brew upgrade claude-code" banner persists
 
 **Symptom.** Every claude-code shell session prints `Update available! Run: brew upgrade claude-code`, even sessions that were just started, even after `just switch` ran.
