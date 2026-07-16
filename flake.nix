@@ -42,12 +42,17 @@
       url = "github:gastownhall/homebrew-gascity";
       flake = false;
     };
+
+    homebrew-circleci = {
+      url = "github:circleci-public/homebrew-circleci";
+      flake = false;
+    };
   };
 
-  outputs = { nixpkgs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, homebrew-gascity, ... }@inputs: {
+  outputs = { nixpkgs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, homebrew-gascity, homebrew-circleci, ... }@inputs: {
     darwinConfigurations = {
       "Cyrils-2018-MacBook-Pro" = import ./hosts/2018-macbook-pro { inherit inputs nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask homebrew-bundle; };
-      "Cyrils-MacBook-Pro" = import ./hosts/2023-macbook-pro { inherit inputs nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask homebrew-bundle homebrew-gascity; };
+      "Cyrils-MacBook-Pro" = import ./hosts/2023-macbook-pro { inherit inputs nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask homebrew-bundle homebrew-gascity homebrew-circleci; };
     };
 
     nixosConfigurations = {

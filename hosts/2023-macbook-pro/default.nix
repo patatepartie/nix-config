@@ -1,4 +1,4 @@
-{ inputs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-gascity, ... }:
+{ inputs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-gascity, homebrew-circleci, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "aarch64-darwin";
@@ -23,11 +23,12 @@ nix-darwin.lib.darwinSystem {
           "homebrew/homebrew-core" = homebrew-core;
           "homebrew/homebrew-cask" = homebrew-cask;
           "gastownhall/gascity" = homebrew-gascity;
+          "circleci-public/circleci" = homebrew-circleci;
         };
 
         autoMigrate = true;
 
-        trust.taps = [ "gastownhall/gascity" ];
+        trust.taps = [ "gastownhall/gascity" "circleci-public/circleci" ];
       };
     }
 

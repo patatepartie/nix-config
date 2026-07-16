@@ -4,6 +4,7 @@ in {
   homebrew.casks = [
     (greedy "anki")
     (greedy "balenaetcher")
+    (greedy "circleci-public/circleci/circleci@next")
     (greedy "claude-code")
     (greedy "deepl")
     (greedy "ghostty")

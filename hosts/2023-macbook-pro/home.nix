@@ -54,7 +54,6 @@ in
     (pkgs-azure.azure-cli.withExtensions [ pkgs-azure.azure-cli.extensions.quota ])
     # bat installed via programs.bat below
     pkgs.btop
-    pkgs.circleci-cli
     pkgs.curl
     pkgs.delta
     pkgs.dust
