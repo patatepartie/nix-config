@@ -12,8 +12,15 @@ Read the relevant section below before answering or running commands. The repo's
 | claude-code banner ("Update available")                     | `agents/instructions/troubleshooting.md`                           |
 | ssh / home-server commands                                  | "SSH to home-server.local" (below)                                 |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
+| starting any edit in this repo                               | "Sync before editing" (below)                                      |
 
 `just --list` shows every recipe. `just upgrade` = `nix flake update && just switch`; it only updates the machine you run it on — other hosts won't pick up the new `flake.lock` until you commit and push.
+
+## Sync before editing
+
+Before making any change in this repo, run `git fetch` and check the local branch against `origin/main` (`git status` after fetching, or `git rev-list --count HEAD..@{u}`). If local is behind, pull (fast-forward) before editing.
+
+The daily GitHub Action (see "How auto-updates work" below) pushes an "Upgrade flake" commit most days, often re-locking `flake.lock` inputs unrelated to whatever you're changing. Editing on a stale base and then hand-updating `flake.lock` for your own change can silently drop that commit's updates — there's no merge conflict to flag it, since `flake.lock` edits are usually non-overlapping. Fetching first avoids reconstructing the merge after the fact.
 
 ## How auto-updates work
 
