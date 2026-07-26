@@ -27,7 +27,6 @@
       "Bash(ssh home-server.local systemd-inhibit:*)",
       "Bash(ssh home-server.local uname:*)",
       "Bash(ssh home-server.local uptime:*)",
-      "Glob(//nix/store/**)",
       "Grep(//nix/store/**)",
       "Read(//nix/store/**)",
       "WebFetch(domain:discourse.nixos.org)",
