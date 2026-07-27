@@ -238,6 +238,7 @@ in
       "venv"
       ".vscode"
       ".venv"
+      ".playwright-cli"
     ];
   };
 
