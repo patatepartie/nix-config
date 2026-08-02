@@ -12,9 +12,12 @@
   programs.nix-index.enable = true;
 
   # do garbage collection weekly to keep disk usage low
+  # scheduled Monday 9am (machine-local time) instead of the nix-darwin default of
+  # Sunday 3:15am, which this laptop is reliably asleep for and so never actually ran
   nix.gc = {
     automatic = true;
-    options = "--delete-older-than 1w";
+    interval = [{ Hour = 9; Minute = 0; Weekday = 1; }];
+    options = "--delete-older-than 7d";
   };
 
   # Nix automatically detects files in the store that have identical contents,
