@@ -24,6 +24,16 @@
     nixpkgs-azure.url = "github:nixos/nixpkgs/d6c71932130818840fc8fe9509cf50be8c64634f";
 
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    # WORKAROUND: nix-homebrew (even at HEAD) still pins brew-src to 6.0.13,
+    # which lacks the InstallSteps DSL method `configure_clang_system` that
+    # current homebrew-core formulae (e.g. llvm) call in post_install_steps.
+    # Without this override `brew upgrade` aborts with
+    # "undefined local variable or method 'configure_clang_system'".
+    # 6.0.14 adds the method (Library/Homebrew/install_steps.rb).
+    # Drop this once nix-homebrew bumps its own brew-src past 6.0.14:
+    # check with `agents/scripts/flake-input-freshness.sh nix-homebrew` and
+    # inspect its flake.nix brew-src ref.
+    nix-homebrew.inputs.brew-src.url = "github:Homebrew/brew/6.0.14";
 
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
