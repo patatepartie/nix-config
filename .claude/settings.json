@@ -1,7 +1,5 @@
 {
-  "model": "sonnet",
   "alwaysThinkingEnabled": false,
-  "effortLevel": "medium",
   "enabledPlugins": {
     "code-review@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": false,
