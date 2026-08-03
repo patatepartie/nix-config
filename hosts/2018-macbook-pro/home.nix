@@ -1,6 +1,17 @@
 { pkgs, ... }:
 let
   username = "cyrilledru";
+  tmuxAssistantResurrect = pkgs.tmuxPlugins.mkTmuxPlugin {
+    pluginName = "tmux-assistant-resurrect";
+    rtpFilePath = "tmux-assistant-resurrect.tmux";
+    version = "unstable-2026-03-04";
+    src = pkgs.fetchFromGitHub {
+      owner = "timvw";
+      repo = "tmux-assistant-resurrect";
+      rev = "9e9792670211818b4ee0d9257e005f7290e95f91";
+      sha256 = "0ny2q1g5r2ss1jxyqspdz0lliyvxvl33rs5s8k63l0k6112lf8bb";
+    };
+  };
 in
 {
   # Home Manager needs a bit of information about you and the paths it should
@@ -50,7 +61,15 @@ in
     )
   ];
 
-  home.file = {};
+  home.file = {
+    # Stable path for the tmux-assistant-resurrect Claude Code hooks. The
+    # plugin's installer bakes its current nix-store path into the plain,
+    # unmanaged ~/.claude/settings.json and never rewrites it, so after a
+    # plugin rebuild + nix-gc that path 404s and SessionEnd errors on exit.
+    # settings.json references this fixed path; each switch repoints the link.
+    ".claude/tmux-resurrect-hooks".source =
+      "${tmuxAssistantResurrect}/share/tmux-plugins/tmux-assistant-resurrect/hooks";
+  };
 
   home.sessionVariables = {
   };
@@ -198,17 +217,7 @@ in
         '';
       }
       {
-        plugin = mkTmuxPlugin {
-          pluginName = "tmux-assistant-resurrect";
-          rtpFilePath = "tmux-assistant-resurrect.tmux";
-          version = "unstable-2026-03-04";
-          src = pkgs.fetchFromGitHub {
-            owner = "timvw";
-            repo = "tmux-assistant-resurrect";
-            rev = "9e9792670211818b4ee0d9257e005f7290e95f91";
-            sha256 = "0ny2q1g5r2ss1jxyqspdz0lliyvxvl33rs5s8k63l0k6112lf8bb";
-          };
-        };
+        plugin = tmuxAssistantResurrect;
       }
     ];
     terminal = "tmux-256color";
