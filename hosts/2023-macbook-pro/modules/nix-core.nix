@@ -20,6 +20,12 @@
     options = "--delete-older-than 7d";
   };
 
+  # capture nix-gc output so failures are diagnosable instead of silent
+  launchd.daemons.nix-gc.serviceConfig = {
+    StandardOutPath = "/var/log/nix-gc.log";
+    StandardErrorPath = "/var/log/nix-gc.log";
+  };
+
   # Nix automatically detects files in the store that have identical contents,
   # and replaces them with hard links to a single copy.
   nix.settings.auto-optimise-store = false;
