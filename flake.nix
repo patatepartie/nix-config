@@ -25,15 +25,29 @@
 
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
     # WORKAROUND: nix-homebrew (even at HEAD) still pins brew-src to 6.0.13,
-    # which lacks the InstallSteps DSL method `configure_clang_system` that
-    # current homebrew-core formulae (e.g. llvm) call in post_install_steps.
-    # Without this override `brew upgrade` aborts with
-    # "undefined local variable or method 'configure_clang_system'".
-    # 6.0.14 adds the method (Library/Homebrew/install_steps.rb).
-    # Drop this once nix-homebrew bumps its own brew-src past 6.0.14:
-    # check with `agents/scripts/flake-input-freshness.sh nix-homebrew` and
-    # inspect its flake.nix brew-src ref.
-    nix-homebrew.inputs.brew-src.url = "github:Homebrew/brew/6.0.14";
+    # which lags the InstallSteps DSL that current homebrew-core formulae use.
+    # Formulae keep adopting new DSL features faster than nix-homebrew bumps
+    # brew, so this recurs with a different method/keyword each time. So far:
+    # 6.0.14 added `configure_clang_system` (needed by llvm); 6.0.15 adds the
+    # `overwrite:` keyword to `symlink`, without which openssl@3 and every
+    # formula depending on it fail to read with
+    # "homebrew/core/openssl@3: unknown keyword: :overwrite".
+    # These are examples, not the whole problem — expect a new one next time.
+    # This pin is load-bearing: without it `just switch` broke continuously.
+    # Do NOT remove it, do NOT make it follow nix-homebrew's own brew-src, and
+    # do NOT auto-track brew's latest tag — tracking latest is equivalent to
+    # having no pin at all. Bump it BY HAND, only after verifying the target
+    # tag actually adds the missing DSL feature; procedure in
+    # agents/instructions/troubleshooting.md ("formula unreadable").
+    # Expect this to stay for a long time. It is "temporary" only in the sense
+    # that Homebrew's InstallSteps DSL migration will eventually settle; the
+    # exit condition (nix-homebrew bumping its own brew-src past this ref) has
+    # already failed to arrive twice, and upstream is further behind than we
+    # are. Do not treat a bump as progress toward removal — re-check the
+    # condition before assuming it: `agents/scripts/flake-input-freshness.sh
+    # nix-homebrew`, then inspect that repo's flake.nix brew-src ref and
+    # confirm it is >= the ref below.
+    nix-homebrew.inputs.brew-src.url = "github:Homebrew/brew/6.0.15";
 
     homebrew-core = {
       url = "github:homebrew/homebrew-core";

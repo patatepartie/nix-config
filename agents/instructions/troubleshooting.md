@@ -73,3 +73,59 @@ Historical note: the cask used to be referenced as `claude-code@latest`, which t
 - *Just this machine, right now*: `just upgrade` (= `nix flake update && just switch`). Updates `flake.lock` locally and rebuilds. Note: this does NOT push, so other hosts are still on the old `flake.lock` until you commit and push.
 - *Roll out to every host*: `just upgrade`, then `git add flake.lock && git commit -m "Upgrade flake" && git push`. Each host's auto-update daemon picks the new commit up at its next scheduled run; to skip the wait, run `just switch` on each host manually.
 - *Diagnose the gap first*: `agents/scripts/cask-version-gap.sh claude-code` (from the repo root) prints the locked, upstream (`formulae.brew.sh`), and installed versions side by side. If you also want to know whether `flake.lock`'s `homebrew-cask` rev is behind upstream `homebrew-cask` master in general: `agents/scripts/flake-input-freshness.sh homebrew-cask`. Compare before "fixing" — sometimes the gap is already closed and the banner is just from a long-running session that hasn't been restarted.
+
+## `just switch` fails: formula "unreadable" / unknown DSL keyword or method
+
+**Symptom.** `just switch` fails during `brew bundle`, with a formula reported as unreadable:
+
+```
+Warning: 'openssl@3' formula is unreadable: homebrew/core/openssl@3: unknown keyword: :overwrite
+Upgrading awscli has failed!
+`brew bundle` failed! 2 Brewfile dependencies failed to install
+error: recipe `switch` failed on line 11 with exit code 1
+```
+
+Other forms of the same failure: `undefined local variable or method 'configure_clang_system'`, or any `unknown keyword:` / `undefined ... method` naming an InstallSteps DSL feature. The named formula is often a low-level dependency (`openssl@3`), so the packages that visibly fail are unrelated ones that depend on it.
+
+**Cause.** Homebrew is migrating `homebrew-core` formulae to the declarative InstallSteps DSL and keeps adding methods and keywords to it. The nightly `nix flake update` Action advances `homebrew-core`/`homebrew-cask`, but **cannot** advance `brew` itself — `brew-src` is a hardcoded tag in `flake.nix` (see "Watch for pinned inputs" in `working-in-this-repo.md`). When a tap commit uses a DSL feature the pinned brew lacks, the formula fails to parse.
+
+There is no version contract to catch this: `homebrew-core` declares no minimum brew version, so the only symptom is a parse failure. (`compatibility_version` exists in brew but concerns dependency-upgrade minimisation, not DSL gating — it is not relevant here.)
+
+**The pin is deliberate and load-bearing. Do not remove it, and do not make it auto-track brew's latest tag** — auto-tracking latest is equivalent to having no pin, which is the state that caused continuous breakage. Upstream `nix-homebrew` is itself still on an older `brew-src` than this repo, so waiting for upstream to catch up does not resolve it either (tried; the gap did not close the next day). Manually bumping the pin is the accepted cost.
+
+**Expect recurrence, and expect the pin to persist.** This is not a one-off to be cleared. Each bump fixes the formula that broke today and buys time until `homebrew-core` adopts the next DSL feature; it is not progress toward removing the pin. Treat a recurrence as routine maintenance, not as evidence that the previous fix was wrong.
+
+**Resolution.** Bump the pin to the brew version that adds the missing feature.
+
+1. Identify the failing keyword/method from the error (e.g. `:overwrite`).
+2. Find the newest brew tag: `curl -s https://api.github.com/repos/Homebrew/brew/releases/latest | grep tag_name`
+3. **Verify before bumping** that the candidate version actually adds the feature — do not assume newest is sufficient:
+   ```sh
+   curl -s https://raw.githubusercontent.com/Homebrew/brew/<TAG>/Library/Homebrew/install_steps.rb | grep -n -A6 "def <method>"
+   ```
+   For the `openssl@3` case: `def symlink` gained an `overwrite:` parameter in 6.0.15.
+
+   Most InstallSteps DSL features live in `install_steps.rb`, but do not assume it. If that grep finds nothing, search the whole tree rather than concluding the version is wrong — the method may live elsewhere or be inherited:
+   ```sh
+   grep -rn "def <method>\|<keyword>:" $(readlink /opt/homebrew/Library/Homebrew)/
+   ```
+   That greps the *currently installed* brew. To check a candidate tag before bumping, clone shallowly to a temp dir and grep that, or browse the tag on GitHub. Only conclude the feature is absent after searching the whole `Library/Homebrew/` tree.
+4. Edit the `nix-homebrew.inputs.brew-src.url` tag in `flake.nix` and update the comment above it to record the new keyword.
+5. Re-lock **only** that input, so the nightly Action's other updates are not swept in:
+   ```sh
+   nix flake lock --update-input nix-homebrew/brew-src
+   ```
+   Confirm it stayed scoped: `git diff flake.lock` should touch only the `brew-src` node. If other inputs moved, you ran a full `nix flake update` by mistake — revert and redo.
+6. `just switch`, then confirm the previously-failing formula reads: `brew info --formula <name>`. Also check that the packages which failed actually upgraded — `brew bundle` reports success even when a formula was merely skipped.
+
+If `just switch` still fails naming a *different* keyword or formula, repeat from step 1; each missing DSL feature may have landed in a different brew release.
+
+If the newest brew tag does **not** yet contain the needed method, brew has not shipped it — wait for the next brew release rather than pinning the taps backwards.
+
+**Trap: the store path name lies about the version.** `nix-homebrew`'s `flake.nix` derives the derivation name from its *own* `flake.lock` (`brewVersion = flakeLock.nodes.brew-src.original.ref`) while using the overridden `brew-src` contents. So an overridden brew still appears at a path like `/nix/store/...-brew-6.0.13-patched`, regardless of the tag actually in use. Never use that path name as evidence of the running version — check the contents instead:
+
+```sh
+grep -n -A3 "def symlink" $(readlink /opt/homebrew/Library/Homebrew)/install_steps.rb
+```
+
+**Unrelated noise.** `continuation.bundle: warning: callcc is obsolete; use Fiber instead` appears throughout this output. It comes from loading a Ruby 4.0 extension inside the nix-built brew; nothing calls `callcc`. It is harmless and is not a symptom of this or any other failure.
