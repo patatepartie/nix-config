@@ -12,21 +12,16 @@ let
       sha256 = "0ny2q1g5r2ss1jxyqspdz0lliyvxvl33rs5s8k63l0k6112lf8bb";
     };
   };
+  # Every Ghostty tab attaches to the single `default` tmux server, session
+  # `main`. `new-session -As main` is idempotent: it creates the session if
+  # absent and attaches otherwise, so concurrent tabs need no locking.
+  #
+  # This deliberately has no second-server branch. A previous version sent the
+  # 2nd tab to a separate `gascity` server, which split live Claude sessions
+  # across two servers that then fought over the same ~/.tmux/resurrect/ state
+  # — whichever saved last clobbered the other, so restores lost sessions.
   ghosttyTabInitScript = pkgs.writeShellScript "ghostty-tab-init" ''
-    decision=$(/opt/homebrew/bin/flock /tmp/ghostty-tab-init.lock /bin/sh -c '
-      if ! /opt/homebrew/bin/tmux has-session -t main 2>/dev/null; then
-        echo main
-      elif ! /opt/homebrew/bin/tmux -L gascity has-session -t gascity 2>/dev/null; then
-        echo gascity
-      else
-        echo shell
-      fi
-    ')
-    case "$decision" in
-      main)    exec zsh -l -c "tmux new-session -As main" ;;
-      gascity) exec zsh -l -c "/opt/homebrew/bin/tmux -L gascity new-session -As gascity" ;;
-      *)       exec zsh -l ;;
-    esac
+    exec zsh -l -c "/opt/homebrew/bin/tmux new-session -As main"
   '';
 in
 {
@@ -319,12 +314,45 @@ in
       set -g focus-events on
       set -g default-command zsh
 
+      # A long-lived tmux server keeps the @resurrect-* script paths it read at
+      # startup. Those are nix-store paths, so after a rebuild + nix-gc they can
+      # point at deleted files — saves then fail silently and every session is
+      # lost on the next restart. (Exactly what happened: a server up since
+      # 21 Jul held a GC'd path and had not saved since 3 Aug.)
+      #
+      # Re-assert them on every config load so `tmux source-file` after a switch
+      # is enough to heal a running server.
+      set -g @resurrect-save-script-path '${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/save.sh'
+      set -g @resurrect-restore-script-path '${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/restore.sh'
+      set -g @resurrect-hook-post-save-all "bash '${tmuxAssistantResurrect}/share/tmux-plugins/tmux-assistant-resurrect/scripts/save-assistant-sessions.sh'"
+      set -g @resurrect-hook-post-restore-all "bash '${tmuxAssistantResurrect}/share/tmux-plugins/tmux-assistant-resurrect/scripts/restore-assistant-sessions.sh'"
+
       # Continuum's auto-restore races with plugin load order: it backgrounds
       # restore from its run-shell, before assistant-resurrect sets the
       # post-restore hooks. Disable it and trigger from here instead, after
       # all plugins and extraConfig have loaded.
+      #
+      # This MUST stay below the @resurrect-* block above. restore.sh reads
+      # @resurrect-hook-post-restore-all at call time (via get_tmux_option), so
+      # if restore fires before that option is set, tmux-resurrect rebuilds the
+      # windows and panes but the assistant hook never runs — every pane comes
+      # back as a bare shell with no Claude session. Referencing the store path
+      # directly rather than re-reading @resurrect-restore-script-path keeps
+      # this trigger independent of option-set order.
       set -g @continuum-restore 'off'
-      run-shell 'start=$(tmux display-message -p -F "#{start_time}"); now=$(date +%s); socket=$(tmux display-message -p -F "#{socket_path}"); case "$socket" in */default) restore=1 ;; *) restore=0 ;; esac; if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ] && [ "$restore" = "1" ]; then sleep 1; "$(tmux show-option -gqv @resurrect-restore-script-path)"; fi &'
+      run-shell 'start=$(tmux display-message -p -F "#{start_time}"); now=$(date +%s); if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ]; then sleep 1; ${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/restore.sh; fi &'
+
+      # tmux-continuum has no timer of its own: it drives auto-save by putting
+      # a "#{continuum_status}" interpolation in status-right and relying on
+      # the status line refreshing. Catppuccin sets status-right wholesale
+      # AFTER continuum loads, which drops the interpolation and silently stops
+      # auto-save — the plugin's own README warns about exactly this.
+      #
+      # Re-append it here, after the theme has had its say. This is the same
+      # `#(...continuum_save.sh)` shell interpolation continuum inserts itself
+      # (it prints nothing, so the status bar is unchanged) — NOT the
+      # `#{continuum_status}` display variable, which would render a stray "5".
+      set -g status-right "#{E:@catppuccin_status_session}#(${pkgs.tmuxPlugins.continuum}/share/tmux-plugins/continuum/scripts/continuum_save.sh)"
 
       # No delay after Escape (essential for vi copy mode)
       set -s escape-time 0
