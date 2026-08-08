@@ -22,8 +22,8 @@ nix-darwin.lib.darwinSystem {
         taps = {
           "homebrew/homebrew-core" = homebrew-core;
           "homebrew/homebrew-cask" = homebrew-cask;
-          "gastownhall/gascity" = homebrew-gascity;
-          "circleci-public/circleci" = homebrew-circleci;
+          "gastownhall/homebrew-gascity" = homebrew-gascity;
+          "circleci-public/homebrew-circleci" = homebrew-circleci;
         };
 
         autoMigrate = true;
