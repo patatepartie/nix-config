@@ -10,6 +10,7 @@ Read the relevant section below before answering or running commands. The repo's
 | update / upgrade the system, refresh `flake.lock`           | "How auto-updates work" + `justfile` (`just upgrade` exists)       |
 | brew / cask / homebrew                                      | "Homebrew" (below) — never run mutating brew commands              |
 | claude-code banner ("Update available")                     | `agents/instructions/troubleshooting.md`                           |
+| a tap package stuck at an old version, tap not updating     | `agents/instructions/troubleshooting.md` — check for a duplicate tap dir |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
 | ssh / home-server commands                                  | "SSH to home-server.local" (below)                                 |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |

@@ -74,6 +74,46 @@ Historical note: the cask used to be referenced as `claude-code@latest`, which t
 - *Roll out to every host*: `just upgrade`, then `git add flake.lock && git commit -m "Upgrade flake" && git push`. Each host's auto-update daemon picks the new commit up at its next scheduled run; to skip the wait, run `just switch` on each host manually.
 - *Diagnose the gap first*: `agents/scripts/cask-version-gap.sh claude-code` (from the repo root) prints the locked, upstream (`formulae.brew.sh`), and installed versions side by side. If you also want to know whether `flake.lock`'s `homebrew-cask` rev is behind upstream `homebrew-cask` master in general: `agents/scripts/flake-input-freshness.sh homebrew-cask`. Compare before "fixing" — sometimes the gap is already closed and the banner is just from a long-running session that hasn't been restarted.
 
+## Third-party tap package frozen at an old version
+
+**Symptom.** A package from a non-`homebrew/*` tap stays pinned at an old version indefinitely. `brew info <tap>/<pkg>` and `brew list --versions` both report the stale version, while `flake.lock` is at the tap's tip commit and the nightly Action is committing normally. Nothing errors — `just switch` reports success every time.
+
+Observed with `gascity` stuck at 1.1.0 for ~3 months while the tap had shipped 1.4.0; `circleci` was silently affected too.
+
+**Cause.** A mismatch between the `nix-homebrew.taps` attribute key and Homebrew's on-disk tap naming convention.
+
+nix-homebrew uses the attribute key **verbatim** as a path — it splits on `/` only to get the namespace, then copies the tap to that exact path (`setupTaps` in nix-homebrew's `modules/default.nix`). There is no normalization of the second segment. But brew resolves a tap to `Library/Taps/<owner>/homebrew-<name>`. So a key written as:
+
+```nix
+"gastownhall/gascity" = homebrew-gascity;      # WRONG
+```
+
+creates `Library/Taps/gastownhall/gascity`, which **brew never reads**. Brew instead falls back to `Library/Taps/gastownhall/homebrew-gascity` — typically a hand-made `brew tap` clone predating the nix declaration, which nothing updates.
+
+The two directories sit side by side, so the failure is invisible: the nix-managed copy refreshes on every `just switch` at a path nothing consults, while brew serves formulae from the frozen clone.
+
+**Diagnosis.** List the tap's namespace directory:
+
+```sh
+ls -la /opt/homebrew/Library/Taps/<owner>/
+```
+
+Two entries (`<name>` and `homebrew-<name>`) confirms it. The mtimes are the tell: the correctly-named tap carries the timestamp of the last `just switch`, the vestigial one is stuck in the past. Compare against `homebrew/` in the same tree, which is always correct.
+
+**Resolution.** Use the full repo name — including the `homebrew-` prefix — as the `taps` key in `hosts/<host>/default.nix`:
+
+```nix
+"gastownhall/homebrew-gascity" = homebrew-gascity;
+```
+
+Then `just switch` and verify with `brew list --versions <pkg>`.
+
+**Do not apply the same prefix to `trust.taps`.** The two options are asymmetric on purpose. `taps` keys are filesystem paths and need the prefix; `trust.taps` entries are passed unmodified to `brew trust --tap`, which expects brew's short `owner/name` form. Leave `trust.taps = [ "gastownhall/gascity" ... ]` alone.
+
+Once the key is fixed, the vestigial directory is orphaned and safe to remove (`sudo rm -rf`, since nix-homebrew created it root-owned). Removing it is optional tidying, not part of the fix.
+
+**When adding any new third-party tap**, write the key as `<owner>/homebrew-<name>` from the start. Only the `homebrew/*` taps look "unprefixed", and that is because their repos are genuinely named `homebrew-core` / `homebrew-cask` — those keys already carry the prefix.
+
 ## `just switch` fails: formula "unreadable" / unknown DSL keyword or method
 
 **Symptom.** `just switch` fails during `brew bundle`, with a formula reported as unreadable:
