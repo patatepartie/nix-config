@@ -433,6 +433,7 @@ in
       find = "fd";
       du = "dust";
       top = "btop";
+      gci = "git commit -v";
     };
 
     history.share = false;
@@ -467,7 +468,11 @@ in
       eval "$(/opt/homebrew/bin/brew shellenv)"
       eval "$(zoxide init zsh)"
       source "$BEALL_ROOT/completion.zsh"
-      unalias gc
+      # oh-my-zsh's git plugin aliases gc to `git commit -v`, which shadows the
+      # gascity binary. gascity can't yield the name: it bakes `gc` into the
+      # hook commands it injects into agent panes, and its completion registers
+      # as `#compdef gc`. So drop the alias and use gci for git commit instead.
+      unalias gc 2>/dev/null
     '';
 
     oh-my-zsh = {
