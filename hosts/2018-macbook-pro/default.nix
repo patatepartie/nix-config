@@ -1,7 +1,8 @@
-{ nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, ... }:
+{ nixpkgs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, ... }:
 
 nix-darwin.lib.darwinSystem {
   system = "x86_64-darwin";
+  pkgs = import nixpkgs { system = "x86_64-darwin"; };
 
   modules = [
     ./modules/nix-core.nix

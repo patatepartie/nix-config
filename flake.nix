@@ -12,13 +12,24 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # nixpkgs 26.11+ dropped x86_64-darwin; pin 2018 MBP to last supported stable branch.
+    # nix-darwin master enforces nixpkgs version match, so we need paired stable branches for both.
+    nixpkgs-x86-darwin.url = "github:nixos/nixpkgs/nixpkgs-26.05-darwin";
     nix-darwin = {
       url = "github:LnL7/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-darwin-x86 = {
+      url = "github:LnL7/nix-darwin/nix-darwin-26.05";
+      inputs.nixpkgs.follows = "nixpkgs-x86-darwin";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    home-manager-x86 = {
+      url = "github:nix-community/home-manager/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs-x86-darwin";
     };
 
     nixpkgs-azure.url = "github:nixos/nixpkgs/d6c71932130818840fc8fe9509cf50be8c64634f";
@@ -73,9 +84,14 @@
     };
   };
 
-  outputs = { nixpkgs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, homebrew-gascity, homebrew-circleci, ... }@inputs: {
+  outputs = { nixpkgs, nixpkgs-x86-darwin, nix-darwin, nix-darwin-x86, home-manager, home-manager-x86, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, homebrew-gascity, homebrew-circleci, ... }@inputs: {
     darwinConfigurations = {
-      "Cyrils-2018-MacBook-Pro" = import ./hosts/2018-macbook-pro { inherit inputs nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask homebrew-bundle; };
+      "Cyrils-2018-MacBook-Pro" = import ./hosts/2018-macbook-pro {
+        inherit inputs nix-homebrew homebrew-core homebrew-cask homebrew-bundle;
+        nixpkgs = nixpkgs-x86-darwin;
+        nix-darwin = nix-darwin-x86;
+        home-manager = home-manager-x86;
+      };
       "Cyrils-MacBook-Pro" = import ./hosts/2023-macbook-pro { inherit inputs nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask homebrew-bundle homebrew-gascity homebrew-circleci; };
     };
 
