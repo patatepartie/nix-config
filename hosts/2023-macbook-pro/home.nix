@@ -110,6 +110,7 @@ in
     pkgs.nil
     pkgs.nixpkgs-fmt
     pkgs.nmap
+    pkgs.poppler-utils
     pkgs.ripgrep
     pkgs.sd
     pkgs.ssm-session-manager-plugin
