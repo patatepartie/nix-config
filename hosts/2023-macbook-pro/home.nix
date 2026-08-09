@@ -433,7 +433,6 @@ in
       find = "fd";
       du = "dust";
       top = "btop";
-      gci = "git commit -v";
     };
 
     history.share = false;
@@ -468,18 +467,16 @@ in
       eval "$(/opt/homebrew/bin/brew shellenv)"
       eval "$(zoxide init zsh)"
       source "$BEALL_ROOT/completion.zsh"
-      # oh-my-zsh's git plugin aliases gc to `git commit -v`, which shadows the
-      # gascity binary. gascity can't yield the name: it bakes `gc` into the
-      # hook commands it injects into agent panes, and its completion registers
-      # as `#compdef gc`. So drop the alias and use gci for git commit instead.
-      unalias gc 2>/dev/null
     '';
 
     oh-my-zsh = {
       enable = true;
       custom = "/Users/${username}/.oh-my-zsh-custom";
       theme = "af-magic";
-      plugins = [ "aliases" "aws" "beall-compose" "docker" "docker-compose" "git" "gcloud" "mise" "tmux" ];
+      # gascity must load after git: oh-my-zsh sources plugins in array order,
+      # and this plugin removes the git plugin's `gc` alias. Listed before git,
+      # the alias is simply recreated afterwards.
+      plugins = [ "aliases" "aws" "beall-compose" "docker" "docker-compose" "git" "gcloud" "mise" "tmux" "gascity" ];
     };
   };
 
