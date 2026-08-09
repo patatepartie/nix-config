@@ -12,6 +12,40 @@ let
       sha256 = "0ny2q1g5r2ss1jxyqspdz0lliyvxvl33rs5s8k63l0k6112lf8bb";
     };
   };
+  # The resurrect/continuum chain must run on the `default` server ONLY.
+  #
+  # tmux sources ~/.tmux.conf for EVERY server, whatever its socket — socket
+  # isolation does not imply config isolation. So when gascity starts an agent
+  # on its own `-L gascity` socket, that server also loads resurrect and
+  # continuum, auto-restores all ~23 real sessions as duplicates, and starts
+  # auto-saving over ~/.tmux/resurrect/. Two savers, one state dir: whichever
+  # writes last wins and the other server's sessions are lost on next restore.
+  # That is the same failure the ghosttyTabInitScript comment below describes,
+  # reached by a different route — it happened for real on 2026-08-09, when
+  # `gc start` spawned a bd.dog agent and 24 duplicate sessions appeared.
+  #
+  # These two helpers gate the only parts that act on load: the restore trigger
+  # and continuum's auto-save. Written as scripts rather than inline `if-shell`
+  # so the socket test stays plain shell instead of nested tmux/shell quoting.
+  # Matched on basename, not the full path: the directory embeds the UID and
+  # moves with TMUX_TMPDIR, but the socket NAME is what distinguishes servers.
+  resurrectRestoreTrigger = pkgs.writeShellScript "tmux-resurrect-restore-trigger" ''
+    [ "$(basename "$(tmux display-message -p -F '#{socket_path}')")" = default ] || exit 0
+    start=$(tmux display-message -p -F "#{start_time}")
+    now=$(date +%s)
+    if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ]; then
+      sleep 1
+      ${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/restore.sh
+    fi &
+  '';
+  continuumSaveGuarded = pkgs.writeShellScript "tmux-continuum-save-guarded" ''
+    [ "$(basename "$(tmux display-message -p -F '#{socket_path}')")" = default ] || exit 0
+    exec ${pkgs.tmuxPlugins.continuum}/share/tmux-plugins/continuum/scripts/continuum_save.sh
+  '';
+  continuumDisableOffDefault = pkgs.writeShellScript "tmux-continuum-disable-off-default" ''
+    [ "$(basename "$(tmux display-message -p -F '#{socket_path}')")" = default ] && exit 0
+    tmux set -g @continuum-save-interval 0
+  '';
   # Every Ghostty tab attaches to the single `default` tmux server, session
   # `main`. `new-session -As main` is idempotent: it creates the session if
   # absent and attaches otherwise, so concurrent tabs need no locking.
@@ -299,7 +333,12 @@ in
       {
         plugin = continuum;
         extraConfig = ''
-          set -g @continuum-restore 'on'
+          # Deliberately NOT setting @continuum-restore here. Continuum reads
+          # it as its own .tmux loads, immediately below this line, and would
+          # schedule an auto-restore before extraConfig can turn it off — on
+          # EVERY socket, which re-duplicates all sessions onto e.g. gascity's
+          # server. extraConfig sets it 'off' and drives restore explicitly
+          # from the socket-guarded resurrectRestoreTrigger instead.
           set -g @continuum-save-interval '15'
         '';
       }
@@ -340,7 +379,7 @@ in
       # directly rather than re-reading @resurrect-restore-script-path keeps
       # this trigger independent of option-set order.
       set -g @continuum-restore 'off'
-      run-shell 'start=$(tmux display-message -p -F "#{start_time}"); now=$(date +%s); if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ]; then sleep 1; ${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/restore.sh; fi &'
+      run-shell '${resurrectRestoreTrigger}'
 
       # tmux-continuum has no timer of its own: it drives auto-save by putting
       # a "#{continuum_status}" interpolation in status-right and relying on
@@ -352,7 +391,18 @@ in
       # `#(...continuum_save.sh)` shell interpolation continuum inserts itself
       # (it prints nothing, so the status bar is unchanged) — NOT the
       # `#{continuum_status}` display variable, which would render a stray "5".
-      set -g status-right "#{E:@catppuccin_status_session}#(${pkgs.tmuxPlugins.continuum}/share/tmux-plugins/continuum/scripts/continuum_save.sh)"
+      # The save script is wrapped so it no-ops on any socket but `default` —
+      # see the comment on continuumSaveGuarded above.
+      set -g status-right "#{E:@catppuccin_status_session}#(${continuumSaveGuarded})"
+
+      # Belt and braces for the same problem. Wrapping the script above is not
+      # sufficient on its own: continuum's own .tmux sets status-right during
+      # plugin load, i.e. AFTER this file's earlier lines but interleaved with
+      # them, so a non-default server can end up holding continuum's unguarded
+      # path (observed on the gascity socket on 2026-08-09). continuum_save.sh
+      # bails when the interval is 0 (`auto_save_not_disabled`), so zeroing it
+      # off-default disables auto-save whichever status-right variant wins.
+      run-shell '${continuumDisableOffDefault}'
 
       # No delay after Escape (essential for vi copy mode)
       set -s escape-time 0
