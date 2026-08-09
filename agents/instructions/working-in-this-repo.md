@@ -11,6 +11,7 @@ Read the relevant section below before answering or running commands. The repo's
 | brew / cask / homebrew                                      | "Homebrew" (below) — never run mutating brew commands              |
 | claude-code banner ("Update available")                     | `agents/instructions/troubleshooting.md`                           |
 | a tap package stuck at an old version, tap not updating     | `agents/instructions/troubleshooting.md` — check for a duplicate tap dir |
+| gascity / `gc`, duplicated tmux sessions, CPU spike after `gc start` | "gascity" (below) + "tmux session save/restore"                    |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
 | ssh / home-server commands                                  | "SSH to home-server.local" (below)                                 |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
@@ -73,10 +74,40 @@ This chain has broken repeatedly, each time costing a full set of live sessions,
 - **Hook fires before its option is set.** `restore.sh` reads `@resurrect-hook-post-restore-all` at call time. If the restore trigger runs before that `set -g` line, resurrect rebuilds every window and pane correctly and the assistant hook never runs. The layout looks perfect; every session is gone. Keep the `run-shell` restore trigger BELOW the `@resurrect-*` block.
 - **Theme clobbers auto-save.** continuum has no timer; it drives saves off a `#(...continuum_save.sh)` interpolation in `status-right`. Catppuccin sets `status-right` wholesale after continuum loads, silently ending auto-save. Re-append it after the theme.
 - **GC'd store paths.** A long-lived server keeps the `@resurrect-*` script paths it read at startup. After a rebuild + `nix-gc` those can point at deleted files, so saves fail silently. Re-assert the paths on every config load.
+- **A second tmux server becomes a second saver.** tmux sources `~/.tmux.conf` for EVERY server, whatever its socket — socket isolation is not config isolation. Any tool that runs `tmux -L <name>` (gascity does, per `[session].socket`) therefore gets its own resurrect + continuum, restores every real session onto its socket as duplicates, and auto-saves over the shared `~/.tmux/resurrect/`. Two savers, one state dir: whichever writes last wins, and the other server's sessions are gone at the next restore. Happened for real on 2026-08-09 — `gc start` spawned one agent and 24 duplicate sessions plus ~200 stray shells appeared.
+
+  The config now guards this three ways (see the `resurrectRestoreTrigger` / `continuumSaveGuarded` / `continuumDisableOffDefault` helpers in `home.nix`): the restore trigger and the continuum save interpolation both exit unless the socket basename is `default`, and the save interval is zeroed off-default because continuum re-asserts its own `status-right` during plugin load and can win over `extraConfig`.
+
+  **Never set `@continuum-restore 'on'` in the continuum plugin block.** Continuum reads that option as its own `.tmux` loads on the very next line, so it schedules an auto-restore on every socket before `extraConfig` can turn it off. That single line — not the save path — is what actually re-duplicated the sessions in testing. `extraConfig` sets it `off`; restore is driven only by the socket-guarded trigger.
 
 **Always run `agents/scripts/test-tmux-resurrect.sh` after touching any of this.** It exercises the real save → restore → hook cycle on a throwaway server and asserts the post-restore hook actually fired — the check that catches the first mode above, which layout-only checks pass right through. It is heavily isolated (separate socket, sandboxed `HOME`, PATH shim, `-f /dev/null`, faked `TMUX`); during development it leaked a session onto the live server twice, so do not weaken any of those layers. Read the header comment before editing it.
 
+**The harness does NOT cover the socket guard.** It runs every tmux invocation with `-f /dev/null`, which is exactly what keeps it off production state — but it also means `~/.tmux.conf` is never loaded, so a regression in the socket guard passes all 11 tests. Verify that mode by hand instead: start a server on a non-default socket **with** the real config and confirm only the session you asked for exists.
+
+```sh
+command tmux -L probe new-session -d -s probe 'sleep 60'
+sleep 10
+command tmux -L probe ls                     # expect ONLY `probe`
+command tmux -L probe show-options -g | grep -iE 'continuum-restore|continuum-save-interval'
+                                             # expect: restore off, save-interval 0
+command tmux -L probe kill-server
+```
+
+Wait ~10s before asserting. The restore fires a second or two after server start, so an immediate check passes even when the guard is broken — that false pass happened during development.
+
 **Recovering lost sessions.** Transcripts live in `~/.claude/projects/<slug>/<session-id>.jsonl` and survive independently of tmux — a lost pane is almost never lost work. `~/.tmux/resurrect/assistant-sessions.json` maps panes to session IDs. Sessions started from Agent View are forks whose own IDs may have no transcript; their history is under the parent session in `~/.claude/jobs/<short-id>/` (`state.json` has `sessionId`, `intent`, and `cwd`). Check there before concluding a session is unrecoverable.
+
+## gascity
+
+`gc` is the gascity CLI (Homebrew brew from the `gastownhall/gascity` tap). The city lives at `~/Tech/pata-city`; its one rig is `~/Tech/Perso/cash22`. Not managed by this repo — but two things here exist because of it.
+
+**The `gc` name collides with oh-my-zsh.** The git plugin aliases `gc` to `git commit -v`, shadowing the binary. gascity cannot yield the name: it bakes `gc` into the hook commands it injects into agent panes, and its completion registers as `#compdef gc`. `dotfiles/oh-my-zsh/plugins/gascity/` drops the alias and adds `gci` for git commit. **That plugin must stay LAST in the `oh-my-zsh.plugins` list** — plugins are sourced in array order, so listing it alphabetically (before `git`) lets the git plugin recreate the alias immediately afterwards. This is documented at <https://docs.gascity.com/getting-started/troubleshooting#oh-my-zsh-git-plugin-hides-gc>, though the doc's `$ZSH_CUSTOM`-loads-last claim holds for loose `.zsh` files, not for a named custom plugin.
+
+**It starts tmux servers on its own socket.** See the second-saver failure mode under "tmux session save/restore" — this is the reason the socket guards exist. `gc start` spawns agents (e.g. `bd.dog`) on the socket named by `[session].socket` in `city.toml`. Before running it after any tmux config change, verify the guard by hand using the recipe in that section.
+
+Interaction is **not** via tmux any more, despite what older setups suggest. As of 1.3 the Mayor is a *skill* loadable from any agent (invoke as `@mayor` from Claude Code in a rig folder), not a session you attach to; 1.4 moved observation to `gc dashboard`, a web UI served by the supervisor. `gc session attach <name>` exists and is preferable to raw `tmux attach` (it resumes or restarts a dead session), but you should not need a terminal attached to gascity's socket at all.
+
+**Beads and backup.** Issue data lives in Dolt databases under `~/Tech/pata-city/.beads/dolt/` — `hq` (the city's own beads) and `cash22` (the rig's 34 issues). Adopting the rig into the city on 2026-05-11 moved that data out of the cash22 git repo and added `.beads/*` to its `.gitignore`, which silently ended the GitHub backup that had been working. Dolt supports git remotes natively, so `cash22` pushes to its existing repo — but **`dolt push` is manual**; nothing automates it, and `export.auto` / `backup.enabled` are both `false`. `hq` has no remote at all. A `dolt remote -v` URL rendered as `git+ssh://git@github.com/./owner/repo.git` is Dolt's own normalization of `git@github.com:owner/repo.git`, not corruption.
 
 ## Commit prefixes
 
@@ -94,6 +125,16 @@ Always use `command tmux` instead of bare `tmux`. The oh-my-zsh tmux plugin inte
 ## Nix rebuild output
 
 After any `just switch` or nix eval, report all warnings to the user — don't silently ignore them.
+
+## New files must be `git add`ed before `just switch`
+
+This flake is a git repo, so nix copies only **tracked** files into the store. A new file — a dotfile, an oh-my-zsh plugin, a script — that is still untracked (`??` in `git status`) is invisible to the build: `just switch` reports success and deploys nothing, and the symptom is a stale store path with the old contents. `git add` the new path first, then switch. Cost a confusing debugging detour on 2026-08-09 when a new plugin appeared not to load.
+
+## Interpreting the write sandbox
+
+Bash tool calls are sandboxed to a write allowlist that covers this repo and a few tool dirs; the Edit/Write tools are not bound by it. So in a directory outside the allowlist (e.g. `~/Tech/pata-city`) editing a file can succeed while `rm` on the same path fails with `Operation not permitted`. That asymmetry is the sandbox, not a permissions bug on disk — don't go hunting for one.
+
+`~/.gc` is on the allowlist; the city directory itself deliberately is not, so gascity operations that write there prompt.
 
 ## Remote machines
 
