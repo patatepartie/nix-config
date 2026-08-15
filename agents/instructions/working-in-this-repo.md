@@ -13,7 +13,9 @@ Read the relevant section below before answering or running commands. The repo's
 | a tap package stuck at an old version, tap not updating     | `agents/instructions/troubleshooting.md` — check for a duplicate tap dir |
 | gascity / `gc`, duplicated tmux sessions, CPU spike after `gc start` | "gascity" (below) + "tmux session save/restore"                    |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
-| ssh / home-server commands                                  | "SSH to home-server.local" (below)                                 |
+| ssh / home-server commands, host unreachable, `.local` not resolving | "SSH to home-server.local" (below)                          |
+| auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
+| server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 
@@ -42,6 +44,8 @@ There are two independent mechanisms.
 | home-server    | systemd `OnCalendar = "*-*-* 22:30:00 UTC"`         | `git fetch && git reset --hard origin/main && nixos-rebuild switch` (falls back to `boot` if `switchInhibitors` blocks) |
 
 **The auto-update script does NOT run `nix flake update`.** It only applies whatever `flake.lock` is committed in the repo. Tap revisions are therefore at most as fresh as the most recent GitHub-Action commit; if the Action ran at 22:00 UTC and a `homebrew-cask` rev was tagged 23:00 UTC, no host will see it until the next Action run.
+
+**A run that looks successful may have applied only half the config.** On the MacBooks, exit status 0 does not mean the run finished — the daemon can be killed mid-activation, silently skipping the Homebrew phase and home-manager. Check the log ends with `Update complete`, not `reloading service org.nixos.nix-auto-update`. See `agents/instructions/troubleshooting.md`.
 
 **To force an immediate update on every host:** run `just upgrade` locally, then commit and push `flake.lock`. Each host's daemon will pick the new commit up on its next scheduled run. To skip the wait, also run `just switch` (or the underlying `darwin-rebuild` / `nixos-rebuild switch`) on each host. `just upgrade` alone only fixes the machine you ran it on.
 
@@ -142,9 +146,29 @@ Cannot run `sudo` over SSH to remote machines. When an operation needs sudo on t
 
 ## SSH to home-server.local
 
+Two independent mechanisms govern these commands, with different symptoms. Do not confuse them: **quoting** affects approval prompts; **flags** affect sandboxing and therefore DNS resolution.
+
+### Quoting → approval prompts (`permissions.allow`)
+
 Use unquoted form for read-only SSH commands so auto-approval rules match:
 ```
 ssh home-server.local journalctl -u foo --no-pager     # auto-approved
 ssh home-server.local "journalctl -u foo --no-pager"   # prompts (quoted form breaks prefix match)
 ```
 For commands requiring shell metacharacters on the remote side (`*`, `|`, `>`, `;`), quoted form is fine — the resulting prompt is intentional.
+
+### Flags → sandbox, and hence name resolution (`sandbox.excludedCommands`)
+
+**Use the hostname, not an IP.** `home-server.local` resolves via mDNS and works. Do not "fix" a resolution failure by switching to a raw IP — see the next paragraph for the actual cause.
+
+**Never add flags to an `ssh home-server.local` invocation.** Keep it plain. Persistent options belong in `~/.ssh/config` under the existing `Host home-server.local` block, where the plain command picks them up.
+
+Why: `.claude/settings.json` lists `ssh home-server.local *` in `sandbox.excludedCommands`, so matching commands run **outside** the sandbox, where mDNS works. A flag between `ssh` and the hostname (`ssh -o ConnectTimeout=10 home-server.local uptime`) no longer matches that glob, so the command runs *inside* the sandbox — where `.local` cannot resolve, because mDNSResponder is reachable only over a Unix socket and the sandbox permits only the Nix daemon socket. The result is `Could not resolve hostname home-server.local`.
+
+This is a **sandbox** boundary, not a permissions one. The `Bash(ssh home-server.local ...)` entries under `permissions.allow` only suppress approval prompts and have no effect on resolution — adding more of them cannot fix this.
+
+Two consequences worth internalising:
+- `Could not resolve hostname home-server.local` from a Bash call is almost always this, not a network or server fault. Verify with `dangerouslyDisableSandbox: true` before drawing any conclusion about the machine.
+- Do not "work around" it by switching to `192.168.0.17`. That treats a sandbox artifact as a network fact. On 2026-08-14/15 a self-inflicted `-o ConnectTimeout=10` produced a resolution failure that was then read as evidence the server was down, sending the session into a subnet scan and two successive wrong diagnoses.
+
+**Do not conclude "the machine is off" from an unreachable host.** A genuinely unreachable box may simply be suspended — indistinguishable from absent over the network. Rule out the sandbox first (above), then check the previous boot's journal for `PM: suspend entry`. See `agents/instructions/troubleshooting.md` → "Home server unreachable after an auto-update".

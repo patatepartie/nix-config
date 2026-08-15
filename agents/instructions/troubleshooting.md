@@ -169,3 +169,50 @@ grep -n -A3 "def symlink" $(readlink /opt/homebrew/Library/Homebrew)/install_ste
 ```
 
 **Unrelated noise.** `continuation.bundle: warning: callcc is obsolete; use Fiber instead` appears throughout this output. It comes from loading a Ruby 4.0 extension inside the nix-built brew; nothing calls `callcc`. It is harmless and is not a symptom of this or any other failure.
+
+## Auto-update reports success but part of the config was never applied (macOS)
+
+**Symptom.** The daily auto-update appears to have run, but changes are missing — most visibly, a later manual `just switch` upgrades Homebrew packages that "should" already have been updated. `sudo launchctl list | grep nix-auto-update` shows last exit status **0**, and no Telegram alert was sent. The tell is in the log:
+
+```sh
+tail -3 /var/log/nix-auto-update.log
+```
+
+A complete run ends with `Update complete`. A truncated run's last line is:
+
+```
+reloading service org.nixos.nix-auto-update
+```
+
+**Cause.** nix-darwin's activation reloads any launchd service whose plist changed, via `launchctl unload` then `load -w` (`nix-darwin/modules/system/launchd.nix:18-32`). `org.nixos.nix-auto-update` is itself such a service, and the running update script *is* that job's process — so activation kills the script that started it. The Nix generation lands (the system switch completes first), but everything after the kill is skipped: the Homebrew phase and home-manager activation.
+
+Two signals mislead here, and both are expected:
+- **Exit status 0** is meaningless: `launchctl load`/`unload` always return 0 except on usage errors, so launchd records the kill as a normal stop.
+- **No notification.** The script is killed by a signal; its `trap ... ERR` does not fire on signal delivery (and SIGKILL cannot be trapped at all), so no `notify_failure` runs. Silence is not evidence of success.
+
+This is intermittent — it only fires when the plist changes, which happens whenever `autoUpdateScript`'s derivation closure changes, not only when `auto-update.nix` is edited. Observed roughly monthly.
+
+**Resolution.** No fix is deployed yet. Re-run `just switch` manually to apply the skipped Homebrew/home-manager work. The diagnosis, the rejected `AbandonProcessGroup` approach (it governs orphaned children, not the job's own process — do not re-propose it), the detach-based fix, and a test plan are in `agents/docs/mbp-auto-update-self-kill.md`. Affects both MacBooks.
+
+## Home server unreachable after an auto-update; desktop session gone
+
+**Symptom.** The home server stops answering SSH and mDNS, often hours after a daily update, and needs a physical power-button press to come back. On return it shows the GDM login screen (unanswerable — no keyboard is attached). Shaking the attached mouse produces no display activity. `nix-auto-update.service` failed with exit code 1 and `switch-to-configuration` returned **4**; a Telegram alert *was* sent.
+
+**Before assuming the machine is down:** a `Could not resolve hostname home-server.local` from a sandboxed Bash call is usually the sandbox, not the network — mDNS is unavailable there, and adding flags to the `ssh` invocation triggers it. Retry the plain documented form (see "SSH to home-server.local" in `working-in-this-repo.md`) before concluding anything.
+
+**Cause.** Two separate things, in sequence:
+
+1. The update restarts user units whose store paths changed. `switch-to-configuration` re-execs itself as the logged-in user and stops ~28 user units *including `dbus-broker.service`*, then cannot restart them because it just killed the bus it was using (`Failed to process dbus messages while waiting for jobs` → `warning: user activation for patate failed` → exit 4). The GNOME session dies. GDM is deliberately **not** restarted (it appears in the "NOT restarting the following changed units" list), so nothing renders to the screen at all.
+2. A **greeter** session starts, and ~15 minutes later *its* power daemon suspends the machine to RAM: `suspend requested from client PID … ('.gsd-power-wrap') (unit user@60578.service)` → `PM: suspend entry (deep)`. avahi withdraws the address record, and the box vanishes from the network until physically woken.
+
+UID 60578 is `gdm-greeter`, **not** the logged-in user. Anti-sleep dconf settings under `home.nix` apply to `patate` and are never seen by the greeter — which is why they do not prevent this.
+
+**Diagnosis.** A suspended machine is indistinguishable from a powered-off one over the network. Confirm from the previous boot's journal rather than guessing:
+
+```sh
+ssh home-server.local journalctl -b -1 --no-pager | grep -iE 'PM: suspend entry|Waking up from system sleep|suspend requested'
+```
+
+`PM: suspend entry (deep)` followed later by `Waking up from system sleep state S3` means it slept. A clean `shutdown`/`reboot` pair in `last -x` immediately before a boot is consistent with a *graceful* power-button press, not a power cut.
+
+**Resolution.** No fix is deployed yet. The verified fix for the suspend is `services.displayManager.gdm.autoSuspend = false` (it writes the anti-sleep keys into the greeter's own dconf profile), with `systemd.sleep.settings.Sleep.AllowSuspend = "no"` as a system-wide backstop. Note `AllowSuspend` belongs in `sleep.conf`, **not** `logind.conf`, where it silently does nothing. Full plan, including decoupling Transmission from the desktop session, in `agents/docs/home-server-session-decoupling.md`.

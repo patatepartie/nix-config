@@ -35,7 +35,7 @@ nix run nix-darwin -- switch --flake .
 
 ## Troubleshooting
 
-When a rebuild or `just switch` fails with a recurring symptom, read `agents/instructions/troubleshooting.md` before attempting a fix. Currently covers: Homebrew cask install conflicts.
+When a rebuild or `just switch` fails with a recurring symptom, read `agents/instructions/troubleshooting.md` before attempting a fix. Its section headings are the index of what it covers.
 
 ## Architecture
 
