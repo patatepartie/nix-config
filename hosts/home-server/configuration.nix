@@ -209,10 +209,49 @@
   systemd.tmpfiles.rules = [
     "d /var/lib/backup 0755 - - -"
     "d /var/lib/backup/cash22 0755 1000 1000 -"
+    # The transmission daemon runs as transmission:users and needs to create
+    # files here. Group-writable rather than chowned, so the directory stays
+    # owned by patate and the Samba share is unaffected.
+    "d /home/patate/Downloads 0775 patate users -"
+    # BindPaths= in transmission.service does not create its targets, so this
+    # directory must exist before the unit starts or it fails at step NAMESPACE.
+    "d /home/patate/Downloads/.incomplete 0775 transmission users -"
   ];
 
   virtualisation.docker = {
     enable = true;
+  };
+
+  # Runs as a system service so downloads survive the graphical session being
+  # torn down by an auto-update, which used to kill transmission-gtk with it.
+  # Manage it remotely over RPC rather than with a GUI on the server.
+  services.transmission = {
+    enable = true;
+    # Required: the module refuses to evaluate on a stateVersion older than
+    # 25.11 without an explicit package, because the 3->4 default change lost
+    # data for some users.
+    package = pkgs.transmission_4;
+    # patate's primary group, so downloaded files are readable and writable by
+    # the desktop user and the Samba share without chowning the download dir
+    # away from patate.
+    group = "users";
+    openRPCPort = true;
+    settings = {
+      download-dir = "/home/patate/Downloads";
+      incomplete-dir = "/home/patate/Downloads/.incomplete";
+      incomplete-dir-enabled = true;
+      # Group-writable, so patate can manage what the daemon writes.
+      umask = "002";
+      ratio-limit = 2.0;
+      ratio-limit-enabled = true;
+      rpc-bind-address = "0.0.0.0";
+      rpc-whitelist = "127.0.0.1,::1,192.168.0.*";
+      rpc-authentication-required = false;
+      # Defaults to enabled with an empty list, which answers 421 to any request
+      # whose Host header is a name rather than an address. Access is already
+      # restricted by rpc-whitelist above.
+      rpc-host-whitelist-enabled = false;
+    };
   };
 
   services.samba = {
