@@ -1,12 +1,8 @@
 # MBP auto-update killed by its own activation — diagnosis and plan
 
 **Status:** diagnosed 2026-08-14, implemented and verified on the 2023 MBP
-2026-08-15. Applied to the 2018 MBP in the same commit but **not yet verified
-there**.
-
-> **On the 2018 MBP?** Go straight to "If you are the 2018 MBP session, start
-> here" under "How to test". Your task is verification only — the fix is already
-> committed. Do not run Step 0, and do not re-plan the fix.
+2026-08-15. **Verified on the 2018 MBP 2026-08-15 too** — see "Verification
+record — 2018 MBP". This plan is complete; no further work is outstanding.
 **Affects:** both MacBook Pros (`hosts/2023-macbook-pro/modules/auto-update.nix`,
 `hosts/2018-macbook-pro/modules/auto-update.nix` — same script, same bug).
 **Symptom the user sees:** none. That is the whole problem.
@@ -349,16 +345,19 @@ sudo launchctl kickstart -k system/org.nixos.nix-auto-update
 # And confirm no false positive: run twice cleanly in a row, expect no alert.
 ```
 
-**Do both MacBooks.** The 2018 has the same bug; a fix verified only on the 2023
-is half done.
+**Do both MacBooks.** The 2018 had the same bug; both are now verified
+(2026-08-15).
 
-### If you are the 2018 MBP session, start here
+### The 2018 MBP verification procedure (done — kept for reference)
 
-Your job is **verification, not implementation**. The fix is already committed
-and applies to this host — do not re-derive it, do not re-plan it, and do not
-start at Step 0 above. Step 0 reproduces the *unfixed* behaviour; running it here
-means deliberately breaking a host that is already fixed, for no new information.
-It was needed once, on the 2023, to prove the test could fail.
+Both hosts are verified, so this section is history rather than a task. It is
+retained because the same recipe applies to any future host that needs checking.
+
+The job was **verification, not implementation**: the fix was already committed
+and applied to this host, so Step 0 was deliberately skipped. Step 0 reproduces
+the *unfixed* behaviour; running it on an already-fixed host means breaking it
+for no new information. It was needed once, on the 2023, to prove the test could
+fail.
 
 Substitute `hosts/2018-macbook-pro/modules/auto-update.nix` wherever the recipes
 above say `2023-macbook-pro` — Step 0's snippet hardcodes the 2023 path.
@@ -413,6 +412,43 @@ After the fix, a daemon run rebuilt across a plist change and:
 | Stale marker reported on next run | ✅ named the previous run id |
 | No false positive on two clean runs | ✅ |
 
+### Verification record — 2018 MBP, 2026-08-15
+
+Ran the verification-only procedure (no Step 0 — the fix was already committed
+and the 2023 had proven the test can fail). Host confirmed as
+`Cyrils-2018-MacBook-Pro`, x86_64, MacBookPro15,1.
+
+Before the first `just switch` the plist still pointed at the **old** launcher
+(`y2k38j1…`), i.e. this host had never applied the fix; the switch moved it to
+`jfkq56k0…`. The daemon's checkout was stuck at a 10 Aug commit, consistent with
+runs having been dying.
+
+The decisive test forced the exact condition the old code died on: a temporary
+`sleep 180` before `darwin-rebuild` held a run open, then a concurrent
+`just switch` with a changed script produced a differing plist.
+
+| Assertion | Result |
+|---|---|
+| `reloading service …` printed by the concurrent switch | ✅ |
+| **Runner survived that reload** | ✅ PID 39216 alive immediately after |
+| Reached `Update complete` | ✅ 17:30:10, after the reload |
+| Homebrew phase ran | ✅ `brew bundle` complete |
+| `/run/current-system` advanced | ✅ `…-darwin-system-26.05.c3e90c8` |
+| New plist on disk afterwards | ✅ |
+| Launcher exited (`-` PID) while runner alive | ✅ both, together |
+| Runner detached | ✅ `PPID=1`, `PGID == PID` (35003) |
+| Marker written mid-run, survived SIGKILL | ✅ |
+| Stale marker reported on next run | ✅ named run `20260815T173100-46417` |
+| Marker cleared on success | ✅ |
+| No false positive on a clean run | ✅ |
+
+Temporary `sleep`/marker instrumentation was reverted; the working tree is clean
+and this host's `auto-update.nix` is byte-identical to the 2023's.
+
+Warning surfaced during the switches, unrelated to this fix but worth tracking:
+`Nixpkgs 26.05 will be the last release to support x86_64-darwin` — this host
+loses nixpkgs support after 26.05.
+
 ## Plan B — marker file (implemented alongside plan A)
 
 Only a detector, not a fix, and it reports up to ~24h late (at the *next* run).
@@ -444,7 +480,7 @@ all. Revisit only if overlapping runs stop being purely hypothetical.
 ## Files
 
 - `hosts/2023-macbook-pro/modules/auto-update.nix` — launcher + detach helper + runner
-- `hosts/2018-macbook-pro/modules/auto-update.nix` — identical; verify there too
+- `hosts/2018-macbook-pro/modules/auto-update.nix` — identical; verified 2026-08-15
 - `/var/lib/nix-auto-update/run-update.sh` — the runner, installed on every run
 - `/var/lib/nix-auto-update/run-in-progress` — plan B marker (absent when idle)
 - `/var/log/nix-auto-update.log` — evidence (grep for `reloading service org.nixos.nix-auto-update`)
