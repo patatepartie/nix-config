@@ -192,7 +192,9 @@ Two signals mislead here, and both are expected:
 
 This is intermittent — it only fires when the plist changes, which happens whenever `autoUpdateScript`'s derivation closure changes, not only when `auto-update.nix` is edited. Observed roughly monthly.
 
-**Resolution.** No fix is deployed yet. Re-run `just switch` manually to apply the skipped Homebrew/home-manager work. The diagnosis, the rejected `AbandonProcessGroup` approach (it governs orphaned children, not the job's own process — do not re-propose it), the detach-based fix, and a test plan are in `agents/docs/mbp-auto-update-self-kill.md`. Affects both MacBooks.
+**Resolution.** **Fixed and verified on both MacBooks (2026-08-15).** The launchd job is now a thin launcher that detaches the real work (fork → `setsid` → `exec`, with a pipe handshake so the parent cannot exit before the child detaches) and exits immediately, so `unload` has nothing to kill. A marker file at `/var/lib/nix-auto-update/run-in-progress` records the run id, and the *next* run reports a previous run that died without notifying.
+
+If you see this symptom again, first check the plist actually points at the current launcher (`plutil -p /Library/LaunchDaemons/org.nixos.nix-auto-update.plist`) — on the 2018 the fix had been committed but never applied, so the host was still running the old script. The diagnosis, the rejected `AbandonProcessGroup` approach (it governs orphaned children, not the job's own process — do not re-propose it), and both verification records are in `agents/docs/mbp-auto-update-self-kill.md`.
 
 ## Home server unreachable after an auto-update; desktop session gone
 
@@ -214,5 +216,37 @@ ssh home-server.local journalctl -b -1 --no-pager | grep -iE 'PM: suspend entry|
 ```
 
 `PM: suspend entry (deep)` followed later by `Waking up from system sleep state S3` means it slept. A clean `shutdown`/`reboot` pair in `last -x` immediately before a boot is consistent with a *graceful* power-button press, not a power cut.
+
+## Touch ID for sudo stops working after a macOS update (Intel/T2)
+
+**Symptom.** sudo asks for a password instead of offering Touch ID — an **OS modal prompting for the password**, not a silent terminal prompt. It had been working on this machine, and still works on the other MacBook. Config is unchanged. Observed on the 2018 MBP after the macOS 15.7.9 update (2026-08-02); Touch ID for *unlock* and Apple Pay still work fine.
+
+**Do not chase these — all were checked and are correct:** `security.pam.services.sudo_local.touchIdAuth` / `.reattach` in `hosts/<host>/modules/system.nix`, the generated `/etc/pam.d/sudo_local`, `/etc/pam.d/sudo` (the OS update rewrites all of `/etc/pam.d/`, but the `auth include sudo_local` line survives, and `sudo_local` is a nix symlink it cannot touch), Touch ID hardware/enrollment (`bioutil -r`, `bioutil -c`), and `biometrickitd`.
+
+**Cause.** macOS now enforces Library Validation on `sudo`, which is a platform binary. `pam_reattach.so` is **completely unsigned**, so the kernel refuses to map it into `sudo`. Without the reattach, sudo stays in the background bootstrap namespace and Touch ID cannot present its UI, so PAM falls through to password auth.
+
+Confirm with (note the absolute path — see the `log` gotcha below):
+
+```sh
+/usr/bin/log show --last 5m --predicate 'eventMessage CONTAINS[c] "pam_reattach"' --style compact | grep Rejecting
+```
+
+```
+Library Validation failed: Rejecting '/nix/store/…/pam_reattach.so' (Team ID: none, platform: no)
+for process 'sudo' (Team ID: N/A, platform: yes), reason: mapped file has no cdhash, completely unsigned?
+```
+
+The follow-on error in the same run is the real failure: `LACopyResultOfPolicyEvaluation -> (null), Error … Code=-1004 "User interaction is required."` — with `BiometryType=1` and `AvailableMechanisms=(1)`, i.e. Touch ID is present and available but cannot show its UI.
+
+**Resolution.** None available. Both dead ends below were tested on the machine and **failed** — do not re-propose either:
+
+- **Ad-hoc signing** (`codesign -s - pam_reattach.so`). Gives the module a cdhash, and the kernel error does change to `mapping process is a platform binary, but mapped file is not` — but sudo still falls back to a password. A platform binary needs more than an ad-hoc signature.
+- **Switching to Homebrew's `pam-reattach`.** Its bottle is unsigned too (`code object is not signed at all`, verified by unpacking the bottle), the formula has no `codesign` step, and Intel bottles stop at `sonoma` while Apple Silicon has `sequoia`/`tahoe`. Identical failure, plus a needless dependency. Never tried in this repo's history, so it looks unexplored — it isn't.
+
+A real fix needs a Developer ID signature, which only upstream can provide. No issue exists in [pam_reattach](https://github.com/fabianishere/pam_reattach) or nixpkgs as of 2026-08-15. Until then sudo in tmux prompts for a password. Dropping `reattach = true` does **not** help: it removes the module whose absence causes the `-1004`, and the tmux case is exactly the one that needs it.
+
+The other MacBook is unaffected only because it is on an older macOS major version; expect the same break when it updates.
+
+**Gotcha that wasted time here:** a zsh function/alias shadows `log`, so a bare `log show …` fails with `(eval):log:1: too many arguments` — which looks exactly like "the log is empty" and led to a wrong "no biometric errors" conclusion. Always use `/usr/bin/log`. Also, `log show` returns nothing useful from inside the Bash sandbox; run it with `dangerouslyDisableSandbox: true`.
 
 **Resolution.** No fix is deployed yet. The verified fix for the suspend is `services.displayManager.gdm.autoSuspend = false` (it writes the anti-sleep keys into the greeter's own dconf profile), with `systemd.sleep.settings.Sleep.AllowSuspend = "no"` as a system-wide backstop. Note `AllowSuspend` belongs in `sleep.conf`, **not** `logind.conf`, where it silently does nothing. Full plan, including decoupling Transmission from the desktop session, in `agents/docs/home-server-session-decoupling.md`.

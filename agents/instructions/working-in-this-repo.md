@@ -16,6 +16,7 @@ Read the relevant section below before answering or running commands. The repo's
 | ssh / home-server commands, host unreachable, `.local` not resolving | "SSH to home-server.local" (below)                          |
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
+| Touch ID not offered for sudo, password modal instead        | `agents/instructions/troubleshooting.md` — unsigned PAM module; no fix, two dead ends already tested |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 
