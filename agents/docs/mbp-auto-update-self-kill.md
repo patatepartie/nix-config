@@ -2,7 +2,11 @@
 
 **Status:** diagnosed 2026-08-14, implemented and verified on the 2023 MBP
 2026-08-15. Applied to the 2018 MBP in the same commit but **not yet verified
-there** — run "How to test" on that host.
+there**.
+
+> **On the 2018 MBP?** Go straight to "If you are the 2018 MBP session, start
+> here" under "How to test". Your task is verification only — the fix is already
+> committed. Do not run Step 0, and do not re-plan the fix.
 **Affects:** both MacBook Pros (`hosts/2023-macbook-pro/modules/auto-update.nix`,
 `hosts/2018-macbook-pro/modules/auto-update.nix` — same script, same bug).
 **Symptom the user sees:** none. That is the whole problem.
@@ -347,6 +351,44 @@ sudo launchctl kickstart -k system/org.nixos.nix-auto-update
 
 **Do both MacBooks.** The 2018 has the same bug; a fix verified only on the 2023
 is half done.
+
+### If you are the 2018 MBP session, start here
+
+Your job is **verification, not implementation**. The fix is already committed
+and applies to this host — do not re-derive it, do not re-plan it, and do not
+start at Step 0 above. Step 0 reproduces the *unfixed* behaviour; running it here
+means deliberately breaking a host that is already fixed, for no new information.
+It was needed once, on the 2023, to prove the test could fail.
+
+Substitute `hosts/2018-macbook-pro/modules/auto-update.nix` wherever the recipes
+above say `2023-macbook-pro` — Step 0's snippet hardcodes the 2023 path.
+
+Procedure:
+
+1. `git pull` — confirm `MBPs - Stop auto-update killing itself during activation`
+   is in the log, and that this host's `auto-update.nix` matches the 2023's
+   (`diff hosts/2018-macbook-pro/modules/auto-update.nix hosts/2023-macbook-pro/modules/auto-update.nix`
+   must be empty).
+2. `just switch`, then confirm the plist points at the new launcher:
+   `plutil -p /Library/LaunchDaemons/org.nixos.nix-auto-update.plist`.
+3. Put the daemon's checkout behind origin so a run does real work:
+   `sudo git -C /var/lib/nix-auto-update/nix-config reset --hard HEAD~1`.
+4. `sudo launchctl kickstart -k system/org.nixos.nix-auto-update`, then run the
+   **Step 3** detach checks while it is in flight — both (a) and (b), together.
+   This is the assertion that actually distinguishes a working detach from a
+   crashed launcher.
+5. Assert the four **Step 1** outcomes, and Step 4 for the marker.
+
+Because the fix is pushed by the time you run this, the self-revert trap does
+**not** apply to you: the runner rebuilds from `origin/main`, which now contains
+the fix, so the plist stays correct across the run. Verify it anyway (step 2's
+command, re-run afterwards) — if the plist reverts to a different store path, the
+commit did not reach this host.
+
+Expected wall-clock: a run takes seconds to a couple of minutes. If the log shows
+`Starting nix auto-update (run <id>)` and then nothing, with `run-update.sh`
+present but no marker file, you are looking at the detach race described under
+"Open questions" — not a new bug.
 
 ### Verification record — 2023 MBP, 2026-08-15
 
