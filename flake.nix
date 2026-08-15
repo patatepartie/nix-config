@@ -14,6 +14,9 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     # nixpkgs 26.11+ dropped x86_64-darwin; pin 2018 MBP to last supported stable branch.
     # nix-darwin master enforces nixpkgs version match, so we need paired stable branches for both.
+    # Permanent, unlike the other pins here: upstream is not bringing x86_64-darwin back, so there
+    # is no trigger to drop this. It ends when the 2018 MBP is retired or moved to x86_64-linux.
+    # Until then that host is frozen on 26.05 and stops getting updates once the branch goes EOL.
     nixpkgs-x86-darwin.url = "github:nixos/nixpkgs/nixpkgs-26.05-darwin";
     nix-darwin = {
       url = "github:LnL7/nix-darwin/master";

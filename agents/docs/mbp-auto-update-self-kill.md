@@ -445,9 +445,12 @@ The decisive test forced the exact condition the old code died on: a temporary
 Temporary `sleep`/marker instrumentation was reverted; the working tree is clean
 and this host's `auto-update.nix` is byte-identical to the 2023's.
 
-Warning surfaced during the switches, unrelated to this fix but worth tracking:
-`Nixpkgs 26.05 will be the last release to support x86_64-darwin` — this host
-loses nixpkgs support after 26.05.
+Warning surfaced during the switches, unrelated to this fix and **not
+actionable**: `Nixpkgs 26.05 will be the last release to support x86_64-darwin`.
+This is expected and already handled — `flake.nix` deliberately pins this host to
+`nixpkgs-26.05-darwin` (with paired `nix-darwin` / `home-manager` stable
+branches), so the warning fires *because* of the pin rather than in spite of it.
+See the comment on `nixpkgs-x86-darwin` in `flake.nix`. Nothing to do here.
 
 ## Plan B — marker file (implemented alongside plan A)
 
