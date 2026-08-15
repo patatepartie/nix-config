@@ -204,6 +204,19 @@
     };
   };
 
+  systemd.services.avahi-publish-transmission = {
+    description = "Publish transmission.local mDNS address";
+    after = [ "avahi-daemon.service" "network-online.target" ];
+    requires = [ "avahi-daemon.service" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.avahi}/bin/avahi-publish -a -R transmission.local 192.168.0.17";
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+  };
+
   # Backup directories for container data (bind-mounted into containers)
   # Subdirectories owned by 1000:1000 to match container user
   systemd.tmpfiles.rules = [

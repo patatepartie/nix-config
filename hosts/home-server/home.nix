@@ -127,6 +127,7 @@
 
   home.packages = with pkgs; [
     just
+    transmission-remote-gtk
     vlc
     google-chrome
   ];
@@ -141,5 +142,7 @@
       "${pkgs.nautilus}/share/applications/org.gnome.Nautilus.desktop";
     "autostart/org.gnome.Console.desktop".source =
       "${pkgs.gnome-console}/share/applications/org.gnome.Console.desktop";
+    "autostart/io.github.TransmissionRemoteGtk.desktop".source =
+      "${pkgs.transmission-remote-gtk}/share/applications/io.github.TransmissionRemoteGtk.desktop";
   };
 }
