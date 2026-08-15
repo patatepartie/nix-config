@@ -104,6 +104,24 @@
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "patate";
 
+  # The GDM greeter runs as its own user (gdm-greeter, uid 60578) with its own
+  # dconf, so patate's anti-sleep settings in home.nix never applied to it.
+  # After an auto-update tore down the GNOME session, the greeter idled and
+  # suspended this always-on server, dropping it off the network until someone
+  # pressed the power button.
+  services.displayManager.gdm.autoSuspend = false;
+
+  # Backstop for any other suspend requester. This also disables deliberate
+  # suspend, which is intended on an always-on server.
+  systemd.sleep.settings.Sleep = {
+    AllowSuspend = "no";
+    AllowHibernation = "no";
+    AllowSuspendThenHibernate = "no";
+    AllowHybridSleep = "no";
+  };
+
+  services.logind.settings.Login.IdleAction = "ignore";
+
   # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
