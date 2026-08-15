@@ -1,6 +1,8 @@
 # MBP auto-update killed by its own activation — diagnosis and plan
 
-**Status:** diagnosed 2026-08-14, not yet implemented.
+**Status:** diagnosed 2026-08-14, implemented and verified on the 2023 MBP
+2026-08-15. Applied to the 2018 MBP in the same commit but **not yet verified
+there** — run "How to test" on that host.
 **Affects:** both MacBook Pros (`hosts/2023-macbook-pro/modules/auto-update.nix`,
 `hosts/2018-macbook-pro/modules/auto-update.nix` — same script, same bug).
 **Symptom the user sees:** none. That is the whole problem.
@@ -162,20 +164,31 @@ Once the script survives, a genuine failure reaches the existing
 `notify_failure` path and alerts **the same morning**. That is the user's
 stated requirement (plan A = immediate notification).
 
-### Open questions for the implementing session
+### Open questions — all resolved during implementation (2026-08-15)
 
-- Exact detach mechanism on macOS under launchd. `setsid` is not in macOS base;
-  check what is available in the script's `PATH`
-  (`/run/current-system/sw/bin:/usr/bin:/bin`) — nixpkgs `util-linux` provides
-  `setsid`, or use `nohup` + `disown`, or a small `perl -e 'setsid'`. Verify the
-  detached process genuinely leaves the job's process group, or `unload` may
-  still reach it.
-- Whether the launcher should copy the script to the stable path on every run
-  (simple, self-healing) or via a `system.activationScripts` entry (cleaner, but
-  runs during the same activation that does the reload).
-- Whether `RunAtLoad` interacts badly: activation does `load -w` immediately
-  after `unload`, which could trigger a second run right after the first was
-  killed. Check the current plist for `RunAtLoad` before changing anything.
+- **Detach mechanism.** A perl helper: `fork()`, then `setsid()` in the child,
+  then `exec`. Two details are load-bearing and both were found the hard way.
+  - **`fork()` before `setsid()` is mandatory.** `setsid(2)` fails when the
+    caller is already a process group leader, which the launchd-spawned job is.
+    Forking first guarantees the child is not a leader, so its `setsid` always
+    succeeds. Without the fork the child silently stays in the job's group.
+  - **The parent must block until the child has detached.** launchd tears the
+    job's process group down within ~35ms of the job going inactive (measured
+    in `log show`: spawn at `16:18:01.992`, `service inactive` at
+    `16:18:02.027`). A child that has not yet called `setsid` at that moment is
+    killed with it. The helper uses a pipe: the child writes one line after
+    `setsid`, the parent blocks reading it, then exits. Do not background the
+    helper with `&` — that reintroduces the race.
+
+  Symptom when this is wrong: the launcher exits 0, `run-update.sh` is installed,
+  and **nothing else happens** — no log output, no marker file. It looks exactly
+  like a crashed launcher.
+- **Where to copy the script.** The launcher `install`s it to
+  `/var/lib/nix-auto-update/run-update.sh` on every run: simple, self-healing,
+  and it avoids depending on the same activation that does the reload.
+- **`RunAtLoad`.** Settled: not set in the plist (verified with `plutil -p`), so
+  activation's `launchctl load -w` does not start a second run. This contradicted
+  an earlier draft of this doc, which listed it as both settled and open.
 
 ### How to test
 
@@ -191,19 +204,73 @@ process *it* spawned for a given job Label. Running the store path directly
 associate with the job, so `unload` will not touch it and the bug will not
 reproduce — you would "prove" a fix that does not exist.
 
+Three preconditions have to hold at once, and an earlier version of this recipe
+got all three wrong. Read them before running anything.
+
+1. **The edited script must already be installed when you kickstart.** A marker
+   edit only reaches the plist after an activation installs it. Kickstarting
+   first runs the *old* script — the log then shows no marker, and you are
+   testing the wrong binary. `just switch` first, then kickstart.
+2. **The run needs a window long enough to race.** A cached build finishes the
+   whole run in ~19s, which is not enough time to start a second `just switch`
+   and have it reach activation. Add a temporary `sleep 180` before
+   `darwin-rebuild` to hold the window open.
+3. **The daemon's checkout must be behind `origin/main`,** or the script exits
+   at "Already up to date" without rebuilding at all.
+
 ```sh
-# Confirm the current (unfixed) behaviour kills the script.
-# 1. Edit auto-update.nix so autoUpdateScript's derivation changes
-#    (e.g. add a `log "marker"` line). git add it (untracked files are invisible
-#    to the build), but do NOT commit yet.
-# 2. Start the job THROUGH LAUNCHD so it is the tracked process:
-sudo launchctl kickstart -k system/org.nixos.nix-auto-update
-tail -f /var/log/nix-auto-update.log
-# 3. While it is mid-rebuild, from ANOTHER terminal:
+# 1. Edit auto-update.nix: add `log "STEP0-MARKER"` after "Starting nix
+#    auto-update", and `sleep 180` just before the darwin-rebuild call.
+#    git add it (untracked files are invisible to the build).
+git add hosts/2023-macbook-pro/modules/auto-update.nix
+
+# 2. INSTALL it first, so launchd runs the edited script.
 just switch
-# 4. Expect: the log stops at "reloading service org.nixos.nix-auto-update",
-#    with no "Update complete" and no Homebrew phase.
+
+# 3. Put the daemon's checkout behind origin so the run does real work.
+sudo git -C /var/lib/nix-auto-update/nix-config reset --hard HEAD~1
+
+# 4. Start the job THROUGH LAUNCHD so it is the tracked process.
+sudo launchctl kickstart -k system/org.nixos.nix-auto-update
+
+# 5. Confirm the RIGHT script is running before going further:
+sudo tail /var/log/nix-auto-update.log
+#    must show STEP0-MARKER. If it does not, you are racing the old script.
+
+# 6. While it sleeps, change the script again so the plist DIFFERS, then switch.
+#    An unchanged plist does not reload, and the job is NOT killed — that is the
+#    control case, and it is worth seeing once.
+#    Edit the marker to STEP0-MARKER-V2, git add, then:
+just switch    # prints "reloading service org.nixos.nix-auto-update"
+
+# 7. Expect: the daemon's log stops mid-sleep with no "Update complete" and no
+#    Homebrew phase, and the PID is gone.
 ```
+
+Note the `reloading service` line appears on the stdout of whichever process
+runs the activation — your `just switch` here, not the daemon's log. The
+historical logs show it inline only because those runs were the auto-update
+doing its own rebuild. Its absence from the daemon log is not a failed repro.
+
+**The self-revert trap — this will bite you.** The runner rebuilds from
+`/var/lib/nix-auto-update/nix-config` at `origin/main`. While the fix is
+committed locally but **not pushed**, that commit does not contain the fix, so
+every daemon run *reverts the installed plist to the old script*. You then
+kickstart again, get the old behaviour, and conclude the fix does not work.
+
+Check the plist after any daemon run, before drawing conclusions:
+
+```sh
+plutil -p /Library/LaunchDaemons/org.nixos.nix-auto-update.plist | grep -A2 ProgramArguments
+```
+
+To test before pushing, point the checkout's `origin/main` at the local commit
+(`sudo git -C /var/lib/nix-auto-update/nix-config update-ref refs/remotes/origin/main <sha>`).
+Note the runner's `git fetch origin` will reset that ref again, so re-run
+`update-ref` immediately before each kickstart. Do **not** repoint `origin` at
+the user-owned working repo: the runner runs as root and git rejects it with
+"detected dubious ownership", and the `safe.directory` workaround does not reach
+the runner because its `PATH` pins a different git.
 
 **Step 1 — after the fix, same procedure, opposite result.** Assert all four:
 
@@ -244,11 +311,21 @@ sudo launchctl list | grep nix-auto-update
 #     EXPECT '-' in the PID column (launcher already exited).
 
 # (b) AND the real work is nevertheless still running, detached
-pgrep -fl darwin-rebuild                       # must return a live process
-ps -o pid,ppid,pgid,sess,command -p <rebuild-pid>
-#     PPID should be 1 (reparented to init); PGID/SESS should differ from the
-#     original launcher's.
+pgrep -fl run-update.sh                        # must return a live process
+ps -o pid,ppid,pgid,sess,command -p <runner-pid>
+#     PPID should be 1 (reparented to init); PGID should equal the runner's own
+#     PID (it is its own group leader), i.e. different from the launcher's.
 ```
+
+Observed on the 2023 MBP, 2026-08-15 (a passing run):
+
+```
+  PID  PPID  PGID   SESS COMMAND
+35968     1 35968      0 .../bash /var/lib/nix-auto-update/run-update.sh 20260815T162022-35960
+```
+
+`SESS` shows `0` on macOS `ps` even after a successful `setsid`; do not treat
+that as a failure. `PPID=1` and `PGID == PID` are the assertions that matter.
 
 Fails if: (a) shows a present, long-lived PID — the launchd-tracked process is
 still doing the work and `unload` can kill it. Also fails if (a) passes but (b)
@@ -271,7 +348,30 @@ sudo launchctl kickstart -k system/org.nixos.nix-auto-update
 **Do both MacBooks.** The 2018 has the same bug; a fix verified only on the 2023
 is half done.
 
-## Plan B — marker file (fallback only)
+### Verification record — 2023 MBP, 2026-08-15
+
+Step 0 reproduced the bug under control before any fix was written: with the
+plist **unchanged**, a concurrent `just switch` left the running job alive; with
+the plist **changed**, the same switch printed `reloading service
+org.nixos.nix-auto-update` and the job died mid-`sleep` (PID gone, log
+truncated, no Homebrew phase). That pairing is what pins the cause to the
+plist-change reload specifically, rather than to concurrent activation in
+general.
+
+After the fix, a daemon run rebuilt across a plist change and:
+
+| Assertion | Result |
+|---|---|
+| Reached `Update complete` | ✅ 16:22:19 |
+| Homebrew phase ran | ✅ `brew bundle` present |
+| **Survived `reloading service …` in its own log** | ✅ the line the old code died on |
+| `/run/current-system` advanced | ✅ |
+| Launcher already exited (`-` PID) while runner alive | ✅ both, together |
+| Marker cleared on success | ✅ |
+| Stale marker reported on next run | ✅ named the previous run id |
+| No false positive on two clean runs | ✅ |
+
+## Plan B — marker file (implemented alongside plan A)
 
 Only a detector, not a fix, and it reports up to ~24h late (at the *next* run).
 The user explicitly ranked this below plan A. Implement it in addition to plan A,
@@ -286,10 +386,25 @@ Known correctness issue to handle: a manual `just switch` racing the scheduled
 run could clobber or misattribute the marker. The timestamp/run-id is what makes
 the alert say *which* run died; do not reduce it to a bare touch-file.
 
+As implemented, the marker holds `run <id> started <timestamp>`, so the alert
+names the run that died. Two limits are accepted rather than solved:
+
+- **Two overlapping daemon runs** (only reachable by kickstarting during a run —
+  the 07:30 schedule cannot do it) share one marker path, so the second
+  overwrites the first and the first goes unreported.
+- **A manual `just switch` does not touch the marker at all.** It is written
+  only by the runner, so a manual switch cannot clobber it; it can still *kill*
+  a run, which is precisely the case the next run reports.
+
+Both are strictly better than the pre-fix state, where nothing was reported at
+all. Revisit only if overlapping runs stop being purely hypothetical.
+
 ## Files
 
-- `hosts/2023-macbook-pro/modules/auto-update.nix` — daemon + script
-- `hosts/2018-macbook-pro/modules/auto-update.nix` — same bug, apply the same fix
+- `hosts/2023-macbook-pro/modules/auto-update.nix` — launcher + detach helper + runner
+- `hosts/2018-macbook-pro/modules/auto-update.nix` — identical; verify there too
+- `/var/lib/nix-auto-update/run-update.sh` — the runner, installed on every run
+- `/var/lib/nix-auto-update/run-in-progress` — plan B marker (absent when idle)
 - `/var/log/nix-auto-update.log` — evidence (grep for `reloading service org.nixos.nix-auto-update`)
 
 Commit prefix for a change touching both: **MBPs**.
