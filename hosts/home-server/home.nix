@@ -130,4 +130,16 @@
     vlc
     google-chrome
   ];
+
+  # Started with the desktop session. Sourced from the packages themselves so
+  # they cannot drift from what is installed, which is how the hand-placed
+  # chromium entry ended up launching a browser that was no longer there.
+  xdg.configFile = {
+    "autostart/google-chrome.desktop".source =
+      "${pkgs.google-chrome}/share/applications/google-chrome.desktop";
+    "autostart/org.gnome.Nautilus.desktop".source =
+      "${pkgs.nautilus}/share/applications/org.gnome.Nautilus.desktop";
+    "autostart/org.gnome.Console.desktop".source =
+      "${pkgs.gnome-console}/share/applications/org.gnome.Console.desktop";
+  };
 }
