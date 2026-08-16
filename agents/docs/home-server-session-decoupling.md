@@ -1,10 +1,136 @@
 # Home server: auto-update kills the GNOME session, box then suspends — diagnosis and plan
 
-**Status:** diagnosed 2026-08-14, refined 2026-08-15. Not yet implemented.
+**Status:** diagnosed 2026-08-14, refined 2026-08-15, **implemented and verified
+2026-08-15**. Work items 1 and 2 are done and tested on the live host; work item
+2b remains optional and undone.
 **Affects:** `hosts/home-server/` (`configuration.nix`, `home.nix`, `auto-update.nix`).
 **User impact:** machine becomes **unreachable over the network for hours** and
 needs a physical power-button press to come back. Running apps and in-flight
 torrent downloads are lost.
+
+## What was implemented (2026-08-15)
+
+Five commits, all prefixed `HomeServer`:
+
+| Commit title | What it does |
+|---|---|
+| Stop the box suspending itself after a session teardown | Work item 2 |
+| Run Transmission as a system service | Work item 1 |
+| Remove the Transmission GUI from the desktop session | Retires `transmission-gtk` |
+| Manage desktop autostart entries with home-manager | Chrome, Files, Console |
+| Add a Transmission remote client and transmission.local | `transmission-remote-gtk`, mDNS name |
+
+**Verified on the live host**, not just by evaluation:
+
+- `busctl … CanSuspend` went from `"challenge"` (before) to `"no"` (after). This
+  is the cheap non-destructive probe — see "Testing suspend without suspending".
+- The **regression test passed**: the GNOME session was terminated, a greeter
+  session (uid 60578) sat idle for **21 minutes** — past the ~15 minutes that
+  suspended the box on 2026-08-14 — and the machine stayed reachable with
+  `PM: suspend entry` count 0 and uptime unbroken.
+- A **throttled download continued across a session teardown**: 0.69% → 1.90% →
+  2.48% while the desktop session was killed and restarted. `transmission.service`
+  kept the same `ActiveEnterTimestamp` throughout, i.e. it never restarted.
+- Downloaded files land `-rw-rw-r-- transmission users`, so `patate` can read and
+  delete them, and `/home/patate/Downloads` is **still owned by `patate`**.
+
+### Things this doc got wrong or did not predict
+
+Each of these cost a round trip; none were visible from evaluation alone.
+
+1. **`/etc/dconf/db/gdm.d/` does not exist on this host.** The doc's test command
+   greps it and would report the primary fix as missing. The greeter profile at
+   `/etc/dconf/profile/gdm` is a **store symlink** whose `file-db:` line points at
+   a compiled binary DB in `/nix/store`. Verify with:
+   ```sh
+   ssh home-server.local "cat /etc/dconf/profile/gdm"     # find the file-db: path
+   ssh home-server.local "grep -a -oE 'sleep-inactive-[a-z-]*|nothing' <that-path> | sort -u"
+   ```
+2. **`incomplete-dir` fails the unit when `downloadDirPermissions` is null.**
+   `BindPaths=` does not create its targets, and the module only creates
+   `.incomplete` inside the `downloadDirPermissions != null` branch of
+   `transmission-setup.service`. Leaving that null to protect the download dir's
+   ownership therefore breaks the service with
+   `Failed to set up mount namespacing: …/.incomplete: No such file or directory`
+   and `status=226/NAMESPACE`. Create the directory with a tmpfiles rule instead;
+   `transmission.service` is already ordered `After=systemd-tmpfiles-setup.service`.
+3. **RPC answers 421, not 403, when reached by hostname.** The doc lists 409/403/000
+   but not this. `rpc-host-whitelist-enabled` defaults to **true with an empty
+   list**, which rejects any request whose `Host:` header is a name rather than an
+   address — so `curl http://192.168.0.17:9091/…` returns 409 while
+   `curl http://home-server.local:9091/…` returns 421. This is a *separate* check
+   from `rpc-whitelist`. Set `rpc-host-whitelist-enabled = false`.
+4. **`downloadDirPermissions` is not needed at all**, and setting it is actively
+   undesirable here — see "Keeping the download dir owned by patate" below.
+5. **A stale autostart entry was hiding in `~/.config/autostart/`.** Removing the
+   `transmission_4-gtk` package does not remove a hand-placed `.desktop` copy.
+   Three such 2023-era files were there, one (`chromium-browser.desktop`) pointing
+   at a browser that is not installed — which is why Chrome never came back with
+   the session. They are now declared through home-manager instead.
+6. **Removing the GUI leaves no client.** `transmission-remote` (CLI) ships with
+   the daemon, but there is no GUI until `transmission-remote-gtk` is installed
+   explicitly.
+
+### Keeping the download dir owned by `patate`
+
+The doc presents a choice between the module's confined `transmission` user and a
+Samba-compatible one, and flags `downloadDirPermissions` as the lever. **Neither
+trade-off is necessary.** The module binds `download-dir` into a `RootDirectory`
+jail precisely so the daemon never traverses the parent directory
+(`transmission.nix`, comment above `RootDirectory=`: *"makes it possible to use
+the same paths download-dir/incomplete-dir … without requiring cfg.user to have
+access to their parent directories"*). So `/home/patate` can stay `drwx------`.
+
+What actually works:
+
+- `services.transmission.group = "users"` (patate's primary group)
+- `settings.umask = "002"` so created files are `664`, not `600`
+- **omit `downloadDirPermissions`** — setting it makes `transmission-setup` run
+  `install -d -o transmission …` on the download dir, chowning it away from patate
+- a tmpfiles rule for mode only: `d /home/patate/Downloads 0775 patate users -`
+- a second tmpfiles rule to create `.incomplete`, owned by `transmission`
+
+Note the unit sets `UMask=0066` at the systemd level, which looks like it would
+strip group-read from downloaded files. It does not win: Transmission applies its
+own `settings.umask` when creating files. Verified — files land `-rw-rw-r--`.
+
+### Testing suspend without suspending
+
+The doc's step 0 (`systemctl suspend` before the change, to prove the test can
+fail) takes the box down and needs a physical power press. It is unnecessary:
+
+```sh
+ssh home-server.local "busctl call org.freedesktop.login1 /org/freedesktop/login1 \
+  org.freedesktop.login1.Manager CanSuspend"
+```
+
+`"challenge"` = permitted by policy, merely needs authentication → the test can
+fail, so a later pass is meaningful. `"no"` = refused by `sleep.conf`. This reads
+the same policy `systemctl suspend` consults, without suspending anything.
+
+### Connecting to the daemon
+
+| Where | Client | Notes |
+|---|---|---|
+| Mac | Web UI at `http://transmission.local:9091` | Works with no install |
+| Mac | `transmission-remote-gtk` | **Not available** — `platforms = linux` |
+| Server | `transmission-remote` CLI | Ships with the daemon |
+| Server | `transmission-remote-gtk` | Installed, autostarts with the session |
+
+`transmission.local` is published by an `avahi-publish` unit modelled on the
+existing `avahi-publish-cash22` one. Both **hardcode `192.168.0.17`**, so both
+break if the server's address changes.
+
+### Still open
+
+- **Work item 2b** (restart `display-manager.service` when user activation fails)
+  is undone. Confirmed real: after a session teardown the screen stays dark and
+  autologin does not re-fire, so recovery needs
+  `sudo systemctl restart display-manager` over SSH. With no keyboard attached to
+  this box, that is the only route back to a desktop.
+- Test a session cycle with a **reboot**, not a logout, when convenient: GDM
+  autologin fires on boot but generally shows the greeter after an explicit
+  logout.
 
 ## Symptom
 
@@ -206,12 +332,12 @@ pinned nixpkgs. Every one of these bites:
   users — **back up torrent state before switching** (NixOS 24.11 release notes).
 - **User/group defaults to `transmission:transmission`**, not `patate`. The
   Samba `Downloads` share uses `force user = patate` (`configuration.nix:222`),
-  so files written by the daemon will not match unless you set
-  `services.transmission.user`/`group` or arrange group-writable permissions
-  (`downloadDirPermissions`). Note the module applies heavy systemd sandboxing
-  (`RootDirectory`, `BindPaths`, `ProtectHome = "read-only"`) that assumes a
-  dedicated low-privilege user; running it as `patate` weakens that. Decide
-  deliberately.
+  so files written by the daemon will not match unless you adjust something.
+  **Resolved in implementation — see "Keeping the download dir owned by patate"
+  above.** Short version: set `group = "users"` and `settings.umask = "002"`,
+  leave `downloadDirPermissions` unset, and grant group-write with a tmpfiles
+  rule. This keeps the module's sandboxing *and* patate's ownership; the
+  either/or framing below turned out to be a false choice.
 - **`download-dir` defaults to `${cfg.home}/Downloads`** = `/var/lib/transmission/Downloads`,
   **not** `/home/patate/Downloads`. Set `settings.download-dir` explicitly or
   downloads stop appearing in the Samba share.
@@ -223,10 +349,17 @@ pinned nixpkgs. Every one of these bites:
   failure that looks like the daemon working. `services.transmission.openRPCPort`
   exists for the firewall side.
 
-Remaining open question: migrating existing torrent state out of
-`~/.config/transmission/`. Firewall currently
-`networking.firewall.allowedTCPPorts = [ 1883 3389 51413 ]` — 51413 is the BT
-peer port; RPC 9091 is not open and should only be opened deliberately.
+**There was no torrent state to migrate.** `~/.config/transmission/torrents/` was
+empty and the queue was `[]` — the nine directories in `Downloads` are finished
+downloads with no active torrent, so nothing was seeding and the NixOS 24.11
+data-loss warning about the 3→4 default change did not apply. Confirm this again
+before assuming it still holds. Worth knowing: when a completed file is already
+on disk, adding its torrent to the daemon makes it verify and adopt the data
+immediately (observed: a 3.41 GB ISO went straight to 100%), so a future
+migration would not re-download.
+
+`openRPCPort = true` handles the firewall; the resulting port list is
+`[22,139,445,1883,3389,5357,9091,51413]`.
 
 ### How to test work item 1
 
@@ -241,9 +374,13 @@ ssh ... systemctl show transmission -p MainPID -p FragmentPath
 # 2. RPC reachable from the MBP (the point of the change)
 curl -s http://home-server.local:9091/transmission/rpc -o /dev/null -w '%{http_code}\n'
 #    409 = working. That is the RPC handshake asking for a session id.
-#    403 = listening, but rpc-whitelist is rejecting you (see required settings).
+#    421 = rpc-host-whitelist rejecting the Host: header, NOT the IP whitelist.
+#          Observed for real. Compare against the IP form to confirm:
+#          curl http://192.168.0.17:9091/... returning 409 while the hostname
+#          returns 421 is exactly this. Fix: rpc-host-whitelist-enabled = false.
+#    403 = listening, but rpc-whitelist is rejecting your address.
 #    000/refused = not listening, or firewall/rpc-bind-address wrong.
-#    Distinguishing these three tells you which layer to fix.
+#    Distinguishing these four tells you which layer to fix.
 
 # 3. Downloads survive the user logging out — the actual requirement
 ssh ... transmission-remote -l                 # note progress % of an active torrent
@@ -423,9 +560,12 @@ ssh ... cat /etc/systemd/sleep.conf
 #      AllowSuspend=no
 #      AllowSuspendThenHibernate=no
 
-#    and the greeter's dconf profile (the primary fix):
-ssh ... cat /etc/dconf/db/gdm.d/*  2>/dev/null | grep -A4 'plugins/power'
-#    expect sleep-inactive-ac-type='nothing' and sleep-inactive-ac-timeout=0
+#    and the greeter's dconf profile (the primary fix).
+#    NOTE: /etc/dconf/db/gdm.d/ does NOT exist on this host — see "Things this
+#    doc got wrong" above. Follow the store symlink instead:
+ssh ... cat /etc/dconf/profile/gdm                    # note the file-db: path
+ssh ... "grep -a -oE 'sleep-inactive-[a-z-]*|nothing' <that-path> | sort -u"
+#    expect the four sleep-inactive-* keys and the value 'nothing'
 
 # 2. Suspend is actually refused (the real assertion)
 ssh ... systemctl suspend ; echo "exit=$?"
@@ -455,7 +595,7 @@ the suspend came from a path `sleep.conf` does not cover.
 Finally, confirm the box survives a real update cycle: wait for (or trigger) a
 `nixos-rebuild switch` that restarts user units, then verify SSH still answers.
 
-## Work item 2b (optional) — recover the display after a teardown
+## Work item 2b (optional, NOT done) — recover the display after a teardown
 
 Even with suspend disabled, a torn-down session leaves **no compositor and no
 greeter** (GDM is deliberately in the "NOT restarting" list), so the screen stays
@@ -478,17 +618,29 @@ return.
 
 ## Suggested order
 
-1. **Work item 2** (system-wide suspend off) — small, verified, and the only
-   change that stops the machine vanishing from the network. Highest immediate
-   relief; do this first.
-2. **Work item 1** (Transmission as a system service) — the structural fix;
-   makes the desktop session disposable so a teardown costs nothing that matters.
-3. **Work item 2b** (restart the display manager on activation failure) —
-   optional polish once the box no longer disappears.
-4. Re-run an update and confirm a session teardown is now merely cosmetic: the
-   box stays reachable over SSH and downloads keep running.
+Items 1 and 2 are **done** (2026-08-15), in the order below.
+
+1. ~~**Work item 2** (system-wide suspend off)~~ — done. Smallest change, biggest
+   relief, and independent of everything else. Doing it first was correct.
+2. ~~**Work item 1** (Transmission as a system service)~~ — done.
+3. **Work item 2b** (restart the display manager on activation failure) — still
+   optional, still undone. Now the only thing standing between a session teardown
+   and a fully unattended recovery.
+4. Confirm across a **real** auto-update cycle (not just a manual switch) that a
+   session teardown is merely cosmetic. Not yet observed — every teardown so far
+   was deliberately triggered.
 
 Commit prefix: **HomeServer**.
+
+### Deploying to this host without pushing
+
+The auto-update service hard-resets to `origin/main`, so it cannot test unpushed
+work. There is a checkout at **`/home/patate/tech/nix-config`** to use instead:
+transfer the commit with `git format-patch -1 HEAD --stdout | ssh
+home-server.local "cat > /tmp/x.patch"` then `git am` it there, and have the user
+run `just switch` from that directory. Note `scp` is **not** in the sandbox
+exclusion list — it fails to resolve `home-server.local` — but piping through
+`ssh` works. `just switch` needs sudo, which cannot be run over SSH from here.
 
 ## Scope
 
@@ -513,3 +665,23 @@ theorising about *why* a host is unreachable, check `journalctl -b -1` for
 avahi withdrew the address record. A suspended box looks identical to an absent
 one from the network side. The user's physical observation — "I shook the mouse
 and nothing happened" — was the decisive evidence, not the network scan.
+
+**From the implementation session (2026-08-15):**
+
+- **A `Monitor` watching this host reports `UNREACHABLE` even when it is up.**
+  Monitor commands run *inside* the sandbox, where `.local` mDNS cannot resolve,
+  so every check fails with `Could not resolve hostname home-server.local:
+  -65563`. Direct `ssh home-server.local …` calls are sandbox-excluded and work.
+  This is the same trap that caused the wrong diagnoses above — it fired again,
+  and was only caught because the error string was recognised. To wait on this
+  host, run the sleep **on the server** (`ssh home-server.local "sleep 600; …"`)
+  rather than polling from a monitor.
+- **Every real defect this session was found by testing on the box, not by
+  evaluating the config.** All six items under "Things this doc got wrong"
+  evaluated perfectly and failed at runtime — `226/NAMESPACE`, HTTP 421, a
+  missing `gdm.d` path, a stale `.desktop` file. Build success is not evidence
+  that a change works.
+- **`install -d` is not recursive**, so the feared "chown of the whole download
+  directory" was never going to touch the 143 GB inside it. Check what a script
+  actually does before treating it as high-risk; the real risk here was Samba's
+  `force user` interacting with a directory it no longer owned.
