@@ -1,7 +1,6 @@
 # Serve Transmission at a bare `transmission.local` (no `:9091`)
 
-**Status:** done, verified 2026-08-16. Reboot persistence still unverified — see
-"Outstanding".
+**Status:** done, verified 2026-08-16 including across a reboot.
 **Affects:** `hosts/home-server/configuration.nix`.
 **Result:** `http://transmission.local` serves the Transmission web UI.
 
@@ -89,14 +88,21 @@ Two response codes that look like failures and are not:
 The health check passed on the first deploy (`NRestarts=0`, `Result=success`),
 so the `--force` fallback was not needed.
 
+## Reboot behaviour
+
+Tested on a real cold boot 2026-08-16: both hostnames served correctly, the unit
+reported `Result=success` with `NRestarts=0`, and `systemctl --failed` was empty.
+
+Zero restarts means kamal-proxy's container happened to be up before the unit
+ran. Do not read that as proof the ordering is guaranteed — `wants`/`after` on
+`docker.service` waits for the daemon, not for Kamal's container, so a slower
+boot could still find the proxy missing. That is what the retry window is for. If
+this ever looks broken after a reboot, check `NRestarts` and
+`systemctl status kamal-proxy-route-transmission` before concluding the design is
+wrong; a few restarts followed by success is the system working as intended.
+
 ## Outstanding
 
-- **Reboot not yet tested.** The unit's ordering against the kamal-proxy
-  container starting is only exercised on a cold boot; the switch-time run had
-  the container already up. Re-run the two `curl`s after the next reboot. If the
-  unit fails there, the retry window should cover it — check
-  `systemctl status kamal-proxy-route-transmission` and `NRestarts` rather than
-  assuming the design is wrong.
 - The `avahi-publish-*` units still hardcode `192.168.0.17`. Untouched by this
   work and still a latent wart, but no longer load-bearing for anything here,
   since no second address was needed.
