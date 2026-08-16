@@ -217,6 +217,45 @@
     };
   };
 
+  # Serves the Transmission web UI at a bare http://transmission.local, with no
+  # :9091. Port 80 is held by kamal-proxy, which routes by Host header, so the
+  # UI is added there as a second service rather than by standing up a competing
+  # proxy on another address.
+  #
+  # kamal-proxy is deployed by Kamal from the cash22 project, not by this repo,
+  # and keeps its routing table in the kamal-proxy-config Docker volume. That
+  # state does persist across restarts and cash22 redeploys — entries are keyed
+  # by service name, so `kamal deploy` only rewrites cash22-web. This unit
+  # re-asserts the route anyway, both to keep the declaration in this repo and
+  # so it self-heals if the volume is ever recreated. `deploy` is idempotent.
+  #
+  # The target is the kamal bridge gateway (the host as seen from the container)
+  # rather than 127.0.0.1, which inside the container would be the proxy itself.
+  systemd.services.kamal-proxy-route-transmission = {
+    description = "Route transmission.local through kamal-proxy to the Transmission RPC";
+    after = [ "docker.service" "transmission.service" ];
+    wants = [ "docker.service" "transmission.service" ];
+    wantedBy = [ "multi-user.target" ];
+    # Keep retrying for ~10 minutes rather than giving up after systemd's
+    # default 5 attempts, which a slow-starting kamal-proxy would exhaust.
+    startLimitIntervalSec = 600;
+    startLimitBurst = 40;
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      # kamal-proxy is a container Kamal starts on its own schedule, so it may
+      # not be up yet on a cold boot. Retry rather than fail the unit.
+      Restart = "on-failure";
+      RestartSec = "15s";
+      ExecStart = pkgs.writeShellScript "kamal-proxy-route-transmission" ''
+        ${pkgs.docker}/bin/docker exec kamal-proxy kamal-proxy deploy transmission \
+          --target 172.18.0.1:9091 \
+          --host transmission.local \
+          --health-check-path /transmission/web/
+      '';
+    };
+  };
+
   # Backup directories for container data (bind-mounted into containers)
   # Subdirectories owned by 1000:1000 to match container user
   systemd.tmpfiles.rules = [
@@ -258,7 +297,11 @@
       ratio-limit = 2.0;
       ratio-limit-enabled = true;
       rpc-bind-address = "0.0.0.0";
-      rpc-whitelist = "127.0.0.1,::1,192.168.0.*";
+      # 172.18.0.* is the kamal Docker bridge, so kamal-proxy can reach the RPC
+      # when it serves the UI at a bare http://transmission.local (see the
+      # kamal-proxy-route-transmission unit). Proxied requests arrive from the
+      # proxy's container address, not the client's, so 192.168.0.* misses them.
+      rpc-whitelist = "127.0.0.1,::1,192.168.0.*,172.18.0.*";
       rpc-authentication-required = false;
       # Defaults to enabled with an empty list, which answers 421 to any request
       # whose Host header is a name rather than an address. Access is already
