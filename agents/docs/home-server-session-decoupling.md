@@ -121,16 +121,42 @@ the same policy `systemctl suspend` consults, without suspending anything.
 existing `avahi-publish-cash22` one. Both **hardcode `192.168.0.17`**, so both
 break if the server's address changes.
 
+### Fixed in passing: the `gdm-greeter-N` UID warnings
+
+Every activation logged three `warning: not applying UID change of user
+‘gdm-greeter-N’` lines. Not cosmetic: four of the five greeter users had drifted
+one place from the UIDs the GDM module declares, and **`gdm-greeter-4` and
+`gdm-greeter-5` had ended up sharing UID 60582**.
+
+They predate the module pinning UIDs, so NixOS had allocated them sequentially.
+`update-users-groups.pl` warns and then *keeps* the existing UID (see the
+`$u->{uid} != $existing->{uid}` branch), deliberately, because files could be
+owned by the old number — so no rebuild can ever fix this on its own.
+
+Safe to repair here because nothing referenced those UIDs: no files under `/var`
+or `/home` owned by 60580/60581/60582, `/run/gdm/home/` is a tmpfs and was empty,
+and no processes ran as them. Only `gdm-greeter` (60578, already correct) is used
+on a single-seat machine.
+
+Fix: `sudo userdel gdm-greeter-{2,3,4,5}` then `just switch`, which recreates them
+at the declared UIDs. Confirmed afterwards with `/run/current-system/dry-activate`
+— a dry run is the cheap way to check for activation warnings without applying
+anything.
+
 ### Still open
 
-- **Work item 2b** (restart `display-manager.service` when user activation fails)
-  is undone. Confirmed real: after a session teardown the screen stays dark and
-  autologin does not re-fire, so recovery needs
-  `sudo systemctl restart display-manager` over SSH. With no keyboard attached to
-  this box, that is the only route back to a desktop.
+- **Work item 2b is implemented but has never fired.** It needs a real
+  user-activation failure to prove itself; every teardown so far was triggered by
+  hand. If a future update does tear the session down, check for the Telegram
+  notification "user activation failed, display manager restarted" and confirm
+  the desktop came back on its own.
 - Test a session cycle with a **reboot**, not a logout, when convenient: GDM
   autologin fires on boot but generally shows the greeter after an explicit
-  logout.
+  logout. Nothing here has been verified across a reboot — the box has been up
+  continuously since 2026-08-14.
+- `transmission.local` still needs its `:9091`. See
+  `transmission-bare-hostname.md` for the skeleton plan; the blocker is that
+  kamal-proxy owns port 80 and is not managed by this repo.
 
 ## Symptom
 
@@ -595,7 +621,24 @@ the suspend came from a path `sleep.conf` does not cover.
 Finally, confirm the box survives a real update cycle: wait for (or trigger) a
 `nixos-rebuild switch` that restarts user units, then verify SSH still answers.
 
-## Work item 2b (optional, NOT done) — recover the display after a teardown
+## Work item 2b (DONE 2026-08-16) — recover the display after a teardown
+
+**Implemented** in `hosts/home-server/auto-update.nix`. The script now matches
+`user activation for patate failed` in the switch log — the marker that
+`switch-to-configuration` returned 4 because the user D-Bus session died —
+restarts `display-manager.service`, and reports the run as complete with a
+notification saying what happened.
+
+Ordering matters and is deliberate: the `switchInhibitors` case is matched
+*first* so an inhibitor-blocked switch still stages via `boot`, and anything that
+matches neither still reports a genuine failure. Verified against the real
+2026-08-14 log text plus a synthetic build failure, so the branch is narrow and
+does not mask real breakage.
+
+Not yet exercised by a real failure — the 2026-08-16 auto-update succeeded
+without tearing the session down, so this path is still untested in anger.
+
+The original description follows.
 
 Even with suspend disabled, a torn-down session leaves **no compositor and no
 greeter** (GDM is deliberately in the "NOT restarting" list), so the screen stays
@@ -623,12 +666,14 @@ Items 1 and 2 are **done** (2026-08-15), in the order below.
 1. ~~**Work item 2** (system-wide suspend off)~~ — done. Smallest change, biggest
    relief, and independent of everything else. Doing it first was correct.
 2. ~~**Work item 1** (Transmission as a system service)~~ — done.
-3. **Work item 2b** (restart the display manager on activation failure) — still
-   optional, still undone. Now the only thing standing between a session teardown
-   and a fully unattended recovery.
-4. Confirm across a **real** auto-update cycle (not just a manual switch) that a
-   session teardown is merely cosmetic. Not yet observed — every teardown so far
-   was deliberately triggered.
+3. ~~**Work item 2b** (restart the display manager on activation failure)~~ —
+   done 2026-08-16.
+4. ~~Confirm across a **real** auto-update cycle~~ — done. The 2026-08-16 07:30
+   run completed with `Update complete`, the GNOME session **survived**, uptime
+   was unbroken and `PM: suspend entry` stayed at 0. Compare 2026-08-14, where
+   the same job returned exit 4 and the box suspended 15 minutes later.
+   Work item 2b's recovery path was therefore *not* exercised — the session was
+   never torn down — so it remains untested against a real failure.
 
 Commit prefix: **HomeServer**.
 
