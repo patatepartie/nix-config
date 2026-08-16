@@ -70,6 +70,21 @@ let
       exit 0
     fi
 
+    # The system generation applied; only the graphical session died, taking the
+    # user D-Bus session with it. GDM is deliberately not restarted by
+    # switch-to-configuration, so without this the machine sits with no
+    # compositor and no greeter until someone intervenes.
+    if grep -qF "user activation for patate failed" "$switch_log"; then
+      log "User activation failed, restarting the display manager"
+      if systemctl restart display-manager.service; then
+        log "Update complete"
+        notify "nix auto-update on $HOSTNAME: user activation failed, display manager restarted ($BEFORE -> $AFTER)"
+        exit 0
+      fi
+      notify_failure "user activation failed and display-manager restart also failed ($BEFORE -> $AFTER)"
+      exit 1
+    fi
+
     notify_failure "nixos-rebuild switch failed ($BEFORE -> $AFTER)"
     exit 1
   '';
