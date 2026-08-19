@@ -250,3 +250,23 @@ The other MacBook is unaffected only because it is on an older macOS major versi
 **Gotcha that wasted time here:** a zsh function/alias shadows `log`, so a bare `log show …` fails with `(eval):log:1: too many arguments` — which looks exactly like "the log is empty" and led to a wrong "no biometric errors" conclusion. Always use `/usr/bin/log`. Also, `log show` returns nothing useful from inside the Bash sandbox; run it with `dangerouslyDisableSandbox: true`.
 
 **Resolution.** No fix is deployed yet. The verified fix for the suspend is `services.displayManager.gdm.autoSuspend = false` (it writes the anti-sleep keys into the greeter's own dconf profile), with `systemd.sleep.settings.Sleep.AllowSuspend = "no"` as a system-wide backstop. Note `AllowSuspend` belongs in `sleep.conf`, **not** `logind.conf`, where it silently does nothing. Full plan, including decoupling Transmission from the desktop session, in `agents/docs/home-server-session-decoupling.md`.
+
+## `als` does not list an alias you know exists
+
+**Symptom.** `als <keyword>` returns nothing, or omits an alias that is definitely declared in this repo. Two distinct causes, with the same surface symptom.
+
+**Cause 1 — the shell is stale.** `als` is oh-my-zsh's `aliases` plugin: a wrapper that pipes the output of the `alias` builtin into `plugins/aliases/cheatsheet.py`. It reads the *running shell's* alias table and never touches any file, so an alias added by a `just switch` is invisible to every shell that was already open. Confirm with `alias | grep <name>`: empty in the old shell, present in a new one. Resolution: open a new shell (or re-source the profile). Nothing to fix in the config.
+
+**Cause 2 — it is a function, not an alias.** `als` can only ever see real `alias` entries. Anything defined as a shell function is structurally invisible to it, no matter how alias-like it looks. The oh-my-zsh **tmux plugin is the trap here**: its README documents `ta`, `tad`, `to`, `ts`, `tkss` as aliases, but `tmux.plugin.zsh` builds them with `_build_tmux_alias`, which does `eval "function $1 { … }"` — functions, despite the helper's name. Only `tksv`, `tl`, `tmuxconf` are declared with `alias`, and only those three appear in `als` output. This is an upstream README inaccuracy, not a local misconfiguration — there is no knob to change it.
+
+`als tmux` is doubly unhelpful for a second reason: the plugin also does `alias tmux=_zsh_tmux_plugin_run` and `alias tds=_tmux_directory_session`, so the surviving entries point at opaque function names rather than any text containing `tmux attach`.
+
+**Before concluding a plugin was removed,** read the `plugins = [ … ]` array rather than grepping for the plugin name — a grep for `tmux` in `home.nix` returns dozens of resurrect/continuum hits and buries the one line that matters. All three hosts do list `tmux`: `hosts/2023-macbook-pro/home.nix` has the long list ending `"mise" "tmux" "gascity"`, and both `hosts/2018-macbook-pro/home.nix` and `hosts/home-server/home.nix` have `[ "aliases" "git" "tmux" ]`.
+
+To find things `als` cannot show:
+
+```sh
+whence -v <name>          # says whether it is an alias, function, or binary
+functions <name>          # prints a function's body
+functions | grep -B5 'tmux attach'   # search function bodies by content
+```

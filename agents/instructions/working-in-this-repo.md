@@ -17,6 +17,7 @@ Read the relevant section below before answering or running commands. The repo's
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
 | Touch ID not offered for sudo, password modal instead        | `agents/instructions/troubleshooting.md` — unsigned PAM module; no fix, two dead ends already tested |
+| `als` missing an alias, alias not found in a running shell  | `agents/instructions/troubleshooting.md` — stale shell, or it's a function |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 
