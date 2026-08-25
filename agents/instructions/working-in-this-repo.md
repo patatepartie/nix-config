@@ -18,6 +18,7 @@ Read the relevant section below before answering or running commands. The repo's
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
 | Touch ID not offered for sudo, password modal instead        | `agents/instructions/troubleshooting.md` — unsigned PAM module; no fix, two dead ends already tested |
 | `als` missing an alias, alias not found in a running shell  | `agents/instructions/troubleshooting.md` — stale shell, or it's a function |
+| notifications not firing, Claude Code hook error, terminal-notifier | `agents/instructions/troubleshooting.md` — locally packaged, version pinned by hash |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 
@@ -54,6 +55,14 @@ There are two independent mechanisms.
 **Watch for pinned inputs in `flake.nix`.** One active: `nix-homebrew.inputs.brew-src.url` pins the `brew` CLI to a tag newer than the one `nix-homebrew` ships, because `homebrew-core` formulae keep adopting InstallSteps DSL features that older `brew` cannot parse. It needs a **manual bump** whenever a formula fails to read — the nightly Action advances the taps but can never advance `brew-src`. This is deliberate: tracking brew's latest tag automatically is equivalent to no pin, which is the state that broke `just switch` continuously. See `agents/instructions/troubleshooting.md` → "formula unreadable / unknown DSL keyword" for the bump procedure before touching it.
 
 When upstream regressions force a temporary pin (commit-pinned `nixpkgs.url`, an explicit `inputs.<name>.url` override on a sub-flake, etc.), the pin should carry a comment above the line explaining what it works around and the trigger to drop it. Treat any pin as a workaround that needs removing — not as established configuration. To check whether a pin can now be removed, run `agents/scripts/flake-input-freshness.sh [input-name]` and verify the upstream issue tracked by the pin's comment is resolved.
+
+**Pins also live outside `flake.nix`.** A local derivation under `hosts/<host>/pkgs/` that fetches a fixed URL + hash is a pin too, and a less visible one: `flake-input-freshness.sh` reads `flake.lock`, so it cannot see these at all, and the nightly Action can never advance them. They go stale silently — the package simply stays at its pinned version forever, with no banner and no error. Enumerate them with `ls hosts/*/pkgs/`; each file's header comment states what it works around and the condition for reverting to the nixpkgs package.
+
+Currently pinned this way:
+
+| Package | Host | Why | Revert when |
+|---|---|---|---|
+| `terminal-notifier` 3.0.0 | 2023-macbook-pro | Both Homebrew's bottle and the nixpkgs source build produce an unsigned bundle; 3.0.0 needs a valid signature for `UNUserNotificationCenter` authorization | notifications move to herdr (expected — delete it outright), or nixpkgs ships a 3.0.0 that keeps the release signature — see troubleshooting.md |
 
 ## Diagnostic scripts
 

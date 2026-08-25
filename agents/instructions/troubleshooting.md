@@ -270,3 +270,55 @@ whence -v <name>          # says whether it is an alias, function, or binary
 functions <name>          # prints a function's body
 functions | grep -B5 'tmux attach'   # search function bodies by content
 ```
+
+## Notifications stop firing / `terminal-notifier` fails or hangs
+
+**Symptom.** Claude Code's notification hook (`~/.claude/hooks/notify.sh`) fails on every turn:
+
+```
+Stop hook error: Could not request notification permission:
+The operation couldn't be completed. (UNErrorDomain error 1.)
+```
+
+Or `terminal-notifier` hangs with no output and has to be killed.
+
+**Cause.** Upstream 3.0.0 (released 2026-08-23) replaced `NSUserNotification` with `UNUserNotificationCenter`. The new API only grants authorization to a bundle carrying a valid code-signing identity. Two separate builds get this wrong:
+
+- **Homebrew's bottle** ships a linker-signed binary that never received a bundle signature: `Identifier=terminal-notifier` (the executable name, not the bundle id), `flags=0x20002(adhoc,linker-signed)`, `Info.plist=not bound`, `Sealed Resources=none` — while `Info.plist` declares `CFBundleIdentifier = fr.julienxx.oss.terminal-notifier`. macOS refuses authorization on that mismatch. This is the `UNErrorDomain error 1` case. Upstream confirms the formula is at fault: <https://github.com/julienXX/terminal-notifier/issues/328>
+- **nixpkgs is still on 2.0.0**, which does not fail but *hangs* — `NSUserNotification` no longer delivers, it blocks. A hang in a Stop hook stalls every turn, which is worse than an error.
+
+**Resolution — already applied.** `hosts/2023-macbook-pro/pkgs/terminal-notifier.nix` unpacks the official prebuilt release zip, whose bundle *is* correctly signed (`Identifier=fr.julienxx.oss.terminal-notifier`, `Info.plist entries=14`, `Sealed Resources version=2`). The Homebrew brew was removed from `brews.nix`. `notify.sh` needed no change — the binary keeps its name on PATH.
+
+Two things in that derivation are load-bearing. **Do not "clean them up":**
+
+- **`dontFixup = true`** — nix's fixup phase strips and re-signs the binary, which destroys the release signature and reintroduces the exact bug. This is the whole point of using the prebuilt zip.
+- **`makeWrapper`, not `ln -s`** — a symlink in `$out/bin` makes `NSBundle.mainBundle` resolve to the `bin` directory instead of the `.app`, and `-diagnose` then reports `bundle id (null)`. The wrapper execs the absolute path inside the `.app`.
+
+**Do not** fix a recurrence with `codesign --force --sign -` on the Cellar app. It works, but Homebrew re-breaks it on every `upgrade`/`reinstall` and the lost authorization then fails *silently*.
+
+**Verifying — the sandbox lies here.** Run `terminal-notifier` through the Bash tool's normal sandbox and you always get:
+
+```
+Timed out after 10 seconds waiting for the notification service.
+This usually means no GUI session is available — for example when running over SSH ...
+```
+
+That message appears whether the tool is healthy or broken: the sandbox blocks the GUI bootstrap namespace. **Do not read it as a regression.** Real verification needs `dangerouslyDisableSandbox: true`:
+
+```sh
+terminal-notifier -diagnose     # expect "No problems found." + authorization authorized
+```
+
+A healthy install reports `bundle id fr.julienxx.oss.terminal-notifier`, a `bundle path` under `/nix/store/...`, and `authorization authorized`. Then exercise the real hook path, and **confirm a banner actually appears** — exit 0 alone is not evidence of delivery:
+
+```sh
+terminal-notifier -title "Test" -subtitle "infra" -message "hook path" \
+  -sound Pop -group claude-test \
+  -contentImage "file://$HOME/.claude/hooks/claude-icon.png" -ignoreDnD
+```
+
+**This is a pin, and it is invisible to the usual tooling.** The version is fixed by URL + hash, so 3.0.1 needs a manual bump — `flake-input-freshness.sh` cannot see it (it reads `flake.lock`) and the nightly Action can never advance it. To bump: change `version`, set `hash` to `lib.fakeHash`, run `just build`, and copy the correct hash out of the mismatch error.
+
+**Revert condition.** Delete the derivation and go back to `pkgs.terminal-notifier` once nixpkgs ships a 3.0.0 that *preserves or reproduces the release signature*. Check with `nix eval --raw nixpkgs#terminal-notifier.version`, then confirm the package actually signs the bundle — a version bump alone is not sufficient. The open PR <https://github.com/NixOS/nixpkgs/pull/555789> does **not** qualify: it builds from source via `xcbuildHook` with no codesign step, so it would land unsigned and reproduce this bug. Waiting for it does not help. Homebrew PR <https://github.com/Homebrew/homebrew-core/pull/300412> ("do not disable code signing") was auto-closed by a bot for a missing template and never merged — there is nothing to wait for there either.
+
+**The likelier exit is removal, not a nixpkgs fix.** The plan is to move notifications to herdr, which does not need `terminal-notifier` at all. When that lands, delete `hosts/2023-macbook-pro/pkgs/terminal-notifier.nix`, drop it from `home.packages`, and delete this section — do not carry the pin forward or wait on nixpkgs.

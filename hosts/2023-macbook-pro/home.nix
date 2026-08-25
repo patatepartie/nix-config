@@ -114,6 +114,7 @@ in
     pkgs.ripgrep
     pkgs.sd
     pkgs.ssm-session-manager-plugin
+    (pkgs.callPackage ./pkgs/terminal-notifier.nix { })
     pkgs.terraform
     pkgs.tldr
     pkgs.zoxide
