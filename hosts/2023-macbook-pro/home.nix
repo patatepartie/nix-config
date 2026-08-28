@@ -1,6 +1,5 @@
-{ config, lib, pkgs, pkgs-azure, ... }:
+{ username, config, lib, pkgs, pkgs-azure, ... }:
 let
-  username = "cyrilledru";
   tmuxAssistantResurrect = pkgs.tmuxPlugins.mkTmuxPlugin {
     pluginName = "tmux-assistant-resurrect";
     rtpFilePath = "tmux-assistant-resurrect.tmux";
@@ -156,7 +155,7 @@ in
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
     ".config/mise/config.toml".source = dotfiles/mise/config.toml;
     ".config/karabiner".source = config.lib.file.mkOutOfStoreSymlink
-      "/Users/cyrilledru/Tech/nix-config/hosts/2023-macbook-pro/dotfiles/karabiner";
+      "/Users/${username}/Tech/nix-config/hosts/2023-macbook-pro/dotfiles/karabiner";
   };
 
   # You can also manage environment variables but you will have to manually

@@ -1,7 +1,12 @@
 { nixpkgs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, ... }:
+let
+  username = "cyrilledru";
+in
 
 nix-darwin.lib.darwinSystem {
   system = "x86_64-darwin";
+
+  specialArgs = { inherit username; };
   pkgs = import nixpkgs { system = "x86_64-darwin"; };
 
   modules = [
@@ -15,7 +20,7 @@ nix-darwin.lib.darwinSystem {
         enable = true;
 
         # User owning the Homebrew prefix
-        user = "cyrilledru";
+        user = username;
 
         taps = {
           "homebrew/homebrew-core" = homebrew-core;
@@ -34,7 +39,8 @@ nix-darwin.lib.darwinSystem {
     {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
-      home-manager.users."cyrilledru" = import ./home.nix;
+      home-manager.users.${username} = import ./home.nix;
+      home-manager.extraSpecialArgs = { inherit username; };
 
       # Optionally, use home-manager.extraSpecialArgs to pass
       # arguments to home.nix

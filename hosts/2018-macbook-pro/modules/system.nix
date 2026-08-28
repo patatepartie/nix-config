@@ -1,10 +1,10 @@
-{ ... }: {
+{ username, ... }: {
   system = {
     # Used for backwards compatibility, please read the changelog before changing.
     # $ darwin-rebuild changelog
     stateVersion = 5;
 
-    primaryUser = "cyrilledru";
+    primaryUser = username;
 
     activationScripts.postActivation.text = ''
       /bin/launchctl enable system/com.apple.screensharing
@@ -100,8 +100,8 @@
         ];
 
         persistent-others = [
-          "/Users/cyrilledru/Tech"
-          "/Users/cyrilledru/Downloads"
+          "/Users/${username}/Tech"
+          "/Users/${username}/Downloads"
         ];
       };
 

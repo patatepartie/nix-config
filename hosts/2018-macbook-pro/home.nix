@@ -1,6 +1,5 @@
-{ pkgs, ... }:
+{ username, pkgs, ... }:
 let
-  username = "cyrilledru";
   tmuxAssistantResurrect = pkgs.tmuxPlugins.mkTmuxPlugin {
     pluginName = "tmux-assistant-resurrect";
     rtpFilePath = "tmux-assistant-resurrect.tmux";

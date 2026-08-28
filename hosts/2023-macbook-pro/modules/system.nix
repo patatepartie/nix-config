@@ -1,10 +1,10 @@
-{ ... }: {
+{ username, ... }: {
   system = {
     # Used for backwards compatibility, please read the changelog before changing.
     # $ darwin-rebuild changelog
     stateVersion = 4;
 
-    primaryUser = "cyrilledru";
+    primaryUser = username;
 
     keyboard = {
       enableKeyMapping = true;
@@ -97,8 +97,8 @@
         ];
 
         persistent-others = [
-          "/Users/cyrilledru/Tech"
-          "/Users/cyrilledru/Downloads"
+          "/Users/${username}/Tech"
+          "/Users/${username}/Downloads"
         ];
       };
 

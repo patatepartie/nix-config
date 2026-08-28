@@ -1,7 +1,12 @@
 { inputs, nix-darwin, home-manager, nix-homebrew, homebrew-core, homebrew-cask, homebrew-gascity, homebrew-circleci, ... }:
+let
+  username = "cyrilledru";
+in
 
 nix-darwin.lib.darwinSystem {
   system = "aarch64-darwin";
+
+  specialArgs = { inherit username; };
 
   modules = [
     ./modules/nix-core.nix
@@ -17,7 +22,7 @@ nix-darwin.lib.darwinSystem {
         enableRosetta = true;
 
         # User owning the Homebrew prefix
-        user = "cyrilledru";
+        user = username;
 
         taps = {
           "homebrew/homebrew-core" = homebrew-core;
@@ -40,8 +45,9 @@ nix-darwin.lib.darwinSystem {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
       home-manager.backupFileExtension = "backup";
-      home-manager.users."cyrilledru" = import ./home.nix;
+      home-manager.users.${username} = import ./home.nix;
       home-manager.extraSpecialArgs = {
+        inherit username;
         pkgs-azure = inputs.nixpkgs-azure.legacyPackages.aarch64-darwin;
       };
     }
