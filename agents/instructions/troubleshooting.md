@@ -322,3 +322,51 @@ terminal-notifier -title "Test" -subtitle "infra" -message "hook path" \
 **Revert condition.** Delete the derivation and go back to `pkgs.terminal-notifier` once nixpkgs ships a 3.0.0 that *preserves or reproduces the release signature*. Check with `nix eval --raw nixpkgs#terminal-notifier.version`, then confirm the package actually signs the bundle — a version bump alone is not sufficient. The open PR <https://github.com/NixOS/nixpkgs/pull/555789> does **not** qualify: it builds from source via `xcbuildHook` with no codesign step, so it would land unsigned and reproduce this bug. Waiting for it does not help. Homebrew PR <https://github.com/Homebrew/homebrew-core/pull/300412> ("do not disable code signing") was auto-closed by a bot for a missing template and never merged — there is nothing to wait for there either.
 
 **The likelier exit is removal, not a nixpkgs fix.** The plan is to move notifications to herdr, which does not need `terminal-notifier` at all. When that lands, delete `hosts/2023-macbook-pro/pkgs/terminal-notifier.nix`, drop it from `home.packages`, and delete this section — do not carry the pin forward or wait on nixpkgs.
+
+## An activation script silently never runs (nix-darwin)
+
+**Symptom.** A `system.activationScripts.<name>` block is declared, `just switch` succeeds, and the thing it was supposed to do never happens. No error, no warning. `nix eval` on the attribute returns the script text, which makes it look correctly wired.
+
+**Cause.** nix-darwin's `modules/system/activation-scripts.nix` builds the final script by interpolating a **fixed list of known attribute names** (`preActivation`, `checks`, `etc`, `homebrew`, `postActivation`, …). It does not iterate the attrset. A custom name is therefore evaluated, type-checked, and dropped.
+
+This is easy to reach by accident: nix-darwin removed `preUserActivation` / `postUserActivation` / `extraUserActivation` when activation moved to running entirely as root. Those removed names trigger an assertion, so the tempting fix is to rename the block to something custom — which silences the error *and* the functionality. That happened here in "Update flake" (July 2025) and went unnoticed for 13 months.
+
+**Resolution.** Never invent an attribute name.
+
+- User-scoped work (anything under `$HOME` — editor extensions, per-user caches) belongs in home-manager: `home.activation.<name> = lib.hm.dag.entryAfter [ "writeBoundary" ] ''…''`. It runs as the user, so no `sudo -u` and no username literal. `writeBoundary` is required for anything with side effects.
+- System-scoped work goes in `system.activationScripts.postActivation.text`. Fragments from multiple modules merge. It runs as root; `config.system.primaryUser` and `config.system.primaryUserHome` are available rather than a hardcoded name.
+
+Homebrew's bundle runs before `postActivation`, and home-manager activation runs inside it, so both options are safely ordered after `brew` has installed and upgraded packages.
+
+**Verifying a block actually runs.** Grep the built output — a dropped block is *absent*, which is exactly the signal the silent failure hides:
+
+```sh
+nix build .#darwinConfigurations.<host>.config.home-manager.users.<user>.home.activationPackage \
+  --no-link --print-out-paths
+grep -n '<a string from your block>' <that-path>/activate
+```
+
+home-manager blocks additionally honour `DRY_RUN` via the `run` helper, so they can be exercised without side effects:
+
+```sh
+DRY_RUN=1 <that-path>/activate
+```
+
+`system.activationScripts` has no equivalent dry run; grepping the built `activate` is the only check.
+
+## `code --install-extension github.copilot` fails the switch
+
+**Symptom.** VS Code extension installation aborts activation with:
+
+```
+Error while installing extension github.copilot-chat: Extension 'github.copilot-chat'
+is a built-in extension with version 'X' and cannot be downgraded to version 'Y'.
+```
+
+**Cause.** `github.copilot` is deprecated as a standalone package. VS Code redirects the request to `GitHub.copilot-chat`, resolves the version compatible with the *deprecated* package, and then refuses to downgrade the copy it now ships built in. Confirm with `code --install-extension github.copilot --log trace`, which logs the redirect explicitly.
+
+Copilot is not missing when this happens — it ships inside the VS Code app bundle (`/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/copilot/`). Check the real state with `code --list-extensions --show-versions`; a bundled extension will not appear there.
+
+**Resolution.** Remove `github.copilot` from the managed extension list. Do not suppress the error with `|| true`: the failure is a correct signal that a list entry is obsolete, and hiding it is what let this sit unnoticed.
+
+Note `code --install-extension` exits non-zero on failure, but piping it (e.g. `| tail`) reports the pipe's status instead. Redirect to a file and check `$?` when testing by hand.

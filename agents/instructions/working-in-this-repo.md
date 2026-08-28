@@ -19,6 +19,8 @@ Read the relevant section below before answering or running commands. The repo's
 | Touch ID not offered for sudo, password modal instead        | `agents/instructions/troubleshooting.md` — unsigned PAM module; no fix, two dead ends already tested |
 | `als` missing an alias, alias not found in a running shell  | `agents/instructions/troubleshooting.md` — stale shell, or it's a function |
 | notifications not firing, Claude Code hook error, terminal-notifier | `agents/instructions/troubleshooting.md` — locally packaged, version pinned by hash |
+| activation script declared but never runs, adding an activation script | `agents/instructions/troubleshooting.md` — custom attribute names are silently dropped |
+| vscode extensions, copilot install fails the switch          | `agents/instructions/troubleshooting.md` — github.copilot is deprecated |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 

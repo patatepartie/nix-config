@@ -1,14 +1,16 @@
-{ ... }: {
+{ username, ... }: {
   homebrew.casks = [
     { name = "visual-studio-code"; greedy = true; }
   ];
 
-  system.activationScripts.installVSCodeExtensions.text = ''
-    install_command="/usr/local/bin/code"
-    for package in esbenp.prettier-vscode github.copilot github.copilot-chat hashicorp.terraform jnoortheen.nix-ide \
-      mechatroner.rainbow-csv ms-python.python ms-vscode-remote.remote-containers redhat.vscode-yaml shopify.ruby-lsp; do
-      install_command="$install_command  --install-extension $package"
-    done
-    eval "$install_command"
-  '';
+  home-manager.users.${username} = { lib, ... }: {
+    home.activation.installVSCodeExtensions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -x /usr/local/bin/code ]; then
+        for package in esbenp.prettier-vscode hashicorp.terraform jnoortheen.nix-ide \
+          mechatroner.rainbow-csv ms-python.python ms-vscode-remote.remote-containers redhat.vscode-yaml shopify.ruby-lsp; do
+          run /usr/local/bin/code --install-extension "$package"
+        done
+      fi
+    '';
+  };
 }
