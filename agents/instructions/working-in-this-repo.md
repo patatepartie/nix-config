@@ -21,6 +21,7 @@ Read the relevant section below before answering or running commands. The repo's
 | notifications not firing, Claude Code hook error, terminal-notifier | `agents/instructions/troubleshooting.md` — locally packaged, version pinned by hash |
 | activation script declared but never runs, adding an activation script | `agents/instructions/troubleshooting.md` — custom attribute names are silently dropped |
 | vscode extensions, copilot install fails the switch          | `agents/instructions/troubleshooting.md` — github.copilot is deprecated |
+| playwright, chrome won't start, stuck browser process        | `agents/instructions/troubleshooting.md` — browser revision must match the CLI |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 

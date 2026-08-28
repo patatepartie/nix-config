@@ -8,7 +8,6 @@
     "googleworkspace-cli"
     "libyaml"
     "mise"
-    "playwright-cli"
     "uv"
     "yt-dlp"
   ];

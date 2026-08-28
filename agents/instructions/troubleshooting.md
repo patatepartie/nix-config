@@ -370,3 +370,33 @@ Copilot is not missing when this happens — it ships inside the VS Code app bun
 **Resolution.** Remove `github.copilot` from the managed extension list. Do not suppress the error with `|| true`: the failure is a correct signal that a list entry is obsolete, and hiding it is what let this sit unnoticed.
 
 Note `code --install-extension` exits non-zero on failure, but piping it (e.g. `| tail`) reports the pipe's status instead. Redirect to a file and check `$?` when testing by hand.
+
+## Chrome will not start / a stuck headless Playwright browser
+
+**Symptom.** Clicking Google Chrome does nothing — no window, no error. Often first noticed after a Chrome update that forced a quit.
+
+**Cause.** Playwright's `chromium` channel drives the installed `/Applications/Google Chrome.app` binary rather than a separate browser. A leftover headless session therefore holds the same app bundle, and macOS LaunchServices hands your click to that running instance, which was started with `--no-startup-window`. `playwright-cli` keeps sessions alive in a background daemon between commands, so one can outlive its caller by days.
+
+Identify it by the temp profile in the command line:
+
+```sh
+ps aux | grep playwright_chromiumdev_profile | grep -v grep
+```
+
+**Resolution.** `playwright-cli kill-all`, or `pkill -f playwright_chromiumdev_profile` plus `pkill -f cliDaemon.js`. Then start Chrome normally.
+
+**Prevention, and the trap.** The fallback only happens when Playwright has no browser of its own. `hosts/2023-macbook-pro/home.nix` installs one on every activation via `home.activation.installPlaywrightBrowsers`.
+
+The revision must match the `playwright-core` bundled inside the installed `playwright-cli` — **not** whatever `npx playwright install` fetches, which tracks its own latest and will silently install an unused build. Always install through the CLI itself:
+
+```sh
+playwright-cli install-browser chromium
+```
+
+It is a fast no-op when the right build is present, and resolves the required revision from the installed CLI, so a Homebrew bump of `playwright-cli` is picked up automatically on the next `just switch`. Verify what it resolved to — the path should be under `~/Library/Caches/ms-playwright/`, never `/Applications`:
+
+```sh
+ls ~/Library/Caches/ms-playwright/ | grep chromium
+```
+
+Note this repo manages the `playwright-cli` CLI only. The Claude Code Playwright *plugin* (`npx @playwright/mcp`) was a second, independent entry point that could start the same fallback browser; it was uninstalled deliberately. If Chrome starts getting hijacked again, check whether a plugin or MCP server reintroduced it.
