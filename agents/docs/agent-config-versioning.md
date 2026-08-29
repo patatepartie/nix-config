@@ -53,12 +53,12 @@ existing `tmux-resurrect-hooks` entries in `settings.json` are not at risk from 
 This is a checklist, not a glossary. Every term below is explained in the section it belongs
 to; if something here means nothing to you yet, go to the section named beside it.
 
-**Last updated:** _never — nothing has been executed yet._
+**Last updated:** 2026-08-29.
 
 | Step | Status | Notes |
 |---|---|---|
-| §2 — agent-config repo + symlinks | **not started** | |
-| §3 — personal-skills subtree | **not started** | |
+| §2 — agent-config repo + symlinks | **done** | All 7 paths symlinked. Baseline commit "Import Claude global config from ~/.claude" on branch `master`. |
+| §3 — personal-skills subtree | **done, verified** | 34 commits of history imported. All 9 skills symlinked into `agent-config/skills/`; `/skills` and `/context` in a fresh session list all 9 as User-source, and the three `instructions/*.md` load as memory files through the symlink. |
 
 Statuses are coarse, and §2's step 6 swaps seven paths one at a time. **If you stop part-way
 through it, say exactly which paths are already symlinked in that row's Notes** — otherwise
@@ -67,12 +67,18 @@ content.
 
 **Findings and decisions** (fill in as you go):
 
-- Verification gate (§2): _not yet run_ — record pass / fail / skipped, and if gate item 3 was
-  substituted rather than confirmed by the user, say so
-- `install.sh` written, idempotent, and **tested** by re-running it: _no_
-- `personal-skills` retired: _no — left in place until symlinks are verified_
-- **Open question for the user, if any:** _none_ — put anything here that the next session
-  must resolve with the user before continuing.
+- Verification gate (§2): **all four pass.** All 7 paths are symlinks, `settings.json` resolves to `-rw-------` through the link, `bash-guard.sh` fired its escaped-whitespace denial from the symlinked copy, and the user confirmed the statusline renders in a fresh session (item 3 confirmed, not substituted).
+- `install.sh` written, idempotent, and **tested** by re-running it: **yes** — 15 assertions against a throwaway `HOME`, covering clean install, no-op re-run, refusal to clobber a real file *and* a real directory, and `--force`.
+- `personal-skills` retired: **yes — `~/Tech/Bespoke/personal-skills` deleted 2026-08-29.** Before removal: `diff -r` against `agent-config/skills/` was byte-identical (excluding `.git` and the dropped `install.sh`), the repo was clean, and all 9 skills were in the pushed commit. All 9 symlinks re-verified as resolving afterwards. `agent-sidecar` untouched.
+- Remote: **added 2026-08-29** — private, `git@github.com:patatepartie/agent-config.git`, `master` tracks `origin/master`, all 36 commits pushed. This supersedes decision 5.
+- **Open question for the user, if any:** **§3 linked 9 skills where 7 were linked before.** `install.sh` links every directory containing a `SKILL.md`, so `refactoring-claude-md` and `ubiquitous-language` — noted in §3 as previously unlinked — are now active, and both registered live in the session that ran it.
+  If either was deliberately held back, remove the symlink from `~/.claude/skills/` or move the directory out of `skills/`; the install script will otherwise re-link it on every run.
+
+**Sandbox note (learned 2026-08-29).** The Bash write allowlist covers neither `~/` nor `~/Tech`, so every write to `~/Tech/agent-config` needs `dangerouslyDisableSandbox: true` — §3's `git subtree add` included.
+Two consequences for §2 as written: the step 0 backup to `~/.claude.bak-pre-agent-config` **cannot be created**, and the step 6 swap script was refused by the auto-mode classifier and had to be run by the user.
+The step 0 backup turns out to be unnecessary rather than merely awkward: once the §2 baseline is committed, every moved item exists both in git and in the `agent-config` working tree, so rollback is `rm` the symlink and `cp` from the repo.
+The whole-`~/.claude` copy the step describes would additionally cover unversioned machine state (`projects/`, `history.jsonl`) — but no procedure in this document ever restores those, as step 0's own comment says.
+The real uncovered risk was losing `~/Tech/agent-config` itself, which takes git and the working copy together; that is now addressed by the private remote (see decision 5), not by a local backup.
 
 ---
 
@@ -83,9 +89,8 @@ content.
    `commands/`, `agents/`; file symlinks for `CLAUDE.md` and `settings.json`.
 3. **`skills/` at repo root**, not under `claude/` — skills are portable across harnesses.
 4. **Move `personal-skills` with history** via `git subtree`.
-5. **No git remote for now.** Private GitHub remotes are possible but complicate workflows
-   (conditional pushing). Deferred as a separate decision; the repo works fine local-only,
-   matching `personal-skills` and `agent-sidecar` today.
+5. ~~**No git remote for now.**~~ **Superseded 2026-08-29** — the repo now has a private remote at `git@github.com:patatepartie/agent-config.git`, and `master` tracks `origin/master`.
+   The original reasoning (remotes complicate workflows; local-only matches `personal-skills` and `agent-sidecar`) was weakened once §3 moved the skills in: a single `rm -rf ~/Tech/agent-config` would otherwise take the global config, every skill, and all their history at once.
 
 ---
 
@@ -132,8 +137,8 @@ Machine state: `projects/`, `history.jsonl`, `sessions/`, `cache/`, `file-histor
 Note: `~/.claude/.credentials.json` does **not** exist — credentials live in the macOS
 Keychain (service "Claude Code-credentials"). Nothing to protect there.
 
-`~/.claude/settings.json.bak` is a stale hand-made backup (3.9k, dated 20 Mar 2026). Leave it in
-place; do not version it. Optionally delete once the verification gate in §2 has passed.
+`~/.claude/settings.json.bak` was a stale hand-made backup (3.9k, dated 20 Mar 2026), never versioned.
+**Deleted 2026-08-29** once the §2 gate had passed and the live `settings.json` was committed and pushed.
 
 Already managed, leave alone:
 - `~/.claude/skills/` — per-skill symlinks (re-pointed in §3)
@@ -256,7 +261,7 @@ state stays in `~/.claude` and is never added here.
 the redundant copy that `git subtree add` drags in.) Include the skills loop now even though
 `skills/` does not exist yet — it simply matches nothing until §3 runs.
 
-**Read `~/Tech/Bespoke/personal-skills/install.sh` first**; it is the model. It resolves
+**Read `~/Tech/Bespoke/personal-skills/install.sh` first**; it is the model. (That file is gone — `personal-skills` was deleted on 2026-08-29 — but it survives in `agent-config`'s history, before the commit "Drop the skills subtree's install.sh in favour of the top-level one".) It resolves
 `SCRIPT_DIR`, `mkdir -p`s the target, and for each subdirectory containing a `SKILL.md`
 removes any existing symlink or directory and `ln -s`. Extend it to two loops: one linking a
 **hardcoded list** of `claude/<item>` entries (`CLAUDE.md`, `settings.json`, `hooks`,
@@ -292,8 +297,9 @@ whose `~/.claude` you care about, and "looks idempotent" is not evidence:
    call and confirm the block. Do not guess a test command — a non-triggering guess looks
    identical to a broken hook.
 
-Record the result in §1 before stopping. If any fail: `rm` the symlinks and
-`cp -a ~/.claude.bak-pre-agent-config/<item> ~/.claude/` to restore, then diagnose.
+Record the result in §1 before stopping. If any fail: `rm` the symlinks and restore with
+`cp -a ~/Tech/agent-config/claude/<item> ~/.claude/`, then diagnose.
+(The original text restored from `~/.claude.bak-pre-agent-config`; that backup cannot be created — see the sandbox note in §1 — and the repo copy serves the same purpose.)
 
 ---
 
@@ -333,14 +339,17 @@ Then:
    verified, nothing to change there.
 4. **Leave `~/Tech/Bespoke/personal-skills` in place, untouched**, until symlinks are
    verified. Retire it in a later commit.
+   **Done 2026-08-29** — verified via `/skills` and `/context`, then deleted. See §1.
 
-Verify: `/help` in a fresh session lists the same skills as before. Record in §1.
+Verify: `/skills` in a fresh session lists the same skills as before. Record in §1.
+(`/skills` is the command that lists skills by source; `/help` lists commands and does not show them. `/context` also shows loaded skills.)
 
 **Rollback note.** Once this step has run, §2 is no longer independently revertible: the
 skill symlinks in `~/.claude/skills/` point into `~/Tech/agent-config/skills/`, so deleting
 that repo dangles them.
-To unwind both, re-run `~/Tech/Bespoke/personal-skills/install.sh` to re-point the symlinks
-back **before** removing `agent-config`.
+
+The original advice here — re-run `personal-skills/install.sh` to re-point the symlinks before removing `agent-config` — **no longer applies**, because `personal-skills` was deleted on 2026-08-29.
+`agent-config` is now the only copy on disk, and rollback means restoring from it rather than falling back to a second repo: clone the private remote (`git@github.com:patatepartie/agent-config.git`), then either run its `install.sh` or copy `claude/` and `skills/` back into `~/.claude` as real files.
 
 **Note**: `~/Tech/Bespoke/agent-sidecar` is a different thing — per-work-repo content keyed
 by Bespoke repo name, also remote-less. Out of scope; do not touch.
