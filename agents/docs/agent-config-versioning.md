@@ -71,8 +71,10 @@ content.
 - `install.sh` written, idempotent, and **tested** by re-running it: **yes** — 15 assertions against a throwaway `HOME`, covering clean install, no-op re-run, refusal to clobber a real file *and* a real directory, and `--force`.
 - `personal-skills` retired: **yes — `~/Tech/Bespoke/personal-skills` deleted 2026-08-29.** Before removal: `diff -r` against `agent-config/skills/` was byte-identical (excluding `.git` and the dropped `install.sh`), the repo was clean, and all 9 skills were in the pushed commit. All 9 symlinks re-verified as resolving afterwards. `agent-sidecar` untouched.
 - Remote: **added 2026-08-29** — private, `git@github.com:patatepartie/agent-config.git`, `master` tracks `origin/master`, all 36 commits pushed. This supersedes decision 5.
-- **Open question for the user, if any:** **§3 linked 9 skills where 7 were linked before.** `install.sh` links every directory containing a `SKILL.md`, so `refactoring-claude-md` and `ubiquitous-language` — noted in §3 as previously unlinked — are now active, and both registered live in the session that ran it.
-  If either was deliberately held back, remove the symlink from `~/.claude/skills/` or move the directory out of `skills/`; the install script will otherwise re-link it on every run.
+- **Open question for the user, if any:** _none — the one raised here was resolved on 2026-08-29._
+  Running `install.sh` in §3 linked 9 skills where 7 had been linked before, because it links every directory containing a `SKILL.md` and has no notion of a deliberate exclusion.
+  The user confirmed `ubiquitous-language` is meant to be enabled per-repo, so `install.sh` now carries a `SKILLS_NOT_GLOBAL` list that keeps it unlinked across re-runs; `refactoring-claude-md` stays global.
+  Worth knowing if more skills are added: the same trap applies to any skill that should not be global, and unlinking by hand is not enough — the next `install.sh` run undoes it.
 
 **Sandbox note (learned 2026-08-29).** The Bash write allowlist covers neither `~/` nor `~/Tech`, so every write to `~/Tech/agent-config` needs `dangerouslyDisableSandbox: true` — §3's `git subtree add` included.
 Two consequences for §2 as written: the step 0 backup to `~/.claude.bak-pre-agent-config` **cannot be created**, and the step 6 swap script was refused by the auto-mode classifier and had to be run by the user.
