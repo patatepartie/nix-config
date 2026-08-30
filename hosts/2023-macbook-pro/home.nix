@@ -19,9 +19,6 @@ let
   # continuum, auto-restores all ~23 real sessions as duplicates, and starts
   # auto-saving over ~/.tmux/resurrect/. Two savers, one state dir: whichever
   # writes last wins and the other server's sessions are lost on next restore.
-  # That is the same failure the ghosttyTabInitScript comment below describes,
-  # reached by a different route — it happened for real on 2026-08-09, when
-  # `gc start` spawned a bd.dog agent and 24 duplicate sessions appeared.
   #
   # These two helpers gate the only parts that act on load: the restore trigger
   # and continuum's auto-save. Written as scripts rather than inline `if-shell`
@@ -44,17 +41,6 @@ let
   continuumDisableOffDefault = pkgs.writeShellScript "tmux-continuum-disable-off-default" ''
     [ "$(basename "$(tmux display-message -p -F '#{socket_path}')")" = default ] && exit 0
     tmux set -g @continuum-save-interval 0
-  '';
-  # Every Ghostty tab attaches to the single `default` tmux server, session
-  # `main`. `new-session -As main` is idempotent: it creates the session if
-  # absent and attaches otherwise, so concurrent tabs need no locking.
-  #
-  # This deliberately has no second-server branch. A previous version sent the
-  # 2nd tab to a separate `gascity` server, which split live Claude sessions
-  # across two servers that then fought over the same ~/.tmux/resurrect/ state
-  # — whichever saved last clobbered the other, so restores lost sessions.
-  ghosttyTabInitScript = pkgs.writeShellScript "ghostty-tab-init" ''
-    exec zsh -l -c "/opt/homebrew/bin/tmux new-session -As main"
   '';
 in
 {
@@ -101,6 +87,7 @@ in
     pkgs.ffmpeg
     pkgs.fzf
     pkgs.google-cloud-sdk
+    pkgs.herdr
     pkgs.inetutils
     pkgs.jq
     pkgs.just
@@ -458,7 +445,6 @@ in
     settings = {
       theme = "Catppuccin Mocha";
       desktop-notifications = true;
-      command = "${ghosttyTabInitScript}";
       keybind = "option+backspace=text:\\x1b\\x7f";
       macos-option-as-alt = true;
     };
@@ -484,6 +470,8 @@ in
       find = "fd";
       du = "dust";
       top = "btop";
+      tm = "tmux new-session -As main";
+      hd = "herdr --session main";
     };
 
     history.share = false;

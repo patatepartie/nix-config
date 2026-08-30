@@ -400,3 +400,24 @@ ls ~/Library/Caches/ms-playwright/ | grep chromium
 ```
 
 Note this repo manages the `playwright-cli` CLI only. The Claude Code Playwright *plugin* (`npx @playwright/mcp`) was a second, independent entry point that could start the same fallback browser; it was uninstalled deliberately. If Chrome starts getting hijacked again, check whether a plugin or MCP server reintroduced it.
+
+## New Ghostty tabs fail to launch after removing a `command` setting
+
+**Symptom.** Every new Ghostty tab and window dies immediately, with roughly:
+
+```
+bash: /nix/store/<hash>-ghostty-tab-init: No such file or directory
+Ghostty failed to launch the requested command
+```
+
+Existing tabs are unaffected, so the shell you are reading this in keeps working.
+
+**Cause.** The running Ghostty holds the previous config in memory, including the old `command` value pointing at a `writeShellScript` store path. `just switch` deployed a config without that setting and garbage-collected the path it named, so the launch target no longer exists. Ghostty reads `command` when launching a surface, not per keystroke, so the stale value survives until the process restarts.
+
+Nothing is wrong on disk. `cat ~/.config/ghostty/config` already shows the correct contents, and `ls -l ~/.config/ghostty/config` points at the current generation. Do not re-run `just switch` or go hunting for a broken store path — neither is the problem.
+
+**Resolution.** Quit Ghostty fully with `Cmd+Q` and relaunch. Closing the window is not enough. `Cmd+Shift+,` reload-config may also work, but `command` is among the settings least likely to be re-read on reload, so the relaunch is the reliable path.
+
+This is **transition-only**: once Ghostty restarts against a config with no `command` at all, there is nothing stale left to point anywhere, and it cannot recur.
+
+**Two things to know before quitting.** The tmux server is independent of any client, so the sessions survive untouched — but `Cmd+Q` ends every Claude session running in a Ghostty tab, so commit in-flight work first. And since nothing auto-starts tmux once `command` is gone, run `tm` after relaunching to get the sessions back.

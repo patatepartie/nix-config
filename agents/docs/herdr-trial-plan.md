@@ -62,14 +62,14 @@ re-measure counts at execution time rather than quoting them from this file.
 This is a checklist, not a glossary. Every term below is explained in the section it belongs
 to; if something here means nothing to you yet, go to the section named beside it.
 
-**Last updated:** _never — nothing has been executed yet._
+**Last updated:** 2026-08-29.
 
 | Step | Status | Notes |
 |---|---|---|
-| §5 — install + aliases | **not started** | |
-| §6a — Claude integration | **not started** | |
-| §6b — config file | **not started** | |
-| §6c — bindings + script | **not started** | |
+| §5 — install + aliases | **done** | Committed as "MBP2023 - Install herdr and make tmux an explicit choice". All 23 tmux sessions survived. |
+| §6a — Claude integration | **done** | Committed in `agent-config` as "Add the herdr Claude integration hook". |
+| §6b — config file | **done** | `~/.config/herdr/config.toml` written with the three overrides. Not yet moved into `agent-config` (deliberate — it will churn). |
+| §6c — bindings + script | **not started** | Blocked on a live herdr session: `workspace focus` takes an id, not a label, so `new-workspace.sh` needs `workspace list`'s output format, which needs a running server. See the note below. |
 | Part 2 — use and hard scenarios | **not started** | |
 
 Statuses are coarse. If you stop **mid**-sub-step — §6a in particular has an internal
@@ -78,13 +78,27 @@ whole sub-step is untouched.
 
 **Findings and decisions** (fill in as you go — later parts depend on these):
 
-- herdr version actually installed: _not yet installed_
-- Claude config versioned first (the optional prerequisite above): _no_ — if no, note where
-  the pre-install copy of `settings.json` was kept
-- Zoom-toggle question (§6c): _unanswered_
-- What `herdr integration install claude` injected: _not yet run_
-- `new-workspace.sh` written and working: _no_
-- Warnings from `just switch`, and anything worked around: _none yet_
+- herdr version actually installed: **0.8.2** (matches what the lock advertised pre-install).
+- Claude config versioned first (the optional prerequisite above): **yes** — it was already
+  done. `~/.claude/settings.json` and `~/.claude/hooks` are both symlinks into
+  `~/Tech/agent-config/claude/`, so §6a's diff came from `git diff` in that repo and no
+  plain-copy fallback was needed. Both symlinks survived `just switch` and the installer.
+- Zoom-toggle question (§6c): **answered — no workaround needed.** Zoom, unzoom and
+  pane-movement-while-zoomed all work on 0.8.2. Only difference from tmux: directional focus
+  does not wrap at the edges.
+- What `herdr integration install claude` injected: exactly what §2 predicted — **one**
+  `SessionStart` hook, matcher `*`, appended in place. The pre-existing
+  `tmux-resurrect-hooks` `SessionStart` (matcher `""`) and `SessionEnd` entries were left
+  untouched, so both hook sets coexist. It also wrote
+  `~/.claude/hooks/herdr-agent-state.sh` (`HERDR_INTEGRATION_VERSION=8`), which is now
+  tracked in `agent-config` so a herdr upgrade rewriting it shows as a diff. That script is
+  inert outside herdr — it exits unless `HERDR_ENV=1` and both `HERDR_SOCKET_PATH` and
+  `HERDR_PANE_ID` are set, so it costs nothing in a tmux pane. Its only job is reporting the
+  Claude session id to herdr's socket, which is the mechanism §8b's resume depends on.
+- `new-workspace.sh` written and working: **no** — see the §6c note below.
+- Warnings from `just switch`, and anything worked around: only `warning: Git tree ... is
+  dirty`, which is expected with uncommitted edits. Nothing worked around. The herdr store
+  path was cached, so no Rust+Zig compile happened.
 - Home-server question (§11) settled: _no_
 - **Open question for the user, if any:** _none_ — put anything here that the next session
   must resolve with the user before continuing.
@@ -131,6 +145,16 @@ Checked against the binary, the live system, and herdr's source on 2026-08-15/16
 - **Agent resume is native**: `[session] resume_agents_on_restore = true` (already the
   default) — "Resume supported AI-agent panes into their native conversation sessions after a
   Herdr server restart."
+- **Every `herdr` CLI call needs `--session main`.** The `hd` alias launches
+  `herdr --session main`, and herdr puts that session's socket at
+  `~/.config/herdr/sessions/main/herdr.sock`. A bare `herdr status` or
+  `herdr server reload-config` looks for `~/.config/herdr/herdr.sock`, does not find it, and
+  reports `server: not running` — **while the server is running fine**. Verified 2026-08-29:
+  two live processes (`herdr --session main` and `herdr server`) with `herdr status` claiming
+  nothing was running. There is no error and no hint about the session flag, so this reads as
+  a dead server rather than a wrong address. §8a's backup reads herdr's state and would come
+  back empty on this mistake, which is exactly the silent-drop failure that section warns
+  about.
 - **herdr keeps its own pane→session state** at `~/.config/herdr/session.json` (JSON,
   `SNAPSHOT_VERSION = 3`). Each pane entry carries both `cwd` and, when an agent reported one,
   `agent_session.value` = the Claude session id. This is herdr's internal format, not a
@@ -303,10 +327,10 @@ find the real location before editing; do not `sed -n '<N>p'` on trust.
    tm = "tmux new-session -As main";
    hd = "herdr --session main";
    ```
-   Both were unused as of 2026-08-26 — `zsh -lic 'type tm; type hd'` reported "not found" in a
-   live login shell, and neither appears in `home.nix` or the oh-my-zsh plugins. Re-check the
-   same way before adding, since a plugin update could claim either name (this is how the
-   earlier `ta` mistake happened — see §2's corrections).
+   Both were re-checked and still unused on 2026-08-29 — `zsh -lic 'type tm; type hd'`
+   reported "not found" in a live login shell. Note this check must be run with the sandbox
+   disabled; inside it, oh-my-zsh's plugin errors drown the output and the result is
+   unreadable rather than wrong.
 4. Add `herdr` to `home.packages`.
 
 Then `just switch`. **Report all warnings.** If a cache miss triggers a Rust+Zig compile,
@@ -327,9 +351,31 @@ herdr --version                                   # note the actual version in �
 
 `just switch` rewrites `~/.config/ghostty/config` (a symlink into the nix store; the target
 path changes). Ghostty reads `command` when launching a new surface and re-reads config on
-`Cmd+Shift+,` or restart. **Expect a Ghostty restart to be needed.** Try reload-config first;
-open a new tab and check `echo $TMUX` — empty means you got a plain login shell (correct),
-non-empty means it is still auto-attaching to tmux. If still tmux, quit and relaunch Ghostty.
+`Cmd+Shift+,` or restart.
+
+**A full `Cmd+Q` and relaunch is required, and skipping it fails loudly rather than
+silently.** This happened on 2026-08-29. The running Ghostty still holds the OLD `command`
+value in memory — a `/nix/store/...-ghostty-tab-init` path that `just switch` has since
+garbage-collected — so every new tab and window dies immediately with:
+
+```
+bash: /nix/store/<hash>-ghostty-tab-init: No such file or directory
+Ghostty failed to launch the requested command
+```
+
+Nothing is wrong on disk when this appears: `cat ~/.config/ghostty/config` already shows no
+`command` line. It is purely stale in-memory state, and it is **transition-only** — after the
+relaunch there is no `command` setting at all, so it cannot recur. Do not go looking for a
+broken store path or re-run `just switch`; neither is the problem.
+
+Quitting Ghostty does not touch the tmux server, which is independent of any client — the
+sessions survive the relaunch (verified: 23 sessions before and after). But **the quit ends
+any Claude session running in a Ghostty tab**, including one executing this plan, so finish
+and commit any in-flight work first.
+
+After relaunching, open a tab and check `echo $TMUX` — empty means you got a plain login shell
+(correct), non-empty means it is still auto-attaching to tmux. Then run `tm` to get back to
+the tmux sessions.
 
 A Ghostty quit does not kill the tmux server (PID 36688, `PPID 1`, independent of any client),
 so the existing sessions and their Claude processes survive the relaunch.
@@ -350,8 +396,11 @@ sessions back.** The snapshot itself is not at risk
 (`~/.tmux/resurrect/last` persists on disk), but continuum cannot autosave a server that is
 not running, so a long gap before running `tm` means a staler snapshot.
 
-**Revert**: restore all four edits from this section (the `ghosttyTabInitScript` binding, its
-`command =` reference, the two aliases, and the `home.packages` entry), then `just switch`.
+**Revert**: `git revert` the "MBP2023 - Install herdr and make tmux an explicit choice"
+commit, then `just switch`. Prefer that over redoing the edits by hand: besides the four
+listed here (the `ghosttyTabInitScript` binding, its `command =` reference, the two aliases,
+and the `home.packages` entry), the commit also reworded the `resurrectRestoreTrigger`
+comment, which cross-referenced the deleted script.
 
 ## 6. Configure herdr
 
@@ -467,7 +516,18 @@ Other keys worth knowing: `close_pane = "prefix+x"`, `close_tab = "prefix+shift+
 `toggle_sidebar = "prefix+b"`, `rename_pane = "prefix+shift+p"`, `switch_tab = "prefix+1..9"`,
 `new_worktree = "prefix+shift+g"`.
 
-### The zoom-toggle question
+### The zoom-toggle question — ANSWERED 2026-08-29: no workaround needed
+
+Tested on herdr 0.8.2: zoom in and out both work, and moving between panes while zoomed works
+correctly. **Option 1 below is confirmed, so options 2 and 3 are moot** — do not build the
+shell round-trip.
+
+One difference from tmux, not a defect: **herdr does not wrap around**. From a bottom-row pane,
+`prefix+j` does nothing, where tmux would loop to the top. Directional focus stops at the edge.
+Worth noting in the trial log if it turns out to be an ongoing irritation, but it needs no
+configuration change.
+
+### The zoom-toggle question — original analysis
 
 tmux auto-unzooms, moves, re-zooms:
 ```
@@ -502,9 +562,21 @@ Two cases the tmux binding handles implicitly and the script must handle explici
 - **label already exists** — decide whether to focus the existing workspace or create a
   second one.
 
-**Run `herdr workspace --help` before writing this.** `herdr workspace list` exists, but this
-document does not record its output format, nor the exact invocation for focusing an existing
-workspace by label — discover both from the CLI rather than guessing.
+**`herdr workspace --help` was run on 2026-08-29** (herdr 0.8.2). Subcommands: `list`,
+`create`, `get`, `focus`, `rename`, `report-metadata`, `close`. `create` takes
+`--cwd <PATH> --label <TEXT> --env <KEY=VALUE> --focus/--no-focus`, matching what this
+document assumed.
+
+**The label→focus gap is real: `herdr workspace focus <workspace_id>` takes an id, not a
+label.** So the "label already exists" case cannot be handled by passing the label through —
+the script must call `herdr workspace list`, map label→id itself, and focus that id.
+`workspace list`'s output format is still unrecorded because it needs a running server, and
+the server only starts on first attach. **Run `hd`, then `herdr workspace list`, and write the
+format down here before writing the script.**
+
+Note this is the one place the tmux original handled a case implicitly: `new-session -d` fails
+silently under `2>/dev/null` when the session exists, and `switch-client` then attaches to it.
+Reproduce that behaviour — focus the existing workspace, do not create a duplicate.
 
 Bind it:
 ```toml
