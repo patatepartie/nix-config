@@ -362,7 +362,6 @@
     gnome-contacts
     gnome-initial-setup
     gnome-music
-    gnome-photos
     gnome-tour
     iagno # go game
     hitori # sudoku game
