@@ -62,15 +62,15 @@ re-measure counts at execution time rather than quoting them from this file.
 This is a checklist, not a glossary. Every term below is explained in the section it belongs
 to; if something here means nothing to you yet, go to the section named beside it.
 
-**Last updated:** 2026-08-29.
+**Last updated:** 2026-09-04.
 
 | Step | Status | Notes |
 |---|---|---|
 | §5 — install + aliases | **done** | Committed as "MBP2023 - Install herdr and make tmux an explicit choice". All 23 tmux sessions survived. |
 | §6a — Claude integration | **done** | Committed in `agent-config` as "Add the herdr Claude integration hook". |
 | §6b — config file | **done** | `~/.config/herdr/config.toml` written with the three overrides. Not yet moved into `agent-config` (deliberate — it will churn). |
-| §6c — bindings + script | **not started** | Blocked on a live herdr session: `workspace focus` takes an id, not a label, so `new-workspace.sh` needs `workspace list`'s output format, which needs a running server. See the note below. |
-| Part 2 — use and hard scenarios | **not started** | |
+| §6c — bindings + script | **mostly done** | Zoom question answered; bindings learned in use. `new-workspace.sh` still unwritten — herdr's native `prefix+shift+n` prompts for a name, not a directory, so it does not replace `prefix S`. |
+| Part 2 — use and hard scenarios | **in progress** | All 23 tmux sessions migrated to herdr (23 workspaces, ~108 panes, 21 agents). tmux save/restore chain removed. Backup script written and tested. **Reboot test not yet run.** |
 
 Statuses are coarse. If you stop **mid**-sub-step — §6a in particular has an internal
 verify-then-commit sequence — say so in that row's Notes, or the next session will assume the
@@ -100,6 +100,18 @@ whole sub-step is untouched.
   dirty`, which is expected with uncommitted edits. Nothing worked around. The herdr store
   path was cached, so no Rust+Zig compile happened.
 - Home-server question (§11) settled: _no_
+- Migration status: **complete**. All 23 tmux sessions were recreated as herdr workspaces
+  between 2026-08-29 and 2026-09-04, and the tmux sessions were then terminated. Agent session
+  ids were resolved from `assistant-sessions.json` where present and otherwise by matching
+  live pane content against transcript content — mtime ordering was tried and would have
+  mismatched panes, so do not rely on it.
+- tmux save/restore chain **removed** (commit "MBP2023 - Remove the tmux save/restore chain"),
+  along with the three `settings.json` hooks that fed its registry. It was recreating sessions
+  that had deliberately been closed after migration. tmux itself still works as a fallback.
+- Backup script: `agent-config/herdr/backup-sessions.py`, written and tested 2026-09-04.
+- **Pending cleanup:** delete `~/.tmux/resurrect/` once the reboot test has validated herdr's
+  restore. Nothing reads those files now, but they are the last record of the pre-migration
+  working set.
 - **Open question for the user, if any:** _none_ — put anything here that the next session
   must resolve with the user before continuing.
 
@@ -685,90 +697,88 @@ like. Record what you change.
 
 ## 8. Reboot testing
 
+### What actually restores the layout — herdr's equivalent of resurrect
+
+There is no plugin to install. One server does all three jobs the tmux chain needed three
+pieces for:
+
+| tmux | herdr |
+|---|---|
+| continuum (autosave timer) | the server writes its snapshot continuously |
+| resurrect (layout) | the server rebuilds from that snapshot when it starts |
+| tmux-assistant-resurrect (`claude --resume` per pane) | `[session] resume_agents_on_restore` (default `true`) |
+
+**The snapshot lives at `~/.config/herdr/sessions/<session>/session.json`** — per session, so
+for the `hd` alias that is `sessions/main/`. Note this is NOT the `~/.config/herdr/session.json`
+path an earlier draft of this document recorded; that file does not exist, and a script reading
+it finds nothing and reports zero without erroring. Verified 2026-09-04.
+
+**The trigger is simply starting the server**, i.e. running `hd`. The binary carries the string
+`"restored session already has workspaces; ignoring startup cwd"`, so it restores whatever the
+snapshot holds and only creates a fresh workspace when it is empty. There is no timing window
+to get wrong, unlike the tmux restore trigger.
+
+Autosave is confirmed working: the server log
+(`~/.config/herdr/sessions/main/herdr-server.log`) carries a `persist.save` line with the
+workspace count on every change.
+
+**Agent resume depends on the session id being in that snapshot**, which is what the §6a
+`SessionStart` integration reports. Check coverage with the backup script before rebooting —
+it compares live agents against the persisted ids and flags any that would not come back.
+
+**Nothing here has ever been exercised.** As of 2026-09-04 the server has been up continuously
+since 2026-08-29 and has never restarted, so the restore path is unproven on this machine. That
+is the single biggest unknown the reboot test resolves.
+
 ### 8a. The backup — do this BEFORE every reboot
 
-This is the safety net. Two steps, strictly in this order:
+`agent-config/herdr/backup-sessions.py` writes a timestamped markdown file to
+`~/claude-session-backups/`. Run it with no arguments; `--dry-run` prints instead of writing.
 
-1. **Read `~/claude-session-backups/live-sessions-FINAL-20260805T174156.md`** — the artifact
-   from the 2026-08-05 exercise, kept as the format model.
-2. **Then delete the old folder contents**, so stale files cannot be mistaken for current
-   ones. Do this once, before the first new backup — not before every cycle. Later cycles
-   accumulate their own timestamped files, which is intended.
+It records every workspace, tab and pane with its cwd, every Claude session with its id and the
+topic read from its transcript, a block of copy-pasteable
+`(cd <cwd> && claude --resume <id>)` lines, and the workspace layout.
 
-The backup must capture enough to rebuild every session by hand if resume fails:
+**The check that matters** is the cross-reference against herdr's own snapshot. Every agent pane
+is reported as one of:
 
-| Column | Source |
-|---|---|
-| pane | tmux `list-panes -a`, and herdr's own state |
-| session id | see below — **cross-check multiple sources** |
-| cwd | same entry as the session id |
-| topic | first user message in `~/.claude/projects/<slug>/<id>.jsonl` |
-| ✎ unsent draft | pane content shows typed-but-unsent text or an open dialog |
+- resolved and persisted — will be restored automatically;
+- `!snap` — id known, but not in the snapshot, so it will come back as a bare shell;
+- `UNRESOLVED` — running Claude with no readable id.
 
-Plus a **Resume commands** section of copy-pasteable
-`(cd <cwd> && claude --resume <id>)` lines, grouped by tool.
+Those counts drive the exit code, so a backup that would silently drop sessions fails loudly. A
+backup listing confident wrong ids is worse than none, because it will be trusted.
 
-**Sources, and why you need more than one:**
-- `~/.tmux/resurrect/assistant-sessions.json` — `sessions[]` with `pane`, `tool`,
-  `session_id`, `cwd`, `pid`. **Incomplete**: on 2026-08-29 it held 13 entries while 21 panes
-  were running Claude. It also goes stale — it listed a pane whose Claude process had exited.
-- `~/.config/herdr/session.json` — herdr's own snapshot; per-pane `cwd` plus
-  `agent_session.value` (the Claude session id) when reported. Read defensively; the schema is
-  internal (`SNAPSHOT_VERSION = 3`) and may change between releases.
-- **Live probe** — walk each pane's process **subtree** (not just direct children; `claude`
-  often runs under an intermediate process) to find panes the registries missed.
-- `~/.claude/projects/<slug>/*.jsonl` — gives the topic line once you know the session id.
+**Do not reboot with a non-zero count** without knowing why. The usual cause is benign and
+self-correcting: a pane still sitting on Claude's startup screen or a folder-trust prompt has
+not fired its `SessionStart` hook yet, so no id has been reported. Answer the prompt, wait, and
+re-run.
 
-**Mapping a live-probe pane to its session id is the hard part — do not guess it.** The probe
-gives you a pane and a PID, not a session id. **cwd cannot bridge that gap**: on 2026-08-29,
-21 Claude panes shared only 8 distinct cwds — seven panes were open on `pata-vault` alone. So
-"newest `.jsonl` under that project" picks the wrong conversation far more often than not, and
-a wrong resume id is indistinguishable from a right one until someone tries it.
-
-Resolve it from the process itself, in this order:
-1. `ps -o command= -p <pid>` — a pane started with `claude --resume <id>` carries the id on
-   its command line. **This covers under half of them**: measured 2026-08-29, 22 Claude
-   processes were 8 with a readable id, 3 truncated, and 10 a bare `claude` — a session
-   started fresh never had an id to carry. Cheap, so try it first, but do not expect it to
-   resolve the set.
-2. Ask the session itself — this is where most ids actually come from. The 2026-08-05 model's
-   `probe` rows were built this way, reading each session's own `/status` output. It is
-   interactive per pane, so budget for that rather than assuming the script does it unattended.
-3. Failing both, capture the pane's visible content and record the pane as **unresolved**
-   rather than attaching a guessed id.
-
-Unresolved entries are an expected outcome, not a script bug. What matters is that they are
-marked, so a failed resume sends you to the transcript rather than to a wrong conversation.
-
-Because unresolved is an accepted outcome, **the correctness check below passes even if you
-skip step 2 entirely** — and skipping it is allowed when you are in a hurry. Just know you are
-trading coverage for time: step 1 alone leaves most panes unresolved, and the value of the
-backup is roughly the fraction of ids it actually resolves.
-
-**The correctness check**: count panes actually running Claude, and assert the backup has an
-entry for every one, each with either a resolved session id or an explicit `unresolved` mark.
-If the counts differ, or an entry carries a guessed id, the backup is incomplete — fix it
-before rebooting. This check is the whole point; a backup that silently drops sessions, or
-lists confident wrong ids, is worse than none, because you will trust it.
-
-No such script exists yet — the 2026-08-05 files were produced ad hoc. Writing it is the
-first task of Part 2. Put it in `agent-config/herdr/` (or `agents/scripts/` in nix-config if
-it stays tmux-aware), and have it write to `~/claude-session-backups/` with a timestamped name.
+The old `~/.tmux/resurrect/` files (700-odd snapshots and `assistant-sessions.json`) are no
+longer read by anything — the tmux chain was removed on 2026-09-04. **Delete them once the
+reboot test has validated herdr's restore**, not before: until then they are the last record of
+the pre-migration working set.
 
 ### 8b. The reboot test
 
 For each cycle:
 
-1. Run the backup script. Verify the count assertion passed.
-2. Note how many agent panes are live in herdr, and how many sessions remain in tmux.
+1. Run `agent-config/herdr/backup-sessions.py`. Verify it exits 0 — no unresolved panes and
+   none missing from the snapshot.
+2. Note the workspace, pane and agent counts it reports.
 3. **Reboot.** — *This ends the session executing these steps.* Before rebooting, write steps
    1–2's results into §1 and the trial log, so the session that resumes at step 4 (a new one,
    necessarily) knows a cycle is in flight. The reboot itself is the user's action.
-4. Start herdr (`hd`). Check: did every agent pane come back, in the right cwd, resumed into
-   the right conversation?
-5. **Run `tm`** to bring back the tmux side — nothing auto-starts it any more (§5).
+4. Start herdr (`hd`). Check: did every workspace, tab and pane come back, and did every agent
+   pane resume into the right conversation at the right cwd?
+5. Compare against the backup file rather than from memory. **A pane returning as a bare shell
+   is not automatically a failure** — a session deliberately closed before the reboot looks
+   exactly the same as one that failed to resume. Check with the user before scoring it.
 6. Record in §9: cycle number, agent panes before, how many resumed correctly, and the cause
    of any failure.
+
+tmux no longer needs bringing back: its save/restore chain was removed on 2026-09-04, so there
+are no tmux sessions to restore and nothing auto-starts them.
 
 herdr's own docs are explicit that a snapshot alone is not enough: "Snapshot restore does not
 preserve running shells, servers, tests, or arbitrary processes. Panes that cannot use a
