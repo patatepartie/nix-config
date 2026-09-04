@@ -1,47 +1,5 @@
 { username, config, lib, pkgs, pkgs-azure, ... }:
 let
-  tmuxAssistantResurrect = pkgs.tmuxPlugins.mkTmuxPlugin {
-    pluginName = "tmux-assistant-resurrect";
-    rtpFilePath = "tmux-assistant-resurrect.tmux";
-    version = "unstable-2026-03-04";
-    src = pkgs.fetchFromGitHub {
-      owner = "timvw";
-      repo = "tmux-assistant-resurrect";
-      rev = "9e9792670211818b4ee0d9257e005f7290e95f91";
-      sha256 = "0ny2q1g5r2ss1jxyqspdz0lliyvxvl33rs5s8k63l0k6112lf8bb";
-    };
-  };
-  # The resurrect/continuum chain must run on the `default` server ONLY.
-  #
-  # tmux sources ~/.tmux.conf for EVERY server, whatever its socket — socket
-  # isolation does not imply config isolation. So when gascity starts an agent
-  # on its own `-L gascity` socket, that server also loads resurrect and
-  # continuum, auto-restores all ~23 real sessions as duplicates, and starts
-  # auto-saving over ~/.tmux/resurrect/. Two savers, one state dir: whichever
-  # writes last wins and the other server's sessions are lost on next restore.
-  #
-  # These two helpers gate the only parts that act on load: the restore trigger
-  # and continuum's auto-save. Written as scripts rather than inline `if-shell`
-  # so the socket test stays plain shell instead of nested tmux/shell quoting.
-  # Matched on basename, not the full path: the directory embeds the UID and
-  # moves with TMUX_TMPDIR, but the socket NAME is what distinguishes servers.
-  resurrectRestoreTrigger = pkgs.writeShellScript "tmux-resurrect-restore-trigger" ''
-    [ "$(basename "$(tmux display-message -p -F '#{socket_path}')")" = default ] || exit 0
-    start=$(tmux display-message -p -F "#{start_time}")
-    now=$(date +%s)
-    if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ]; then
-      sleep 1
-      ${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/restore.sh
-    fi &
-  '';
-  continuumSaveGuarded = pkgs.writeShellScript "tmux-continuum-save-guarded" ''
-    [ "$(basename "$(tmux display-message -p -F '#{socket_path}')")" = default ] || exit 0
-    exec ${pkgs.tmuxPlugins.continuum}/share/tmux-plugins/continuum/scripts/continuum_save.sh
-  '';
-  continuumDisableOffDefault = pkgs.writeShellScript "tmux-continuum-disable-off-default" ''
-    [ "$(basename "$(tmux display-message -p -F '#{socket_path}')")" = default ] && exit 0
-    tmux set -g @continuum-save-interval 0
-  '';
 in
 {
   # Home Manager needs a bit of information about you and the paths it should
@@ -132,13 +90,6 @@ in
 
     # This does not work well with docker, because it creates a symlink which cannot be bind-mounted.
     # ".aws/config".source = dotfiles/aws/config;
-    # Stable path for the tmux-assistant-resurrect Claude Code hooks. The
-    # plugin's installer bakes its current nix-store path into the plain,
-    # unmanaged ~/.claude/settings.json and never rewrites it, so after a
-    # plugin rebuild + nix-gc that path 404s and SessionEnd errors on exit.
-    # settings.json references this fixed path; each switch repoints the link.
-    ".claude/tmux-resurrect-hooks".source =
-      "${tmuxAssistantResurrect}/share/tmux-plugins/tmux-assistant-resurrect/hooks";
     ".oh-my-zsh-custom".source = dotfiles/oh-my-zsh;
     ".config/mise/config.toml".source = dotfiles/mise/config.toml;
     ".config/karabiner".source = config.lib.file.mkOutOfStoreSymlink
@@ -312,27 +263,6 @@ in
           set -g status-right "#{E:@catppuccin_status_session}"
         '';
       }
-      {
-        plugin = resurrect;
-        extraConfig = ''
-          set -g @resurrect-capture-pane-contents 'on'
-        '';
-      }
-      {
-        plugin = continuum;
-        extraConfig = ''
-          # Deliberately NOT setting @continuum-restore here. Continuum reads
-          # it as its own .tmux loads, immediately below this line, and would
-          # schedule an auto-restore before extraConfig can turn it off — on
-          # EVERY socket, which re-duplicates all sessions onto e.g. gascity's
-          # server. extraConfig sets it 'off' and drives restore explicitly
-          # from the socket-guarded resurrectRestoreTrigger instead.
-          set -g @continuum-save-interval '15'
-        '';
-      }
-      {
-        plugin = tmuxAssistantResurrect;
-      }
     ];
     terminal = "tmux-256color";
 
@@ -340,57 +270,6 @@ in
       set -s set-clipboard on
       set -g focus-events on
       set -g default-command zsh
-
-      # A long-lived tmux server keeps the @resurrect-* script paths it read at
-      # startup. Those are nix-store paths, so after a rebuild + nix-gc they can
-      # point at deleted files — saves then fail silently and every session is
-      # lost on the next restart. (Exactly what happened: a server up since
-      # 21 Jul held a GC'd path and had not saved since 3 Aug.)
-      #
-      # Re-assert them on every config load so `tmux source-file` after a switch
-      # is enough to heal a running server.
-      set -g @resurrect-save-script-path '${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/save.sh'
-      set -g @resurrect-restore-script-path '${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/scripts/restore.sh'
-      set -g @resurrect-hook-post-save-all "bash '${tmuxAssistantResurrect}/share/tmux-plugins/tmux-assistant-resurrect/scripts/save-assistant-sessions.sh'"
-      set -g @resurrect-hook-post-restore-all "bash '${tmuxAssistantResurrect}/share/tmux-plugins/tmux-assistant-resurrect/scripts/restore-assistant-sessions.sh'"
-
-      # Continuum's auto-restore races with plugin load order: it backgrounds
-      # restore from its run-shell, before assistant-resurrect sets the
-      # post-restore hooks. Disable it and trigger from here instead, after
-      # all plugins and extraConfig have loaded.
-      #
-      # This MUST stay below the @resurrect-* block above. restore.sh reads
-      # @resurrect-hook-post-restore-all at call time (via get_tmux_option), so
-      # if restore fires before that option is set, tmux-resurrect rebuilds the
-      # windows and panes but the assistant hook never runs — every pane comes
-      # back as a bare shell with no Claude session. Referencing the store path
-      # directly rather than re-reading @resurrect-restore-script-path keeps
-      # this trigger independent of option-set order.
-      set -g @continuum-restore 'off'
-      run-shell '${resurrectRestoreTrigger}'
-
-      # tmux-continuum has no timer of its own: it drives auto-save by putting
-      # a "#{continuum_status}" interpolation in status-right and relying on
-      # the status line refreshing. Catppuccin sets status-right wholesale
-      # AFTER continuum loads, which drops the interpolation and silently stops
-      # auto-save — the plugin's own README warns about exactly this.
-      #
-      # Re-append it here, after the theme has had its say. This is the same
-      # `#(...continuum_save.sh)` shell interpolation continuum inserts itself
-      # (it prints nothing, so the status bar is unchanged) — NOT the
-      # `#{continuum_status}` display variable, which would render a stray "5".
-      # The save script is wrapped so it no-ops on any socket but `default` —
-      # see the comment on continuumSaveGuarded above.
-      set -g status-right "#{E:@catppuccin_status_session}#(${continuumSaveGuarded})"
-
-      # Belt and braces for the same problem. Wrapping the script above is not
-      # sufficient on its own: continuum's own .tmux sets status-right during
-      # plugin load, i.e. AFTER this file's earlier lines but interleaved with
-      # them, so a non-default server can end up holding continuum's unguarded
-      # path (observed on the gascity socket on 2026-08-09). continuum_save.sh
-      # bails when the interval is 0 (`auto_save_not_disabled`), so zeroing it
-      # off-default disables auto-save whichever status-right variant wins.
-      run-shell '${continuumDisableOffDefault}'
 
       # No delay after Escape (essential for vi copy mode)
       set -s escape-time 0

@@ -833,6 +833,24 @@ bar than the one written down.
 
 ---
 
+## 9b. Ideas to explore if the trial continues
+
+Not blockers, and not yet decided — parked here so they are not lost.
+
+**Give Claude fuller lifecycle authority via the `Stop` hook.** herdr's states are `idle`,
+`working`, `blocked`, `done`, `unknown`. Claude reaches `done` briefly when a turn ends and
+then decays to `idle`, so a session that just replied becomes indistinguishable from one
+abandoned an hour ago. The `Stop` hook that already drives `notify.sh` could additionally call
+`herdr pane report-agent`, the same mechanism lifecycle-authority agents like OpenCode use.
+Worth doing only if `agent_panel_sort = "priority"` alone turns out not to surface the
+just-replied session — use it for a while first. It edits `settings.json`, so agree it before
+implementing.
+
+**Verify what `agent_panel_sort = "priority"` actually orders by.** Assumed to be recency, and
+each agent carries a monotonic `state_change_seq` that would support that, but unconfirmed:
+`herdr agent list` returns panes in pane order and does not apply the sidebar's sort, so the
+CLI cannot answer it. Confirm by watching whether a just-replied session rises to the top.
+
 ## 10. Risks
 
 1. **Pre-1.0 churn**: irregular releases, config stability not guaranteed. The version moves
