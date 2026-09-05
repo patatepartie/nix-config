@@ -70,7 +70,7 @@ to; if something here means nothing to you yet, go to the section named beside i
 | §6a — Claude integration | **done** | Committed in `agent-config` as "Add the herdr Claude integration hook". |
 | §6b — config file | **done** | `~/.config/herdr/config.toml` written with the three overrides. Not yet moved into `agent-config` (deliberate — it will churn). |
 | §6c — bindings + script | **mostly done** | Zoom question answered; bindings learned in use. `new-workspace.sh` still unwritten — herdr's native `prefix+shift+n` prompts for a name, not a directory, so it does not replace `prefix S`. |
-| Part 2 — use and hard scenarios | **in progress** | All 23 tmux sessions migrated to herdr (23 workspaces, ~108 panes, 21 agents). tmux save/restore chain removed. Backup script written and tested. **Reboot test not yet run.** |
+| Part 2 — use and hard scenarios | **in progress** | Migration complete (23 workspaces, 108 panes, 21 agents). **Reboot cycle 1 passed at 100%** — see `herdr-trial-log.md`. Cycle 2 still needed. Oracle-blind blocked states (§7) not yet exercised — criterion 1 cannot be judged until they are. |
 
 Statuses are coarse. If you stop **mid**-sub-step — §6a in particular has an internal
 verify-then-commit sequence — say so in that row's Notes, or the next session will assume the
@@ -109,9 +109,10 @@ whole sub-step is untouched.
   along with the three `settings.json` hooks that fed its registry. It was recreating sessions
   that had deliberately been closed after migration. tmux itself still works as a fallback.
 - Backup script: `agent-config/herdr/backup-sessions.py`, written and tested 2026-09-04.
-- **Pending cleanup:** delete `~/.tmux/resurrect/` once the reboot test has validated herdr's
-  restore. Nothing reads those files now, but they are the last record of the pre-migration
-  working set.
+- `~/.tmux/resurrect/` **deleted** 2026-09-05, after reboot cycle 1 validated the restore.
+- Ghostty launches herdr directly as of 2026-09-05 (`command = "${pkgs.herdr}/bin/herdr
+  --session main"`), so `hd` is no longer needed by hand. This removes the plain-shell escape
+  hatch: if herdr fails to start, every new tab fails with it.
 - **Open question for the user, if any:** _none_ — put anything here that the next session
   must resolve with the user before continuing.
 

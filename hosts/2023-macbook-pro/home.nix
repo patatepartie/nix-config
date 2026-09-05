@@ -324,6 +324,7 @@ in
     settings = {
       theme = "Catppuccin Mocha";
       desktop-notifications = true;
+      command = "${pkgs.herdr}/bin/herdr --session main";
       keybind = "option+backspace=text:\\x1b\\x7f";
       macos-option-as-alt = true;
     };
