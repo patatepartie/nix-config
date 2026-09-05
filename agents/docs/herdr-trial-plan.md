@@ -917,8 +917,5 @@ line still reads "no", raise it with the user then rather than assuming an answe
 - **Commit prefix `MBP2023`** for nix-config changes touching only the 2023 MacBook. This
   applies to the `home.nix` edits in §5.
 - **Report all warnings** from `just switch` — into the trial log if no one is watching.
-- `agents/scripts/test-tmux-resurrect.sh` does **not** cover this work (it runs with
-  `-f /dev/null` and never loads the real config). §5 changes only how tmux is attached to,
-  not the tmux config itself, so the existing chain is not at risk. If any tmux config is
-  touched, use the manual socket-guard recipe in
-  `agents/instructions/working-in-this-repo.md`.
+- The tmux save/restore chain and its test harness were removed on 2026-09-05, once herdr had
+  taken over the working set and reboot cycle 1 had validated its restore.

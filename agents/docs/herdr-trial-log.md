@@ -15,8 +15,8 @@ Totals first so a later session does not have to re-tally the file.
 **Sessions live:** 23 workspaces / 108 panes / 21 Claude sessions (herdr), 0 (tmux).
 
 **Reboot cycle 1 — 100% resume.** A system update plus restart, which is a slightly harder
-test than the plan asked for. Verified against
-`~/claude-session-backups/herdr-sessions-20260905T094347.md`:
+test than the plan asked for. Verified by diffing the live state against a backup taken
+immediately beforehand (since deleted along with the rest of the tmux-era backups):
 
 | | before | after |
 |---|---|---|
