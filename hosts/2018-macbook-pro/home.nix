@@ -1,16 +1,5 @@
 { username, pkgs, ... }:
 let
-  tmuxAssistantResurrect = pkgs.tmuxPlugins.mkTmuxPlugin {
-    pluginName = "tmux-assistant-resurrect";
-    rtpFilePath = "tmux-assistant-resurrect.tmux";
-    version = "unstable-2026-03-04";
-    src = pkgs.fetchFromGitHub {
-      owner = "timvw";
-      repo = "tmux-assistant-resurrect";
-      rev = "9e9792670211818b4ee0d9257e005f7290e95f91";
-      sha256 = "0ny2q1g5r2ss1jxyqspdz0lliyvxvl33rs5s8k63l0k6112lf8bb";
-    };
-  };
 in
 {
   # Home Manager needs a bit of information about you and the paths it should
@@ -59,16 +48,6 @@ in
         } + "/capture.zsh")
     )
   ];
-
-  home.file = {
-    # Stable path for the tmux-assistant-resurrect Claude Code hooks. The
-    # plugin's installer bakes its current nix-store path into the plain,
-    # unmanaged ~/.claude/settings.json and never rewrites it, so after a
-    # plugin rebuild + nix-gc that path 404s and SessionEnd errors on exit.
-    # settings.json references this fixed path; each switch repoints the link.
-    ".claude/tmux-resurrect-hooks".source =
-      "${tmuxAssistantResurrect}/share/tmux-plugins/tmux-assistant-resurrect/hooks";
-  };
 
   home.sessionVariables = {
   };
@@ -182,102 +161,6 @@ in
     ];
   };
 
-  programs.tmux = {
-    aggressiveResize = true;
-    baseIndex = 1;
-    clock24 = true;
-    enable = true;
-    historyLimit = 100000;
-    mouse = true;
-    keyMode = "vi";
-    plugins = with pkgs.tmuxPlugins; [
-      {
-        plugin = catppuccin;
-        extraConfig = ''
-          set -g @catppuccin_flavor "mocha"
-          set -g @catppuccin_window_status_style "rounded"
-          set -g @catppuccin_window_text " #W#{?window_zoomed_flag, Z,}"
-          set -g @catppuccin_window_current_text " #W#{?window_zoomed_flag, Z,}"
-          set -g status-right-length 100
-          set -g status-right "#{E:@catppuccin_status_session}"
-        '';
-      }
-      {
-        plugin = resurrect;
-        extraConfig = ''
-          set -g @resurrect-capture-pane-contents 'on'
-        '';
-      }
-      {
-        plugin = continuum;
-        extraConfig = ''
-          set -g @continuum-restore 'on'
-          set -g @continuum-save-interval '15'
-        '';
-      }
-      {
-        plugin = tmuxAssistantResurrect;
-      }
-    ];
-    terminal = "tmux-256color";
-
-    extraConfig = ''
-      set -s set-clipboard on
-      set -g focus-events on
-      set -g default-command zsh
-
-      # Continuum's auto-restore races with plugin load order: it backgrounds
-      # restore from its run-shell, before assistant-resurrect sets the
-      # post-restore hooks. Disable it and trigger from here instead, after
-      # all plugins and extraConfig have loaded.
-      set -g @continuum-restore 'off'
-      run-shell 'start=$(tmux display-message -p -F "#{start_time}"); now=$(date +%s); if [ $((now - start)) -lt 10 ] && [ -f ~/.tmux/resurrect/last ]; then sleep 1; "$(tmux show-option -gqv @resurrect-restore-script-path)"; fi &'
-
-      # No delay after Escape (essential for vi copy mode)
-      set -s escape-time 0
-      set -g display-time 3000
-
-      # Keep explicit window names set by scripts
-      set -g allow-rename off
-      set -g automatic-rename off
-
-      # Vi mode for copy, emacs for command prompt (prefix+:) where vi is lacking
-      set -g status-keys emacs
-
-      bind r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"
-
-      # Vim-style pane navigation (repeatable, re-zooms if zoomed)
-      bind -r h if -F "#{window_zoomed_flag}" "select-pane -L ; resize-pane -Z" "select-pane -L"
-      bind -r j if -F "#{window_zoomed_flag}" "select-pane -D ; resize-pane -Z" "select-pane -D"
-      bind -r k if -F "#{window_zoomed_flag}" "select-pane -U ; resize-pane -Z" "select-pane -U"
-      bind -r l if -F "#{window_zoomed_flag}" "select-pane -R ; resize-pane -Z" "select-pane -R"
-
-      # Vim-style pane resizing (repeatable, 5 cells per step)
-      bind -r H resize-pane -L 5
-      bind -r J resize-pane -D 5
-      bind -r K resize-pane -U 5
-      bind -r L resize-pane -R 5
-
-      # Vi copy mode: v for visual selection, C-v for block selection
-      bind -T copy-mode-vi v send -X begin-selection
-      bind -T copy-mode-vi C-v send -X rectangle-toggle
-
-      # Toggle last session
-      bind Tab switch-client -l
-
-      # Fuzzy session switcher (replaces built-in tree picker)
-      bind s display-popup -E "tmux list-sessions -F '#S' | fzf --reverse | xargs tmux switch-client -t"
-
-      # Create new session from project directory
-      bind S display-popup -E "\
-        fd -t d --max-depth 5 --exclude '.*' --exclude node_modules . ~ | fzf --reverse | while read dir; do \
-          name=\$(basename \"\$dir\" | tr . _); \
-          tmux new-session -d -s \"\$name\" -c \"\$dir\" 2>/dev/null; \
-          tmux switch-client -t \"\$name\"; \
-        done"
-    '';
-  };
-
   programs.ghostty = {
     enable = true;
     package = null;
@@ -285,7 +168,6 @@ in
     settings = {
       theme = "Catppuccin Mocha";
       desktop-notifications = true;
-      command = "zsh -l -c 'tmux new-session -As main'";
       keybind = "option+backspace=text:\\x1b\\x7f";
       macos-option-as-alt = true;
     };
@@ -333,7 +215,7 @@ in
     oh-my-zsh = {
       enable = true;
       theme = "af-magic";
-      plugins = [ "aliases" "git" "tmux" ];
+      plugins = [ "aliases" "git" ];
     };
   };
 }
