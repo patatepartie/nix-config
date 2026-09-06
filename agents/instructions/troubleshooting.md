@@ -349,18 +349,28 @@ ls ~/Library/Caches/ms-playwright/ | grep chromium
 
 Note this repo manages the `playwright-cli` CLI only. The Claude Code Playwright *plugin* (`npx @playwright/mcp`) was a second, independent entry point that could start the same fallback browser; it was uninstalled deliberately. If Chrome starts getting hijacked again, check whether a plugin or MCP server reintroduced it.
 
-## New Ghostty tabs fail to launch after removing a `command` setting
+## New Ghostty tabs fail to launch after changing or removing a `command` setting
 
-**Symptom.** Every new Ghostty tab and window dies immediately, with roughly:
+**Symptom.** Every new Ghostty tab and window dies immediately. The error names whatever the OLD `command` pointed at, in one of two forms:
 
 ```
 bash: /nix/store/<hash>-ghostty-tab-init: No such file or directory
 Ghostty failed to launch the requested command
 ```
 
-Existing tabs are unaffected, so the shell you are reading this in keeps working.
+```
+zsh:1: command not found: tmux
+Ghostty failed to launch the requested command:
+/usr/bin/login -flp <user> /bin/bash --noprofile --norc -c exec -l zsh -l -c 'tmux new-session -As main'
+```
 
-**Cause.** The running Ghostty holds the previous config in memory, including the old `command` value pointing at a `writeShellScript` store path. `just switch` deployed a config without that setting and garbage-collected the path it named, so the launch target no longer exists. Ghostty reads `command` when launching a surface, not per keystroke, so the stale value survives until the process restarts.
+Read the command in that second line: if it is not what the current config says, this is the entry you want.
+
+**Cause.** The running Ghostty holds the previous config in memory. Ghostty reads `command` when launching a surface, not per keystroke, so the stale value survives until the process restarts — and the thing it names is now gone, either because `just switch` garbage-collected the store path, or because the same change removed the binary it invoked.
+
+**Both machines hit this.** The 2023 MacBook on 2026-08-29 (GC'd `ghosttyTabInitScript` path) and the 2018 on 2026-09-06 (tmux removed in the same commit as the `command` that ran it). Whenever a switch changes `programs.ghostty.settings.command`, expect it and say so before applying — a full relaunch is a two-second fix only if you know that is what it is.
+
+**Beware of what "restart Ghostty" means here.** Closing every window is not enough, and neither is exiting whatever was running inside them: the Ghostty process survives and keeps the stale value. That is exactly how the 2018 case presented — the user exited their tmux sessions, the windows went away, and the next launch still used the old command.
 
 Nothing is wrong on disk. `cat ~/.config/ghostty/config` already shows the correct contents, and `ls -l ~/.config/ghostty/config` points at the current generation. Do not re-run `just switch` or go hunting for a broken store path — neither is the problem.
 
@@ -368,4 +378,6 @@ Nothing is wrong on disk. `cat ~/.config/ghostty/config` already shows the corre
 
 This is **transition-only**: once Ghostty restarts against a config with no `command` at all, there is nothing stale left to point anywhere, and it cannot recur.
 
-**Two things to know before quitting.** The tmux server is independent of any client, so the sessions survive untouched — but `Cmd+Q` ends every Claude session running in a Ghostty tab, so commit in-flight work first. And since nothing auto-starts tmux once `command` is gone, run `tm` after relaunching to get the sessions back.
+If every window dies on launch and you have no working terminal left, use **Terminal.app** to check `cat ~/.config/ghostty/config` and to run `killall Ghostty`.
+
+**One thing to know before quitting.** `Cmd+Q` ends every Claude session running in a Ghostty tab, so commit in-flight work first. On a machine where herdr or tmux holds the sessions, they survive independently of the client and come back on reattach.
