@@ -323,7 +323,17 @@ Note `code --install-extension` exits non-zero on failure, but piping it (e.g. `
 
 **Symptom.** Clicking Google Chrome does nothing — no window, no error. Often first noticed after a Chrome update that forced a quit.
 
-**Cause.** Playwright's `chromium` channel drives the installed `/Applications/Google Chrome.app` binary rather than a separate browser. A leftover headless session therefore holds the same app bundle, and macOS LaunchServices hands your click to that running instance, which was started with `--no-startup-window`. `playwright-cli` keeps sessions alive in a background daemon between commands, so one can outlive its caller by days.
+**Cause.** `playwright-cli` defaults to the `chrome` channel, which drives `/Applications/Google Chrome.app` by design. It launches it with `--headless --no-startup-window`, and macOS LaunchServices then hands your click to that running instance, which has no window to show. `playwright-cli` keeps sessions alive in a background daemon between commands, so one can outlive its caller by days.
+
+In `playwright-core`, an unspecified browser resolves to browserName `chromium` but channel `chrome`, and the channel wins:
+
+```js
+if (!browserName) {
+  browserName = "chromium";
+  if (browser.launchOptions.channel === void 0)
+    browser.launchOptions.channel = "chrome";
+}
+```
 
 Identify it by the temp profile in the command line:
 
@@ -331,21 +341,27 @@ Identify it by the temp profile in the command line:
 ps aux | grep playwright_chromiumdev_profile | grep -v grep
 ```
 
-**Resolution.** `playwright-cli kill-all`, or `pkill -f playwright_chromiumdev_profile` plus `pkill -f cliDaemon.js`. Then start Chrome normally.
+**Resolution.** Run `playwright-cli kill-all` first, then `pkill -f playwright_chromiumdev_profile` and `pkill -f cliDaemon.js`. `kill-all` alone is not enough: it matches only daemon patterns, not the browser processes those daemons spawned, so an orphaned browser survives it and keeps blocking Chrome (upstream issue #388, closed without a fix). Then start Chrome normally.
 
-**Prevention, and the trap.** The fallback only happens when Playwright has no browser of its own. `hosts/2023-macbook-pro/home.nix` installs one on every activation via `home.activation.installPlaywrightBrowsers`.
+**Prevention.** Always pass `--browser=chromium`, which selects the separate Chrome for Testing build under `~/Library/Caches/ms-playwright/` instead of the user's Chrome. The `playwright-cli` skill in `~/Tech/agent-config/skills/` carries this and the rest of the usage rules.
 
-The revision must match the `playwright-core` bundled inside the installed `playwright-cli` — **not** whatever `npx playwright install` fetches, which tracks its own latest and will silently install an unused build. Always install through the CLI itself:
+`chromium` is undocumented — `--help` and the CLI's own bundled skill list only `chrome`, `firefox`, `webkit`, `msedge` — but it is accepted, and maps to the `chrome-for-testing` channel.
+
+Neither a config file nor an env var can replace the flag. `.playwright/cli.config.json` cannot clear the default channel (upstream issue #320), and `PLAYWRIGHT_MCP_BROWSER` applies only to sessions whose own caller had it set, since each session spawns its own daemon.
+
+**The browser must be installed** or `--browser=chromium` fails hard, with no auto-download and no fallback. `hosts/2023-macbook-pro/modules/apps/playwright.nix` installs it on every activation via `home.activation.installPlaywrightBrowsers`:
 
 ```sh
 playwright-cli install-browser chromium
 ```
 
-It is a fast no-op when the right build is present, and resolves the required revision from the installed CLI, so a Homebrew bump of `playwright-cli` is picked up automatically on the next `just switch`. Verify what it resolved to — the path should be under `~/Library/Caches/ms-playwright/`, never `/Applications`:
+It is a fast no-op when the right build is present, and resolves the required revision from the installed CLI, so a Homebrew bump of `playwright-cli` is picked up automatically on the next `just switch`. Verify the build is there — the path should be under `~/Library/Caches/ms-playwright/`, never `/Applications`:
 
 ```sh
 ls ~/Library/Caches/ms-playwright/ | grep chromium
 ```
+
+**Sessions leak by design.** `playwright-cli open` spawns a detached daemon that holds its browser until something sends `close`, and an agent that opens a session and exits never sends it (upstream issue #460, open). Close every session you open, including on failure.
 
 Note this repo manages the `playwright-cli` CLI only. The Claude Code Playwright *plugin* (`npx @playwright/mcp`) was a second, independent entry point that could start the same fallback browser; it was uninstalled deliberately. If Chrome starts getting hijacked again, check whether a plugin or MCP server reintroduced it.
 
