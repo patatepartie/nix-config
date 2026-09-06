@@ -69,7 +69,7 @@ to; if something here means nothing to you yet, go to the section named beside i
 | §5 — install + aliases | **done** | Committed as "MBP2023 - Install herdr and make tmux an explicit choice". All 23 tmux sessions survived. |
 | §6a — Claude integration | **done** | Committed in `agent-config` as "Add the herdr Claude integration hook". |
 | §6b — config file | **done** | `~/.config/herdr/config.toml` written with the three overrides. Not yet moved into `agent-config` (deliberate — it will churn). |
-| §6c — bindings + script | **mostly done** | Zoom question answered; bindings learned in use. `new-workspace.sh` still unwritten — herdr's native `prefix+shift+n` prompts for a name, not a directory, so it does not replace `prefix S`. |
+| §6c — bindings + script | **done** | Zoom question answered. `new-workspace.sh` written and bound to `prefix+shift+s`, plus `pick-agent.sh` on `prefix+a` for the agent search herdr lacks entirely. |
 | Part 2 — use and hard scenarios | **in progress** | Migration complete (23 workspaces, 108 panes, 21 agents). **Reboot cycle 1 passed at 100%** — see `herdr-trial-log.md`. Cycle 2 still needed. Oracle-blind blocked states (§7) not yet exercised — criterion 1 cannot be judged until they are. |
 
 Statuses are coarse. If you stop **mid**-sub-step — §6a in particular has an internal
@@ -113,6 +113,13 @@ whole sub-step is untouched.
 - Ghostty launches herdr directly as of 2026-09-05 (`command = "${pkgs.herdr}/bin/herdr
   --session main"`), so `hd` is no longer needed by hand. This removes the plain-shell escape
   hatch: if herdr fails to start, every new tab fails with it.
+- Home-server question (§11): **settled — out of scope**, as originally stated. The 2018
+  MacBook is also settled: tmux removed, herdr not installable there (`zig_0_15` has no
+  x86_64-darwin support), and the machine does not need a multiplexer.
+- **The §7 oracle is gone.** `notify.sh` and `terminal-notifier` were removed on 2026-09-06
+  because herdr's own notifications replaced them. Criterion 1 therefore has no independent
+  cross-check any more; whatever is judged about blocked-state misses now rests on noticing
+  them directly.
 - **Open question for the user, if any:** _none_ — put anything here that the next session
   must resolve with the user before continuing.
 

@@ -10,6 +10,38 @@ Totals first so a later session does not have to re-tally the file.
 - Reboot cycles: 1 attempted, 1 at 100% resume
 - herdr crashes: 0
 
+## 2026-09-06 — navigation filled in, tmux gone from the 2018 MacBook
+
+**The default bindings are not enough to work without a mouse.** `previous_agent`,
+`next_agent`, `previous_workspace`, `next_workspace` and `last_pane` are all unset by default,
+and `prefix+w` lists workspaces without fuzzy matching. Bound comma/period pairs for agent and
+workspace cycling — note `bracketleft`/`bracketright` are rejected as key names.
+
+**Two gaps needed scripts, both bound as popups** (in `agent-config/herdr/`):
+
+- `prefix+a` → `pick-agent.sh`. herdr has no agent search at all: `prefix+w` covers workspaces
+  only, `prefix+g` cannot target a pane *within* a workspace, and the agent sidebar has no
+  filter. The picker fuzzy-matches on workspace name plus conversation topic, which is the only
+  thing distinguishing panes — every Claude pane is otherwise just "claude".
+- `prefix+shift+s` → `new-workspace.sh`, the old tmux `prefix S`. herdr's own
+  `prefix+shift+n` creates a workspace in the *current* cwd without asking for a directory,
+  because `prompt_new_workspace_name` is false and `new_cwd` is "follow". The script also has
+  to resolve label→id to focus an existing workspace, since `workspace focus` takes an id;
+  the tmux binding got that for free.
+
+Both confirmed working in use. Criterion 4 (`prefix S` rebuilt and comfortable) is met.
+
+**tmux removed from the 2018 MacBook.** herdr cannot replace it there: it needs `zig_0_15` to
+build `libghostty-vt`, and zig has no `x86_64-darwin` support, so `pkgs.herdr` does not
+evaluate on that host. Nixpkgs warns that 26.05 is the last release supporting x86_64-darwin at
+all, so this will not change. The machine only runs `gl && just switch` and the occasional
+agent, both fine in a plain Ghostty tab.
+
+**notify.sh and terminal-notifier removed.** herdr's toast and sound cover the same ground and
+notify.sh was noisier — it fired on subagent completions. This also retires the trial's
+independent oracle (§7), so blocked-state misses now have no cross-check at all; see the
+caveat below, which this makes permanent rather than temporary.
+
 ## 2026-09-05 — reboot cycle 1, and migration complete
 
 **Sessions live:** 23 workspaces / 108 panes / 21 Claude sessions (herdr), 0 (tmux).
