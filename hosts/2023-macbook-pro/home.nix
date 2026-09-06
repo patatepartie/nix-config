@@ -242,80 +242,6 @@ in
     };
   };
 
-  programs.tmux = {
-    aggressiveResize = true;
-    baseIndex = 1;
-    clock24 = true;
-    enable = true;
-    historyLimit = 100000;
-    mouse = true;
-    keyMode = "vi";
-    plugins = with pkgs.tmuxPlugins; [
-      {
-        plugin = catppuccin;
-        extraConfig = ''
-          set -g @catppuccin_flavor "mocha"
-          set -g @catppuccin_window_status_style "rounded"
-          set -g @catppuccin_window_text " #W#{?window_zoomed_flag, Z,}"
-          set -g @catppuccin_window_current_text " #W#{?window_zoomed_flag, Z,}"
-          set -g status-right-length 100
-          set -g status-right "#{E:@catppuccin_status_session}"
-        '';
-      }
-    ];
-    terminal = "tmux-256color";
-
-    extraConfig = ''
-      set -s set-clipboard on
-      set -g focus-events on
-      set -g default-command zsh
-
-      # No delay after Escape (essential for vi copy mode)
-      set -s escape-time 0
-      set -g display-time 3000
-
-      # Keep explicit window names set by scripts
-      set -g allow-rename off
-      set -g automatic-rename off
-
-      # Status bar: session name on the right, window list on the left
-      # Vi mode for copy, emacs for command prompt (prefix+:) where vi is lacking
-      set -g status-keys emacs
-
-      bind r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"
-
-      # Vim-style pane navigation (repeatable, re-zooms if zoomed)
-      bind -r h if -F "#{window_zoomed_flag}" "select-pane -L ; resize-pane -Z" "select-pane -L"
-      bind -r j if -F "#{window_zoomed_flag}" "select-pane -D ; resize-pane -Z" "select-pane -D"
-      bind -r k if -F "#{window_zoomed_flag}" "select-pane -U ; resize-pane -Z" "select-pane -U"
-      bind -r l if -F "#{window_zoomed_flag}" "select-pane -R ; resize-pane -Z" "select-pane -R"
-
-      # Vim-style pane resizing (repeatable, 5 cells per step)
-      bind -r H resize-pane -L 5
-      bind -r J resize-pane -D 5
-      bind -r K resize-pane -U 5
-      bind -r L resize-pane -R 5
-
-      # Vi copy mode: v for visual selection, C-v for block selection
-      bind -T copy-mode-vi v send -X begin-selection
-      bind -T copy-mode-vi C-v send -X rectangle-toggle
-
-      # Toggle last session
-      bind Tab switch-client -l
-
-      # Fuzzy session switcher (replaces built-in tree picker)
-      bind s display-popup -E "/opt/homebrew/bin/tmux list-sessions -F '#S' | fzf --reverse | xargs /opt/homebrew/bin/tmux switch-client -t"
-
-      # Create new session from project directory
-      bind S display-popup -E "\
-        fd -t d --no-ignore-vcs --max-depth 5 --exclude '.*' --exclude node_modules . ~ | fzf --reverse | while read dir; do \
-          name=\$(basename \"\$dir\" | tr . _); \
-          tmux new-session -d -s \"\$name\" -c \"\$dir\" 2>/dev/null; \
-          tmux switch-client -t \"\$name\"; \
-        done"
-    '';
-  };
-
   programs.ghostty = {
     enable = true;
     package = null;
@@ -349,7 +275,6 @@ in
       find = "fd";
       du = "dust";
       top = "btop";
-      tm = "tmux new-session -As main";
       hd = "herdr --session main";
     };
 

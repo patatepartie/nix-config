@@ -82,11 +82,13 @@ Casks declared with `greedy = true` (see `hosts/2023-macbook-pro/modules/apps/ca
 
 ## tmux session save/restore — removed
 
-There is none. tmux-resurrect, tmux-continuum and tmux-assistant-resurrect were removed on 2026-09-05 once herdr took over the working set; `~/.tmux/` is gone too. tmux is still installed with its bindings and theme, but it no longer persists anything across a restart.
+There is none. tmux-resurrect, tmux-continuum and tmux-assistant-resurrect were removed on 2026-09-05 once herdr took over the working set; `~/.tmux/` is gone too.
+
+**MBP2023 has no tmux configuration at all.** `programs.tmux`, the `tm` alias and the oh-my-zsh `tmux` plugin were all removed on 2026-09-06, so `~/.config/tmux/` does not exist and gascity's servers run stock tmux rather than a themed one. The binary is still present because the gascity Homebrew formula declares `depends_on "tmux"` — it is a transitive dependency, never declared in `brews.nix`, so removing the Nix config could not and did not uninstall it. Do not add tmux to `brews.nix` to "fix" its absence from the declared list; that is the expected state.
 
 herdr handles this itself — one server writes `~/.config/herdr/sessions/<session>/session.json` continuously and restores from it on start, resuming Claude panes into their conversations. See `agents/docs/herdr-trial-plan.md` §8.
 
-**The gascity second-saver hazard is gone with it.** That failure existed because tmux sources its config for every server whatever the socket, so a `tmux -L gascity` server loaded its own resurrect + continuum and fought over the shared state directory. With no plugins there is nothing to duplicate: a gascity server is now just a plain tmux server. The socket guards in `home.nix` were removed as part of the same change.
+**The gascity second-saver hazard is gone with it.** That failure existed because tmux sources its config for every server whatever the socket, so a `tmux -L gascity` server loaded its own resurrect + continuum and fought over the shared state directory. With no config to source at all, there is nothing to duplicate. The socket guards in `home.nix` were removed as part of the same change.
 
 **Recovering lost sessions.** Transcripts live in `~/.claude/projects/<slug>/<session-id>.jsonl` and survive independently of any multiplexer — a lost pane is almost never lost work. Sessions started from Agent View are forks whose own IDs may have no transcript; their history is under the parent session in `~/.claude/jobs/<short-id>/` (`state.json` has `sessionId`, `intent`, and `cwd`). Check there before concluding a session is unrecoverable.
 

@@ -10,7 +10,6 @@
   "permissions": {
     "allow": [
       "Bash(claude hooks:*)",
-      "Bash(command tmux:*)",
       "Bash(just:*)",
       "Bash(nix-prefetch-url:*)",
       "Bash(nix:*)",
