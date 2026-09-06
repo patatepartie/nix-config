@@ -12,6 +12,8 @@ Read the relevant section below before answering or running commands. The repo's
 | claude-code banner ("Update available")                     | `agents/instructions/troubleshooting.md`                           |
 | a tap package stuck at an old version, tap not updating     | `agents/instructions/troubleshooting.md` — check for a duplicate tap dir |
 | gascity / `gc`                                              | "gascity" (below)                                                  |
+| gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — unreleased upstream fix, nothing to pull |
+| herdr high CPU, herdr server CPU time                        | `agents/instructions/troubleshooting.md` — expected, scales with live panes |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
 | ssh / home-server commands, host unreachable, `.local` not resolving | "SSH to home-server.local" (below)                          |
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
@@ -94,6 +96,8 @@ herdr handles this itself — one server writes `~/.config/herdr/sessions/<sessi
 
 **The `gc` name collides with oh-my-zsh.** The git plugin aliases `gc` to `git commit -v`, shadowing the binary. gascity cannot yield the name: it bakes `gc` into the hook commands it injects into agent panes, and its completion registers as `#compdef gc`. `dotfiles/oh-my-zsh/plugins/gascity/` drops the alias and adds `gci` for git commit. **That plugin must stay LAST in the `oh-my-zsh.plugins` list** — plugins are sourced in array order, so listing it alphabetically (before `git`) lets the git plugin recreate the alias immediately afterwards. This is documented at <https://docs.gascity.com/getting-started/troubleshooting#oh-my-zsh-git-plugin-hides-gc>, though the doc's `$ZSH_CUSTOM`-loads-last claim holds for loose `.zsh` files, not for a named custom plugin.
 
+**`bd` version skew costs CPU, and cannot be fixed from here.** The Homebrew formula's unversioned `depends_on "beads"` lets `beads` drift ahead of the version `gc` was built against, which trips gascity's strict `version_compat` gate and drops it into fork-per-op mode — high CPU plus `✗ order-firing-current` in `gc doctor`. Upstream fix is merged but unreleased as of 2026-09-06. See `agents/instructions/troubleshooting.md` → "gascity burns CPU" before investigating; a plain `ps` snapshot will look innocent and mislead you.
+
 **It starts tmux servers on its own socket**, named by `[session].socket` in `city.toml`. This used to be hazardous — see "tmux session save/restore" above — but is now unremarkable, since tmux no longer loads any plugins.
 
 Interaction is **not** via tmux any more, despite what older setups suggest. As of 1.3 the Mayor is a *skill* loadable from any agent (invoke as `@mayor` from Claude Code in a rig folder), not a session you attach to; 1.4 moved observation to `gc dashboard`, a web UI served by the supervisor. `gc session attach <name>` exists and is preferable to raw `tmux attach` (it resumes or restarts a dead session), but you should not need a terminal attached to gascity's socket at all.
@@ -108,10 +112,6 @@ Prefix commit titles based on which hosts are affected:
 - **MBPs** — both MacBook Pros
 - **HomeServer** — home server only
 - No prefix — all hosts or host-agnostic changes
-
-## tmux
-
-Always use `command tmux` instead of bare `tmux`. The oh-my-zsh tmux plugin intercepts bare `tmux` and fails in non-interactive shells.
 
 ## Nix rebuild output
 

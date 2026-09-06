@@ -365,6 +365,36 @@ ls ~/Library/Caches/ms-playwright/ | grep chromium
 
 Note this repo manages the `playwright-cli` CLI only. The Claude Code Playwright *plugin* (`npx @playwright/mcp`) was a second, independent entry point that could start the same fallback browser; it was uninstalled deliberately. If Chrome starts getting hijacked again, check whether a plugin or MCP server reintroduced it.
 
+## `herdr server` shows high cumulative CPU
+
+**Symptom.** `ps aux -r` ranks `herdr server` near the top by CPU time — hundreds of minutes accumulated over a few days, more than WindowServer. Instantaneous CPU sits around 9-18%.
+
+**Cause.** Expected, given the working set. herdr holds one live PTY per pane, each paired with a tokio worker thread; a session with 23 workspaces and ~84 tabs runs ~108 PTY threads. The cost scales with how much output those panes produce, not with pane count alone — an idle pane is nearly free.
+
+A `sample <pid>` profile confirms the shape: the main thread spends the overwhelming majority of its samples parked in `tokio::runtime::park` (measured 5746 parked vs 158 working, ~2.7% active), with the working portion in `render_retained_pty_update_and_stream` — reading dirty terminal cells via Ghostty, serializing frames with bincode, and streaming them to the client. That is the render path doing real work proportional to real output, not a busy-wait.
+
+`sample` reports every thread at the full sample count regardless of activity, because blocked threads still get sampled. Read the *thread count* and the parked-vs-working split in the call graph, not the per-thread totals.
+
+**Resolution.** None needed unless it grows out of proportion to the working set. To reduce it, close panes you are not using — the load is roughly linear in actively-producing panes.
+
+Escalate only if the profile changes shape: the main thread no longer dominated by `park`, or CPU staying high with no pane producing output. Neither was true as of 2026-09-06.
+
+## gascity burns CPU; `gc doctor` reports stale scheduled orders
+
+**Symptom.** Activity Monitor shows sustained high CPU that tracks gascity activity rather than a specific busy process. `gc doctor` reports `✗ order-firing-current — scheduled orders are stale`. `gc` feels sluggish. A single `ps aux -r` snapshot often shows nothing: `gc supervisor run` sits near 1% CPU, which reads as innocent and is misleading.
+
+**Cause.** Upstream <https://github.com/gastownhall/gascity/issues/5164>. gascity's `version_compat` preflight gate requires an *exact* string match between the installed `bd` CLI version and the beads library version `gc` was compiled against. When `bd` is newer but semver-compatible the gate fails silently, and gascity falls back to BdStore — fork-per-operation mode. The cost lands in a storm of short-lived `bd` subprocesses (upstream measured 170+ forks/s against a 100/s threshold), not in any one long-lived process, which is exactly why a point-in-time `ps` misses it.
+
+The skew is structural, not accidental: the Homebrew formula declares an unversioned `depends_on "beads"`, so `beads` always installs at its latest release and drifts ahead of the version `gc`'s `go.mod` pins. Every new beads release re-opens the gap.
+
+Check for the skew with `brew list --versions gascity beads` plus `bd --version`. Note that `gc` exposes no way to read the gate's verdict or the linked beads version — `gc --version` does not exist (`gc version` prints only gascity's own version), and no `gc doctor` check reports the active store mode. Adding that visibility is part of the same upstream issue, so until it ships the stale-orders check is the most reliable local tell.
+
+**Resolution.** None available yet — wait for an upstream release.
+
+The fix (PR #5252, merged 2026-08-30) relaxes the gate to accept a same-major `bd` at or above the library version. It is **not in any released tag**: the latest release, v1.4.1, shipped 2026-08-15, two weeks before the merge. The formula tracks stable tags and declares no `head` spec, so there is no `--HEAD` install path, and gascity is not Nix-packaged here — nothing in this repo can pull the fix forward. `GC_BEADS_FORCE_FALLBACK` is not a workaround; it forces the slow path rather than avoiding it.
+
+When a release after v1.4.1 appears, `just switch` picks it up through the normal tap path once `flake.lock`'s tap rev advances. Confirm the fix landed by checking that `gc doctor` no longer reports stale orders. Do not chase this by pinning or hand-installing beads at an older version: the redundant `"beads"` entry in `hosts/2023-macbook-pro/modules/apps/brews.nix` is a deliberate transitive-dep marker, and downgrading it would fight the formula on every update.
+
 ## New Ghostty tabs fail to launch after changing or removing a `command` setting
 
 **Symptom.** Every new Ghostty tab and window dies immediately. The error names whatever the OLD `command` pointed at, in one of two forms:

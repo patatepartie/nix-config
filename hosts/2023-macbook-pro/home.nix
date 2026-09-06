@@ -394,7 +394,7 @@ in
       # gascity must load after git: oh-my-zsh sources plugins in array order,
       # and this plugin removes the git plugin's `gc` alias. Listed before git,
       # the alias is simply recreated afterwards.
-      plugins = [ "aliases" "aws" "beall-compose" "docker" "docker-compose" "git" "gcloud" "mise" "tmux" "gascity" ];
+      plugins = [ "aliases" "aws" "beall-compose" "docker" "docker-compose" "git" "gcloud" "mise" "gascity" ];
     };
   };
 
