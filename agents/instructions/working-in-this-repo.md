@@ -18,6 +18,7 @@ Read the relevant section below before answering or running commands. The repo's
 | ssh / home-server commands, host unreachable, `.local` not resolving | "SSH to home-server.local" (below)                          |
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
+| trash won't empty, greyed-out Empty Trash, GNOME odd after an update | `agents/instructions/troubleshooting.md` — session outlives ~35 restarted user services |
 | Touch ID not offered for sudo, password modal instead        | `agents/instructions/troubleshooting.md` — unsigned PAM module; no fix, two dead ends already tested |
 | `als` missing an alias, alias not found in a running shell  | `agents/instructions/troubleshooting.md` — stale shell, or it's a function |
 | activation script declared but never runs, adding an activation script | `agents/instructions/troubleshooting.md` — custom attribute names are silently dropped |

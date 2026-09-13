@@ -2,7 +2,11 @@
 
 **Status:** diagnosed 2026-08-14, refined 2026-08-15, **implemented and verified
 2026-08-15**. Work items 1 and 2 are done and tested on the live host; work item
-2b remains optional and undone.
+2b is implemented but has never fired.
+**Work item 4 (2026-09-13) is open and unimplemented** — a distinct symptom class
+on the *successful* update path: the GNOME session outlives ~35 user services that
+each update restarts underneath it. Read it before proposing any session-cycle
+test or per-service restart.
 **Affects:** `hosts/home-server/` (`configuration.nix`, `home.nix`, `auto-update.nix`).
 **User impact:** machine becomes **unreachable over the network for hours** and
 needs a physical power-button press to come back. Running apps and in-flight
@@ -153,7 +157,12 @@ anything.
 - Test a session cycle with a **reboot**, not a logout, when convenient: GDM
   autologin fires on boot but generally shows the greeter after an explicit
   logout. Nothing here has been verified across a reboot — the box has been up
-  continuously since 2026-08-14.
+  continuously since 2026-08-14. **As of 2026-09-13 this is now blocking**: it is
+  the gate on work item 4's recommended fix, and the reason the display-manager
+  restart must not go on the routine path.
+- **Work item 4 is open**: every successful update restarts ~35 user services
+  under a surviving GNOME session. The Nautilus greyed-out "Empty Trash" is the
+  first visible consequence; several more are predicted and unconfirmed.
 - `transmission.local` still needs its `:9091`. See
   `transmission-bare-hostname.md` for the skeleton plan; the blocker is that
   kamal-proxy owns port 80 and is not managed by this repo.
@@ -649,6 +658,78 @@ activation fails (`switch-to-configuration` exit 4). Autologin then fires on the
 fresh GDM and the desktop returns without intervention.
 
 Not yet designed; lower priority than work items 1 and 2.
+
+## Work item 4 (2026-09-13) — the session outlives its services on every successful update
+
+**Status:** diagnosed 2026-09-13, nothing implemented. This is a **new symptom class**, distinct from everything above: it arises from the *successful* update path, not the failure path work items 2 and 2b address.
+
+**Symptom as reported:** the trash is not empty, but "Empty Trash" is greyed out in Nautilus's right-click menu. Deleting the same item individually works fine. `pkill nautilus` fixes it; D-Bus reactivates Nautilus on next use.
+
+### What is actually happening
+
+`switch-to-configuration` restarts a large set of **user** units while leaving the GNOME session itself running. It prints both lists; from the 2026-09-13 07:33 run:
+
+> stopping the following user units: at-spi-dbus-bus.service, dconf.service, evolution-addressbook-factory.service, evolution-alarm-notify.service, evolution-calendar-factory.service, evolution-source-registry.service, gcr-ssh-agent.service, gcr-ssh-agent.socket, gvfs-afc-volume-monitor.service, gvfs-daemon.service, gvfs-goa-volume-monitor.service, gvfs-gphoto2-volume-monitor.service, gvfs-metadata.service, gvfs-mtp-volume-monitor.service, gvfs-udisks2-volume-monitor.service, localsearch-3.service, org.freedesktop.IBus.session.GNOME.service, pipewire-pulse.service, pipewire-pulse.socket, pipewire.service, pipewire.socket, wireplumber.service, xdg-desktop-portal-gnome.service, xdg-desktop-portal-gtk.service, xdg-desktop-portal.service, xdg-document-portal.service, xdg-permission-store.service
+
+> NOT restarting the following user units: gnome-session-manager@gnome.service, gnome-session-monitor.service, org.gnome.SettingsDaemon.\*.service (all 18), org.gnome.Shell@user.service, systemd-tmpfiles-setup.service
+
+So GNOME Shell, the session manager and every `gsd-*` daemon are deliberately left alone, while the services they talk to are cycled underneath them. Confirmed by process start times — the running processes split into exactly two cohorts:
+
+| Cohort | Started | Examples |
+|---|---|---|
+| Survived | 2026-09-06 14:07 (boot) | `gnome-shell`, `gnome-session-service`, all `gsd-*`, `goa-daemon`, `gnome-remote-desktop-daemon`, `at-spi2-registryd`, Chrome, `transmission-remote-gtk`, `kgx` |
+| Restarted | 2026-09-13 07:33 (update) | `gvfsd` + 7 helpers, `dconf-service`, `pipewire`, `wireplumber`, `pipewire-pulse`, `xdg-desktop-portal{,-gtk,-gnome}`, `xdg-document-portal`, `xdg-permission-store`, 4 evolution factories, `at-spi2-registryd` (a **second** one), `ibus-daemon` + 5 helpers, `gcr-ssh-agent`, `localsearch-3` |
+
+~35 services restarted under a session that is, as of 2026-09-13, **seven days old**.
+
+The Nautilus trash bug is one visible consequence: Nautilus caches trash-emptiness state from `gvfsd-trash` over D-Bus, and when gvfs is restarted the cached "empty" flag is never refreshed. The directory *listing* still shows items because that is re-read from disk, but the menu item's sensitivity comes from the stale flag. Per-item deletion works because it is a plain file operation that never consults it.
+
+### Why this is a class, not a bug
+
+The trash bug is not special — it is the one that happened to be *legible*. Other predicted consequences of the same split, none yet confirmed:
+
+- **`dconf-service`** restarted under `gnome-shell` → settings changes may fail to propagate or appear not to stick.
+- **`pipewire` / `wireplumber`** restarted under Chrome → Chrome's audio stream bound to a dead PipeWire; audio silently stops until Chrome restarts.
+- **`xdg-desktop-portal*`** restarted → file pickers, screen sharing, and `gnome-remote-desktop` go through portals. Remote-desktop access is a strong candidate for silent breakage.
+- **`gcr-ssh-agent`** restarted → `SSH_AUTH_SOCK` points at a socket whose agent is gone; loaded keys lost.
+- **`at-spi2-registryd`** and the accessibility `dbus-broker` are now running in **duplicate**, one from each cohort.
+
+Fixing these one at a time is unbounded work. The broken invariant is singular: **a GNOME session must not outlive the services it depends on.**
+
+### Options
+
+Only two restore the invariant. Both eliminate the entire class; neither is per-service.
+
+**Option A — do not restart user units on switch.** Leave the session wholly alone until it ends on its own terms. The session then runs old code until the next reboot: *honest staleness* rather than the current inconsistent mixture. Cost: user-facing updates land at reboot, not daily, and the desktop drifts arbitrarily far behind the system running it.
+
+**Option B — reboot on update (recommended).** Session and services come up together, always consistent. This is an appliance server with autologin and no keyboard; there is no reason for a week-old session to exist. It is the only option that yields *current* software rather than *consistently old* software.
+
+Costs, all bounded:
+- ~1 min downtime on whatever cadence is chosen.
+- Chrome tabs — mitigated, `restore_on_startup: 1` is set and works on a clean shutdown (see work item 3).
+- Transmission is a system service and restarts cleanly; work item 1 already verified downloads survive session teardowns.
+- A hand-started Rails dev server (`bin/rails server` + solid-queue, pid 56982 as of writing) would need restarting or a unit of its own.
+
+### Why NOT to restart the display manager routinely
+
+Tempting and wrong. `systemctl restart display-manager.service` is the **logout-shaped** path, which per "Still open" above *generally shows the greeter* — a password prompt on a machine with no keyboard attached. That is acceptable only as failure recovery, where the alternative is a dark screen (work item 2b). It must not go on the routine path.
+
+**Reboot is the mode with evidence behind it**: GDM autologin has fired at every boot, including 2026-09-06 14:07 in the current journal (`pam_unix(gdm-autologin:session): session opened for user patate`, no password).
+
+### Blocking test before implementing Option B
+
+The reboot path has never been verified hands-free — this is the second bullet under "Still open", still open. Before putting a reboot on a timer:
+
+Reboot the machine once, physically present, and confirm it lands at a desktop with no password prompt and no keyboard. If it does, Option B is safe. If it shows a greeter, Option B is off the table too and the answer is Option A.
+
+Do not skip this. Automating a reboot that lands at an unanswerable greeter turns a cosmetic bug into an unreachable machine.
+
+### Correction to an earlier reading (2026-09-13 session)
+
+Two wrong turns worth not repeating:
+
+- The trashed item was owned by `transmission`, not `patate`, and this was first read as the cause. It is not — the ownership is *by design* (`group = "users"`, `umask = "002"`, group-writable `Downloads`; see work item 1), and the user's own observation that per-item deletion worked ruled it out immediately.
+- A `systemctl restart display-manager.service` was proposed as a test. That is the known-bad greeter path, already flagged in this doc. **Read "Still open" before proposing session-cycle tests.**
 
 ## Work item 3 (optional) — Chrome tabs
 

@@ -395,6 +395,32 @@ The fix (PR #5252, merged 2026-08-30) relaxes the gate to accept a same-major `b
 
 When a release after v1.4.1 appears, `just switch` picks it up through the normal tap path once `flake.lock`'s tap rev advances. Confirm the fix landed by checking that `gc doctor` no longer reports stale orders. Do not chase this by pinning or hand-installing beads at an older version: the redundant `"beads"` entry in `hosts/2023-macbook-pro/modules/apps/brews.nix` is a deliberate transitive-dep marker, and downgrading it would fight the formula on every update.
 
+## GNOME misbehaves after a daily update: greyed-out "Empty Trash", audio gone, portals broken
+
+**Symptom.** Something in the GNOME session is subtly wrong, and only after an auto-update. The observed case: the trash contains items, but **"Empty Trash" is greyed out** in Nautilus's right-click menu, while deleting the same items individually works fine. `pkill nautilus` fixes it (D-Bus reactivates Nautilus on next use).
+
+**Do not chase the individual symptom.** It is one visible instance of a class. Every successful `nixos-rebuild switch` restarts ~35 **user** services — gvfs, dconf, pipewire, the xdg portals, ibus, gcr-ssh-agent, evolution, localsearch — while deliberately **not** restarting `gnome-shell`, the session manager, or any `gsd-*` daemon. The session keeps talking to services that no longer exist.
+
+Confirm with the switch log, which prints both lists verbatim:
+
+```sh
+ssh home-server.local journalctl -u nix-auto-update.service --no-pager | grep -E "stopping the following user units|NOT restarting the following user units"
+```
+
+Or by process start time — the running processes split into two cohorts, one from boot and one from the last update:
+
+```sh
+ssh home-server.local ps -eo lstart,cmd --sort=start_time
+```
+
+Other consequences to expect from the same cause, none yet confirmed: Chrome audio silently dead (pipewire restarted underneath it), file pickers and screen sharing broken (xdg portals), `SSH_AUTH_SOCK` pointing at a dead agent (gcr-ssh-agent), settings not sticking (dconf).
+
+**Cause and fix.** The broken invariant is that the GNOME session outlives its supporting services. There is no per-service fix worth writing — see `agents/docs/home-server-session-decoupling.md` → "Work item 4" for the two options that address the class, and the test that gates them.
+
+**Do NOT propose restarting the display manager as a routine fix or as a test.** `systemctl restart display-manager.service` is the logout-shaped path, which generally lands at a **GDM greeter** — a password prompt on a machine with no keyboard attached. It is acceptable only as failure recovery (work item 2b), where the alternative is a dark screen. Reboot is the mode with evidence behind it: autologin has fired at every boot.
+
+**Stopgap.** `ssh home-server.local pkill nautilus` clears the trash case specifically. It is a stopgap, not the fix.
+
 ## New Ghostty tabs fail to launch after changing or removing a `command` setting
 
 **Symptom.** Every new Ghostty tab and window dies immediately. The error names whatever the OLD `command` pointed at, in one of two forms:
