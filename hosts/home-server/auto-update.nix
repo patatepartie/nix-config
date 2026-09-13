@@ -55,8 +55,14 @@ let
     switch_log=$(mktemp)
     trap 'rm -f "$switch_log"' EXIT
 
+    # The reboot keeps the GNOME session from outliving the user services this
+    # switch restarts. See agents/docs/home-server-session-decoupling.md.
     if nixos-rebuild switch --flake ${checkoutPath} 2>&1 | tee "$switch_log"; then
-      log "Update complete"
+      log "Update complete, rebooting"
+      notify "nix auto-update on $HOSTNAME: update applied, rebooting ($BEFORE -> $AFTER)"
+      # Detached: this unit has Conflicts=shutdown.target, so an inline
+      # systemctl reboot would SIGTERM the script that called it.
+      systemd-run --on-active=5 --unit=nix-auto-update-reboot systemctl reboot
       exit 0
     fi
 
@@ -91,7 +97,7 @@ let
 in
 {
   systemd.services.nix-auto-update = {
-    description = "Auto-update nix configuration from GitHub";
+    description = "Auto-update nix configuration from GitHub, then reboot";
     path = [ pkgs.git pkgs.nixos-rebuild ];
     restartIfChanged = false;
     stopIfChanged = false;
@@ -102,10 +108,12 @@ in
   };
 
   systemd.timers.nix-auto-update = {
-    description = "Daily nix auto-update";
+    description = "Weekly nix auto-update";
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      OnCalendar = "*-*-* 22:30:00 UTC";
+      # Anchored to Asia/Tokyo: a UTC-anchored weekday at this time would fire
+      # on the following local day.
+      OnCalendar = "Wed *-*-* 07:30:00 Asia/Tokyo";
       Persistent = true;
     };
   };

@@ -50,7 +50,9 @@ There are two independent mechanisms.
 | Host           | Schedule (in module)                                | Action                                                    |
 |----------------|-----------------------------------------------------|-----------------------------------------------------------|
 | MBP 2023, 2018 | launchd `StartCalendarInterval { Hour=7; Minute=30; }` (machine-local time) | `git fetch && git reset --hard origin/main && darwin-rebuild switch` |
-| home-server    | systemd `OnCalendar = "*-*-* 22:30:00 UTC"`         | `git fetch && git reset --hard origin/main && nixos-rebuild switch` (falls back to `boot` if `switchInhibitors` blocks) |
+| home-server    | systemd `OnCalendar = "Wed *-*-* 07:30:00 Asia/Tokyo"` (**weekly**) | `git fetch && git reset --hard origin/main && nixos-rebuild switch`, then **reboots** (falls back to `boot` if `switchInhibitors` blocks) |
+
+**The two cadences now differ.** The GitHub Action still re-locks `flake.lock` **daily**; the home-server only *applies* it **weekly** (Wednesday 07:30 JST), and reboots afterwards. So the server can be up to a week behind the committed lock, and applies a week's accumulated input updates in one run. The MacBooks are still daily. The weekly cadence and the reboot exist together for one reason — see `agents/docs/home-server-session-decoupling.md` work item 4 — and changing either without the other reintroduces the bug.
 
 **The auto-update script does NOT run `nix flake update`.** It only applies whatever `flake.lock` is committed in the repo. Tap revisions are therefore at most as fresh as the most recent GitHub-Action commit; if the Action ran at 22:00 UTC and a `homebrew-cask` rev was tagged 23:00 UTC, no host will see it until the next Action run.
 

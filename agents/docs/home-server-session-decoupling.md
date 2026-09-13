@@ -3,10 +3,11 @@
 **Status:** diagnosed 2026-08-14, refined 2026-08-15, **implemented and verified
 2026-08-15**. Work items 1 and 2 are done and tested on the live host; work item
 2b is implemented but has never fired.
-**Work item 4 (2026-09-13) is open and unimplemented** — a distinct symptom class
-on the *successful* update path: the GNOME session outlives ~35 user services that
-each update restarts underneath it. Read it before proposing any session-cycle
-test or per-service restart.
+**Work item 4 (2026-09-13) is implemented** — a distinct symptom class on the
+*successful* update path: the GNOME session outlived ~35 user services that each
+update restarted underneath it. Fixed by rebooting after every applied update and
+dropping the timer to weekly. Read it before proposing any session-cycle test or
+per-service restart.
 **Affects:** `hosts/home-server/` (`configuration.nix`, `home.nix`, `auto-update.nix`).
 **User impact:** machine becomes **unreachable over the network for hours** and
 needs a physical power-button press to come back. Running apps and in-flight
@@ -154,15 +155,14 @@ anything.
   hand. If a future update does tear the session down, check for the Telegram
   notification "user activation failed, display manager restarted" and confirm
   the desktop came back on its own.
-- Test a session cycle with a **reboot**, not a logout, when convenient: GDM
-  autologin fires on boot but generally shows the greeter after an explicit
-  logout. Nothing here has been verified across a reboot — the box has been up
-  continuously since 2026-08-14. **As of 2026-09-13 this is now blocking**: it is
-  the gate on work item 4's recommended fix, and the reason the display-manager
-  restart must not go on the routine path.
-- **Work item 4 is open**: every successful update restarts ~35 user services
-  under a surviving GNOME session. The Nautilus greyed-out "Empty Trash" is the
-  first visible consequence; several more are predicted and unconfirmed.
+- ~~Test a session cycle with a **reboot**, not a logout~~ — settled 2026-09-13:
+  the user confirms a reboot returns to a logged-in session with no password
+  prompt, and has done so many times. The distinction that holds is reboot
+  (hands-free) versus logout / display-manager restart (generally a greeter).
+- ~~**Work item 4**~~ — implemented 2026-09-13: reboot after every applied update,
+  timer dropped to weekly. Whether the predicted secondary breakages (Chrome
+  audio, portals, gcr-ssh-agent) were ever really occurring is now moot and will
+  not be confirmed.
 - `transmission.local` still needs its `:9091`. See
   `transmission-bare-hostname.md` for the skeleton plan; the blocker is that
   kamal-proxy owns port 80 and is not managed by this repo.
@@ -661,7 +661,7 @@ Not yet designed; lower priority than work items 1 and 2.
 
 ## Work item 4 (2026-09-13) — the session outlives its services on every successful update
 
-**Status:** diagnosed 2026-09-13, nothing implemented. This is a **new symptom class**, distinct from everything above: it arises from the *successful* update path, not the failure path work items 2 and 2b address.
+**Status:** diagnosed 2026-09-13, **implemented the same day** (Option B, weekly reboot). This is a **new symptom class**, distinct from everything above: it arises from the *successful* update path, not the failure path work items 2 and 2b address.
 
 **Symptom as reported:** the trash is not empty, but "Empty Trash" is greyed out in Nautilus's right-click menu. Deleting the same item individually works fine. `pkill nautilus` fixes it; D-Bus reactivates Nautilus on next use.
 
@@ -702,13 +702,41 @@ Only two restore the invariant. Both eliminate the entire class; neither is per-
 
 **Option A — do not restart user units on switch.** Leave the session wholly alone until it ends on its own terms. The session then runs old code until the next reboot: *honest staleness* rather than the current inconsistent mixture. Cost: user-facing updates land at reboot, not daily, and the desktop drifts arbitrarily far behind the system running it.
 
-**Option B — reboot on update (recommended).** Session and services come up together, always consistent. This is an appliance server with autologin and no keyboard; there is no reason for a week-old session to exist. It is the only option that yields *current* software rather than *consistently old* software.
+**Option B — reboot on update (CHOSEN, implemented 2026-09-13).** Session and services come up together, always consistent. This is an appliance server with autologin and no keyboard; there is no reason for a week-old session to exist. It is the only option that yields *current* software rather than *consistently old* software.
 
 Costs, all bounded:
 - ~1 min downtime on whatever cadence is chosen.
 - Chrome tabs — mitigated, `restore_on_startup: 1` is set and works on a clean shutdown (see work item 3).
 - Transmission is a system service and restarts cleanly; work item 1 already verified downloads survive session teardowns.
-- A hand-started Rails dev server (`bin/rails server` + solid-queue, pid 56982 as of writing) would need restarting or a unit of its own.
+
+### What was implemented (2026-09-13)
+
+In `hosts/home-server/auto-update.nix`:
+
+- **The success path reboots.** After `nixos-rebuild switch` returns 0, the script notifies and schedules a reboot. The failure branches (`switchInhibitors`, `user activation failed`) are untouched — the inhibitor branch in particular still stages via `boot` rather than forcing a reboot, because it fires exactly when something asked not to be interrupted.
+- **The timer went weekly, midweek**: `OnCalendar = "Wed *-*-* 07:30:00 Asia/Tokyo"`.
+
+Two traps worth knowing, both hit while writing this:
+
+- **`Wed … UTC` is Thursday morning in JST.** The weekday is evaluated in the stated timezone, so a UTC-anchored weekday plus the 22:30 UTC run time lands on the next local day. Anchor the expression to `Asia/Tokyo` and state the local time directly. Verify any change with `systemd-analyze calendar '<expr>' --iterations 3` before trusting it.
+- **`systemctl reboot` inline would SIGTERM the script that called it.** `nix-auto-update.service` gets `Conflicts=shutdown.target` and `Before=shutdown.target` from `DefaultDependencies=yes`, so starting `shutdown.target` requires stopping this still-running unit first. The reboot is therefore detached with `systemd-run --on-active=5 --unit=nix-auto-update-reboot systemctl reboot`, which lets the script exit cleanly first. `systemd-run` is available at `/run/current-system/sw/bin`, already on the script's `PATH`.
+
+Ordering note: the Telegram `notify` runs **before** the reboot is scheduled, so the message goes out while networking is still up.
+
+### Why weekly rather than trigger-detection
+
+An earlier draft proposed rebooting only when session-critical units restarted. Measured over 30 days: 27 completed runs, **11** restarted at least one user unit (~every 3rd day), **6** touched gvfs/dconf/pipewire/portals (~every 5th day). Which units restart varies per run — evolution on 7 runs, gvfs on 6, pipewire on only 2.
+
+Weekly-and-unconditional was chosen instead because it needs no trigger detection, no allowlist of "critical" units to maintain and go stale, and no branch in the script. Reboot frequency actually *drops* versus a trigger-based daily schedule (1/week vs ~2.5/week), and no session ever survives an update, so the class cannot recur.
+
+Wednesday because the session is more likely to be in use at weekends.
+
+### Consequences to expect
+
+- **Nothing needs a new unit.** Everything on this host already comes back by itself: the cash22 Rails app and `kamal-proxy` are Docker containers with `restart=unless-stopped`, transmission is a system service (work item 1), and `docker`, `kamal-proxy-route-transmission` and both `avahi-publish-*` units are enabled.
+- Do **not** mistake container processes for host ones. `bin/rails server`, `thrust` and the `solid-queue-*` processes appear in the host `ps` under `patate`, but their cgroup is `/system.slice/docker-<id>.scope` and their binaries live under `/usr/local/bundle/` — a container path, not a NixOS one. Check `/proc/<pid>/cgroup` before concluding anything is hand-started. This was misread once while writing this section.
+- Chrome tabs return: `restore_on_startup: 1` is set and a reboot is a clean shutdown (see work item 3).
+- `flake.lock` still advances **daily** via the GitHub Action; only the *host rebuild* went weekly. The machine therefore applies up to a week's worth of accumulated input updates in one go.
 
 ### Why NOT to restart the display manager routinely
 
@@ -716,13 +744,11 @@ Tempting and wrong. `systemctl restart display-manager.service` is the **logout-
 
 **Reboot is the mode with evidence behind it**: GDM autologin has fired at every boot, including 2026-09-06 14:07 in the current journal (`pam_unix(gdm-autologin:session): session opened for user patate`, no password).
 
-### Blocking test before implementing Option B
+### The reboot is hands-free — verified
 
-The reboot path has never been verified hands-free — this is the second bullet under "Still open", still open. Before putting a reboot on a timer:
+**The user has confirmed, repeatedly and over a long period, that a reboot returns to a logged-in session with no password prompt.** GDM autologin fires on boot; the earlier "never verified across a reboot" note in "Still open" was written 2026-08-15 and simply never updated. It is not evidence of a problem, and it should not be cited as one.
 
-Reboot the machine once, physically present, and confirm it lands at a desktop with no password prompt and no keyboard. If it does, Option B is safe. If it shows a greeter, Option B is off the table too and the answer is Option A.
-
-Do not skip this. Automating a reboot that lands at an unanswerable greeter turns a cosmetic bug into an unreachable machine.
+The distinction that *does* hold: **reboot** is hands-free, **logout / display-manager restart** generally shows a greeter. Only the latter is dangerous on this keyboard-less machine.
 
 ### Correction to an earlier reading (2026-09-13 session)
 
