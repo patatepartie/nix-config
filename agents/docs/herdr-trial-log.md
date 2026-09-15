@@ -7,8 +7,40 @@ Totals first so a later session does not have to re-tally the file.
 
 - Blocked-state misses: 0 confirmed — but see the caveat under 2026-09-05
 - Blocked-state false alarms: 0 noticed
-- Reboot cycles: 1 attempted, 1 at 100% resume
+- Reboot cycles: 1 attempted, 1 at 100% resume; cycle 2 in flight (see 2026-09-16)
 - herdr crashes: 0
+
+## 2026-09-16 — reboot cycle 2 in flight
+
+**Backup taken, reboot not yet done.** The session that verifies the restore is a new one by
+necessity; this entry is what tells it a cycle is in flight.
+
+Trigger was memory exhaustion rather than a planned test: 10d 22h uptime, 21.6 GB of 22.5 GB
+swap consumed, `kernel_task` and `WindowServer` each ~22% CPU as a consequence. A harder
+starting state than cycle 1.
+
+Backup: `~/claude-session-backups/herdr-sessions-20260916T085016.md`, exit 0.
+
+| | before |
+|---|---|
+| workspaces | 25 |
+| tabs | 85 |
+| panes | 108 |
+| agent sessions | 23 |
+| unresolved | 0 |
+| not-in-snapshot | 0 |
+
+All 23 session ids were cross-checked against `~/.claude/projects/` — every transcript exists
+on disk, so the resume lines in the backup are usable even if herdr's own restore fails
+entirely.
+
+Workspace count is 25 against cycle 1's 23; `agent-config` and `personal-skills` are the two
+added since. Pane count is unchanged at 108.
+
+**Next session picks up at §8b step 4:** start herdr (`hd` should not be needed — Ghostty now
+launches it directly), then diff live state against the backup file and record the result in
+§9. Per §8b step 5, a pane returning as a bare shell is not automatically a failure — check
+with the user before scoring it.
 
 ## 2026-09-06 — navigation filled in, tmux gone from the 2018 MacBook
 
