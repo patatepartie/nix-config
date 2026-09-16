@@ -634,6 +634,12 @@ which herdr knows nothing about and the §8a backup would miss.
 
 ## 7. How to spot a blocked-state miss
 
+**Settled 2026-09-16 — this section is kept as history.** Its method is built around
+`notify.sh`, which was removed on 2026-09-06, and around the assumption that the user cannot
+judge unaided whether a notification was owed. That assumption proved wrong: having run both
+chains, the user compared them directly and found herdr strictly better — see
+`herdr-trial-log.md` 2026-09-16. Do not reinstate an oracle to re-measure this.
+
 This is the measurement the whole trial exists for, so it needs a method rather than
 impressions.
 

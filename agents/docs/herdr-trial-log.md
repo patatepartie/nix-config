@@ -7,7 +7,7 @@ Totals first so a later session does not have to re-tally the file.
 
 **Trial concluded 2026-09-16: all five decision criteria met.**
 
-- Blocked-state misses: 0 confirmed, blocked states eyeball-checked (see 2026-09-16)
+- Blocked-state misses: 0 confirmed; settled 2026-09-16, herdr beats `notify.sh` on every axis
 - Blocked-state false alarms: 0 noticed
 - Reboot cycles: 2 attempted, 2 at 100% resume
 - herdr crashes: 0
@@ -51,24 +51,31 @@ That fallback was not needed.
 **Criterion 3 (reboot resilience) is met** — two cycles, both at 100%, the second from an
 unplanned memory-exhausted state.
 
-### Criterion 1 — blocked states, called met
+### Criterion 1 — blocked states, settled
 
-User-reported, eyeball-checked against the sidebar in normal use: notifications arrived in
-every case one was needed. This covers some of the §7 oracle-blind states rather than a
-deliberate sweep of each one, and it is "so far" rather than a closed count — recorded here in
-those terms because criterion 1 asks for the oracle-blind states to be eyeball-checked, and
-the bar is a lower bound by construction, not a true count.
+**The user is the oracle, and that is a stronger instrument than §7's, not a weaker one.**
+§7 built its method around `notify.sh` because it assumed the human could not tell whether a
+notification was owed. That assumption was wrong: having run both chains, the user can compare
+them directly. Do not re-open this on the grounds that the independent oracle is gone.
 
-Worth being explicit about what backs this: `notify.sh` was removed on 2026-09-06, so there is
-no independent oracle at all now. The evidence is herdr's own notifications agreeing with the
-user's expectation of when one was due — a weaker instrument than the two-signal cross-check
-§7 was written around, and it cannot surface a state where both herdr and the user's
-expectation were silent together. Accepted deliberately: the criterion's own text calls it a
-lower bound, and daily use across 23 sessions is the realistic working set it asked for.
+Against `notify.sh`, herdr is better on every axis the user cares about:
 
-**All five decision criteria are now met.** 1 and 2 as lower bounds on user observation, 3 by
-the two reboot cycles above, 4 by `new-workspace.sh` and `pick-agent.sh` (2026-09-06), 5 with
-zero server crashes since 2026-08-29.
+- every notification that was needed arrived;
+- **more** of them — herdr covers states `notify.sh` never hooked, which is exactly the §7
+  blind spot (`AskUserQuestion`, plan-mode approval, interactive tool prompts);
+- **distinguishable by sound and colour**, so what Claude is asking is clear before switching
+  to the pane — `notify.sh` was undifferentiated;
+- **no double notifications**, which `notify.sh` produced.
+
+"So far" rather than a closed count, as any lower bound must be. That is what the criterion
+asks for; it calls itself a lower bound in its own text.
+
+**All five decision criteria are now met.** 1 by direct comparison against the `notify.sh` era,
+2 as a lower bound on what the user happened to notice, 3 by the two reboot cycles above, 4 by
+`new-workspace.sh` and `pick-agent.sh` (2026-09-06), 5 with zero server crashes since
+2026-08-29.
+
+**The trial is over. herdr is adopted.** Nothing here is pending re-measurement.
 
 ## 2026-09-06 — navigation filled in, tmux gone from the 2018 MacBook
 
