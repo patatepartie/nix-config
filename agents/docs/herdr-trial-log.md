@@ -5,7 +5,9 @@ Totals first so a later session does not have to re-tally the file.
 
 ## Totals
 
-- Blocked-state misses: 0 confirmed — but see the caveat under 2026-09-05
+**Trial concluded 2026-09-16: all five decision criteria met.**
+
+- Blocked-state misses: 0 confirmed, blocked states eyeball-checked (see 2026-09-16)
 - Blocked-state false alarms: 0 noticed
 - Reboot cycles: 2 attempted, 2 at 100% resume
 - herdr crashes: 0
@@ -46,9 +48,27 @@ All 23 ids had also been cross-checked against `~/.claude/projects/` before the 
 transcript existed on disk, so the backup's resume lines were usable independently of herdr.
 That fallback was not needed.
 
-**Criterion: reboot resilience is now met** — two cycles, both at 100%, the second from an
-unplanned memory-exhausted state. §7's oracle-blind blocked states remain the outstanding gap
-for criterion 1.
+**Criterion 3 (reboot resilience) is met** — two cycles, both at 100%, the second from an
+unplanned memory-exhausted state.
+
+### Criterion 1 — blocked states, called met
+
+User-reported, eyeball-checked against the sidebar in normal use: notifications arrived in
+every case one was needed. This covers some of the §7 oracle-blind states rather than a
+deliberate sweep of each one, and it is "so far" rather than a closed count — recorded here in
+those terms because criterion 1 asks for the oracle-blind states to be eyeball-checked, and
+the bar is a lower bound by construction, not a true count.
+
+Worth being explicit about what backs this: `notify.sh` was removed on 2026-09-06, so there is
+no independent oracle at all now. The evidence is herdr's own notifications agreeing with the
+user's expectation of when one was due — a weaker instrument than the two-signal cross-check
+§7 was written around, and it cannot surface a state where both herdr and the user's
+expectation were silent together. Accepted deliberately: the criterion's own text calls it a
+lower bound, and daily use across 23 sessions is the realistic working set it asked for.
+
+**All five decision criteria are now met.** 1 and 2 as lower bounds on user observation, 3 by
+the two reboot cycles above, 4 by `new-workspace.sh` and `pick-agent.sh` (2026-09-06), 5 with
+zero server crashes since 2026-08-29.
 
 ## 2026-09-06 — navigation filled in, tmux gone from the 2018 MacBook
 
@@ -140,7 +160,10 @@ hatch: if herdr ever fails to start, every new tab fails with it.
 - **No fuzzy directory picker for new workspaces.** `prefix+shift+n` prompts for a name, not a
   directory, so it does not replace the old `prefix S`. `new-workspace.sh` is still unwritten.
 
-### Caveat on the miss count
+### Caveat on the miss count — superseded 2026-09-16
+
+*Resolved by the 2026-09-16 entry, which calls criterion 1 met on eyeball-checked use. Kept
+because the reasoning about what the zero does and does not cover still applies.*
 
 The zero above is weak evidence, not a clean result. `notify.sh` only covers permission prompts
 and turn endings, and the oracle-blind states of §7 — `AskUserQuestion`, plan-mode approval,

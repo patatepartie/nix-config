@@ -70,7 +70,7 @@ to; if something here means nothing to you yet, go to the section named beside i
 | §6a — Claude integration | **done** | Committed in `agent-config` as "Add the herdr Claude integration hook". |
 | §6b — config file | **done** | `~/.config/herdr/config.toml` written with the three overrides. Not yet moved into `agent-config` (deliberate — it will churn). |
 | §6c — bindings + script | **done** | Zoom question answered. `new-workspace.sh` written and bound to `prefix+shift+s`, plus `pick-agent.sh` on `prefix+a` for the agent search herdr lacks entirely. |
-| Part 2 — use and hard scenarios | **in progress** | Migration complete (now 25 workspaces, 108 panes, 23 agents). **Reboot cycles 1 and 2 both passed at 100%** — see `herdr-trial-log.md`; cycle 2 restored from an unplanned memory-exhausted state with no intervention, so reboot resilience is met and no further cycle is needed. Oracle-blind blocked states (§7) not yet exercised — criterion 1 cannot be judged until they are. |
+| Part 2 — use and hard scenarios | **done** | Migration complete (now 25 workspaces, 108 panes, 23 agents). **Reboot cycles 1 and 2 both passed at 100%** — cycle 2 restored from an unplanned memory-exhausted state with no intervention. Blocked states eyeball-checked in normal use; criterion 1 called met as a lower bound. **All five decision criteria met — see `herdr-trial-log.md` 2026-09-16.** |
 
 Statuses are coarse. If you stop **mid**-sub-step — §6a in particular has an internal
 verify-then-commit sequence — say so in that row's Notes, or the next session will assume the
