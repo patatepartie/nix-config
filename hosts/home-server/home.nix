@@ -106,6 +106,19 @@
     };
   };
 
+  # NixOS ships the unit but enables it for no user, so the RDP daemon only
+  # autostarts if something links it into gnome-session.target.
+  systemd.user.services.gnome-remote-desktop = {
+    Unit.Description = "GNOME Remote Desktop";
+    Service = {
+      Type = "dbus";
+      BusName = "org.gnome.RemoteDesktop.User";
+      ExecStart = "${pkgs.gnome-remote-desktop}/libexec/gnome-remote-desktop-daemon";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = [ "gnome-session.target" ];
+  };
+
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
