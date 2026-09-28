@@ -15,6 +15,15 @@ nix-darwin.lib.darwinSystem {
 
     nix-homebrew.darwinModules.nix-homebrew {
       nix-homebrew = {
+        # WORKAROUND: nix-homebrew's generated bin/brew never exports
+        # HOMEBREW_ORIGINAL_BREW_FILE, which the brew it launches reads with a
+        # hard ENV.fetch, so every brew call aborts and `just switch` dies at
+        # "setting up Homebrew". Must be a literal path: extraEnv values are
+        # escapeShellArg'd, so "$HOMEBREW_BREW_FILE" would not expand.
+        # zhaofengli/nix-homebrew#187. Reverting the brew-src pin does NOT fix
+        # this; see agents/instructions/troubleshooting.md before touching it.
+        extraEnv.HOMEBREW_ORIGINAL_BREW_FILE = "/opt/homebrew/bin/brew";
+
         # Install Homebrew under the default prefix
         enable = true;
 
