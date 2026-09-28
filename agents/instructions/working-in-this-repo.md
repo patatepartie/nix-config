@@ -15,6 +15,7 @@ Read the relevant section below before answering or running commands. The repo's
 | gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — unreleased upstream fix, nothing to pull |
 | herdr high CPU, herdr server CPU time                        | `agents/instructions/troubleshooting.md` — expected, scales with live panes |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
+| `just switch` dies at "setting up Homebrew", `HOMEBREW_ORIGINAL_BREW_FILE` | `agents/instructions/troubleshooting.md` — nix-homebrew bug; reverting the pin does NOT help |
 | ssh / home-server commands, host unreachable, `.local` not resolving | "SSH to home-server.local" (below)                          |
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
@@ -60,7 +61,7 @@ There are two independent mechanisms.
 
 **To force an immediate update on every host:** run `just upgrade` locally, then commit and push `flake.lock`. Each host's daemon will pick the new commit up on its next scheduled run. To skip the wait, also run `just switch` (or the underlying `darwin-rebuild` / `nixos-rebuild switch`) on each host. `just upgrade` alone only fixes the machine you ran it on.
 
-**Watch for pinned inputs in `flake.nix`.** One active: `nix-homebrew.inputs.brew-src.url` pins the `brew` CLI to a tag newer than the one `nix-homebrew` ships, because `homebrew-core` formulae keep adopting InstallSteps DSL features that older `brew` cannot parse. It needs a **manual bump** whenever a formula fails to read — the nightly Action advances the taps but can never advance `brew-src`. This is deliberate: tracking brew's latest tag automatically is equivalent to no pin, which is the state that broke `just switch` continuously. See `agents/instructions/troubleshooting.md` → "formula unreadable / unknown DSL keyword" for the bump procedure before touching it.
+**Watch for pinned inputs in `flake.nix`.** One active: `nix-homebrew.inputs.brew-src.url` pins the `brew` CLI to a tag chosen by hand rather than the one `nix-homebrew` ships, because `homebrew-core` formulae keep adopting InstallSteps DSL features that older `brew` cannot parse. It needs a **manual bump** whenever a formula fails to read — the nightly Action advances the taps but can never advance `brew-src`. This is deliberate: tracking brew's latest tag automatically is equivalent to no pin, which is the state that broke `just switch` continuously. See `agents/instructions/troubleshooting.md` → "formula unreadable / unknown DSL keyword" for the bump procedure before touching it.
 
 When upstream regressions force a temporary pin (commit-pinned `nixpkgs.url`, an explicit `inputs.<name>.url` override on a sub-flake, etc.), the pin should carry a comment above the line explaining what it works around and the trigger to drop it. Treat any pin as a workaround that needs removing — not as established configuration. To check whether a pin can now be removed, run `agents/scripts/flake-input-freshness.sh [input-name]` and verify the upstream issue tracked by the pin's comment is resolved.
 
@@ -121,6 +122,14 @@ Prefix commit titles based on which hosts are affected:
 ## Nix rebuild output
 
 After any `just switch` or nix eval, report all warnings to the user — don't silently ignore them.
+
+**Except these, which are known, accepted, and must not be reported again.** They are permanent facts about this setup, not new information; repeating them is noise.
+
+- `Nixpkgs 26.05 will be the last release to support x86_64-darwin` — emitted by any eval of the MBP2018 (Intel) configuration. Upstream nixpkgs is dropping x86_64-darwin; that machine stops receiving updates when it does. Nothing can be done about it from this repo, the decision is understood and accepted, and there is no action to propose. Do not raise it, and do not suggest migrations or workarounds for it unless explicitly asked.
+- `Git tree '...' is dirty` — expected whenever the working tree has uncommitted changes, which is normal mid-task.
+- `continuation.bundle: warning: callcc is obsolete` — harmless Ruby noise from the nix-built brew; see `agents/instructions/troubleshooting.md`.
+
+Genuinely new warnings still get reported.
 
 ## New files must be `git add`ed before `just switch`
 

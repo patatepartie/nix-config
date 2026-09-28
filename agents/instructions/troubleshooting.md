@@ -453,3 +453,57 @@ This is **transition-only**: once Ghostty restarts against a config with no `com
 If every window dies on launch and you have no working terminal left, use **Terminal.app** to check `cat ~/.config/ghostty/config` and to run `killall Ghostty`.
 
 **One thing to know before quitting.** `Cmd+Q` ends every Claude session running in a Ghostty tab, so commit in-flight work first. On a machine where herdr or tmux holds the sessions, they survive independently of the client and come back on reattach.
+
+## `just switch` dies at "setting up Homebrew": `key not found: "HOMEBREW_ORIGINAL_BREW_FILE"`
+
+**Symptom.** `just switch` fails immediately after `setting up Homebrew (/opt/homebrew)...`, before any cask or formula is evaluated:
+
+```
+setting up Homebrew (/opt/homebrew)...
+/nix/store/...-brew-7.0.4-patched/Library/Homebrew/startup/config.rb:36:in 'fetch': key not found: "HOMEBREW_ORIGINAL_BREW_FILE" (KeyError)
+	from /opt/homebrew/Library/Homebrew/brew.rb:24:in '<main>'
+error: recipe `switch` failed on line 11 with exit code 1
+```
+
+This is **not** the `brew bundle` formula failures documented above; it happens earlier and stops the switch before `brew bundle` runs at all. If both are present, this one masks the other — fix this first, then expect the bundle failures to appear behind it.
+
+**Cause.** nix-homebrew does not use brew's own `bin/brew`. It generates `<prefix>/bin/brew` from a hardcoded header plus a *vendored copy* of upstream's `bin/brew` tail (`modules/brew.tail.sh`). That copy exports `HOMEBREW_BREW_FILE`, `HOMEBREW_PREFIX`, `HOMEBREW_REPOSITORY` and `HOMEBREW_LIBRARY`, but not `HOMEBREW_ORIGINAL_BREW_FILE` — while the brew it launches reads that variable with a hard `ENV.fetch` (no default) in `Library/Homebrew/startup/config.rb`. Upstream's real `bin/brew` exports it; the vendored copy is older and was never regenerated with `scripts/update-brew-tail.sh`.
+
+Upstream issue: <https://github.com/zhaofengli/nix-homebrew/issues/187> (open, no fix merged and no PR as of 2026-09-28; the last commit on `main` is the `brew-src` 6.0.22 → 7.0.4 bump that exposed it).
+
+**Do not "fix" this by reverting or dropping the `brew-src` pin.** The upstream issue recommends pinning nix-homebrew back to `09a921d` (brew 6.0.x); that does not work here, and neither does removing our override to let `brew-src` follow nix-homebrew's own lock:
+
+- The hard `ENV.fetch` is **not** new in 7.0.4. Our pinned 6.0.15 has it at `config.rb:36`, and so does 6.0.11 — the commit the issue names.
+- The vendored tail lacks the export entirely, so it is out of sync with *every* brew version in play, not just 7.0.4.
+- Dropping the override moves brew to 7.0.4 and leaves this equally broken, while losing the InstallSteps DSL protection that pin exists for (see "formula unreadable" above).
+
+The 7.0.4 bump is what made this bite every nix-homebrew user at once; the desync was already latent.
+
+**Resolution.** Export the variable via nix-homebrew's own `extraEnv`, in each host's `nix-homebrew` block:
+
+```nix
+extraEnv.HOMEBREW_ORIGINAL_BREW_FILE = "/opt/homebrew/bin/brew";
+```
+
+Two constraints, both easy to get wrong:
+
+- **Use a literal path, not `"$HOMEBREW_BREW_FILE"`.** `extraEnv` values pass through `lib.escapeShellArg`, so a variable reference is single-quoted and exported verbatim. Brew then starts but computes wrong paths, which is worse than the crash. Verify the generated wrapper afterwards: `grep ORIGINAL_BREW_FILE /opt/homebrew/bin/brew` must show a `/`-prefixed path, not `'$HOMEBREW_BREW_FILE'`.
+- **The path is per-host.** Upstream defines the variable as `bin/brew` inside `HOMEBREW_PREFIX`, and nix-homebrew links the wrapper there. MBP2023 enables both prefixes (Rosetta) with `/opt/homebrew` native; MBP2018 is Intel and enables **only** `/usr/local`, so it needs `/usr/local/bin/brew`. Check rather than assume:
+  ```sh
+  nix eval --json '.#darwinConfigurations."<host>".config.nix-homebrew.prefixes' --apply 'p: builtins.mapAttrs (n: v: v.enable or null) p'
+  ```
+
+Confirm the fix with `env -u HOMEBREW_ORIGINAL_BREW_FILE /opt/homebrew/bin/brew --version` — it must succeed with the variable absent from the environment, since activation runs brew with a filtered env. An interactive shell can succeed while activation still fails, so do not test by just running `brew` normally.
+
+**Drop this workaround** once nix-homebrew regenerates `brew.tail.sh` (watch #187, or check that the wrapper exports the variable on its own after a `nix flake update`).
+
+**Trap: the store path name lies about the version.** The failing path reads `brew-7.0.4-patched` even with `brew-src` overridden to 6.0.15, because nix-homebrew derives the name from its *own* `flake.lock` ref while using the overridden contents. Do not read it as evidence of which brew is running — same trap as in "formula unreadable" above.
+
+**Side effect worth checking: a half-uninstalled cask.** A cask upgrade that fails *and* whose rollback also fails can leave the app gone entirely. It presents as `hdiutil: attach failed - Resource busy`, then `Warning: Rolling back the failed upgrade of <cask> also failed`, then `Purging files for version ...` for both versions — after which `/Applications/<App>.app` and `/opt/homebrew/Caskroom/<cask>/` are both empty. The `Resource busy` cause is a DMG left attached by an earlier run, mounted under `/private/tmp/homebrew-dmg*` rather than `/Volumes`, so it does not show up in `/Volumes` or Finder:
+
+```sh
+hdiutil info | grep -B4 'Caskroom\|downloads'   # find the stale image and its /dev/diskN
+hdiutil detach /dev/diskN
+```
+
+`hdiutil detach` needs `dangerouslyDisableSandbox: true` — it fails with `Operation not permitted` inside the sandbox. Then re-run `just switch`; the cask reinstalls from the cached DMG. Check `ls /Applications` for the app before assuming the run only failed cosmetically.
