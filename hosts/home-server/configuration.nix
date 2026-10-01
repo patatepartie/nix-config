@@ -56,6 +56,27 @@
 
   services.gnome.gnome-remote-desktop.enable = true;
 
+  # FreeRDP 3.32.x sends the NLA early-auth result before the client's credentials, so Windows App hangs at "Securing connection".
+  # The fix is merged upstream after 3.32.1: https://github.com/FreeRDP/FreeRDP/issues/13549
+  nixpkgs.overlays = [
+    (final: prev: {
+      gnome-remote-desktop = prev.gnome-remote-desktop.override {
+        freerdp =
+          if final.lib.versionOlder prev.freerdp.version "3.32.2" then
+            prev.freerdp.overrideAttrs (old: {
+              patches = (old.patches or [ ]) ++ [
+                (final.fetchpatch {
+                  url = "https://github.com/FreeRDP/FreeRDP/commit/cbb6a73d1281fa9e4084c24f07ed0c9ad171f125.patch";
+                  hash = "sha256-TepDYv+GZlE45Vb9TMjPFPhrGKKWPi49VKggN5vAvEE=";
+                })
+              ];
+            })
+          else
+            final.lib.warn "FreeRDP ${prev.freerdp.version} no longer gets the NLA patch; check Windows App still connects, then remove the gnome-remote-desktop overlay from hosts/home-server/configuration.nix" prev.freerdp;
+      };
+    })
+  ];
+
   # Configure keymap in X11
   services.xserver = {
     xkb = {
