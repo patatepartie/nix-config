@@ -15,6 +15,7 @@ Read the relevant section below before answering or running commands. The repo's
 | gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — unreleased upstream fix, nothing to pull |
 | herdr high CPU, herdr server CPU time                        | `agents/instructions/troubleshooting.md` — expected, scales with live panes |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
+| `brew bundle` "no bottle available" / "Tier 3", dylib not loaded in a brew binary, home-manager changes not applied | `agents/instructions/troubleshooting.md` — home-manager never runs; fix from the Nix side, never with brew |
 | `just switch` dies at "setting up Homebrew", `HOMEBREW_ORIGINAL_BREW_FILE` | `agents/instructions/troubleshooting.md` — nix-homebrew bug; reverting the pin does NOT help |
 | ssh / home-server commands, host unreachable, `.local` not resolving | "SSH to home-server.local" (below)                          |
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |

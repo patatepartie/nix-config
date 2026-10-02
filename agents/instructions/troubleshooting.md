@@ -507,3 +507,39 @@ hdiutil detach /dev/diskN
 ```
 
 `hdiutil detach` needs `dangerouslyDisableSandbox: true` — it fails with `Operation not permitted` inside the sandbox. Then re-run `just switch`; the cask reinstalls from the cached DMG. Check `ls /Applications` for the app before assuming the run only failed cosmetically.
+
+## `just switch` fails at `brew bundle` with "no bottle available" / "Tier 3 configuration"
+
+**Symptom.** Every `just switch` and every daily auto-update fails during `Homebrew bundle...`, with several formulae printing:
+
+```
+Error: <formula>: no bottle available!
+This is a Tier 3 configuration:
+  https://docs.brew.sh/Support-Tiers#tier-3
+```
+
+then ``` `brew bundle` failed! N Brewfile dependencies failed to install ```. The log stops logging `Update complete`; each next run reports `Previous run did not complete`.
+
+**Cause.** Homebrew has dropped bottles for this macOS version (seen on MBP2023 on Sonoma 14.x, from 2026-09). Any formula upgrade whose bottle is gone fails, and `homebrew.onActivation.upgrade = true` retries them all on every activation. Nothing in the repo can make those bottles exist.
+
+**Consequence that matters more than the failed upgrades.** Activation aborts at the Homebrew phase, so **home-manager never runs**. Dotfiles, aliases and user packages silently stay at whatever the last complete run deployed — on MBP2023 that was 2026-09-09, unnoticed for three weeks.
+
+**Second consequence: broken linkage.** brew can still upgrade a library whose bottle exists while a dependent's matching rebuild has no bottle. The dependent keeps pointing at the old soname and dies at load time. Observed: `simdutf` 9.2.0 (`libsimdutf.36`) installed alongside `merve` 1.2.2_2 (wants `libsimdutf.35`), which broke Homebrew's `node` and therefore `playwright-cli`:
+
+```
+dyld: Library not loaded: /opt/homebrew/opt/simdutf/lib/libsimdutf.35.dylib
+  Referenced from: /opt/homebrew/Cellar/merve/1.2.2_2/lib/libmerve.1.2.2.dylib
+```
+
+**Do not fix linkage with brew.** No `brew reinstall --build-from-source`, no `brew link`, and no hand-edited symlinks under `/opt/homebrew/opt` — the last is still a brew write. Work around it from the Nix side instead: `hosts/2023-macbook-pro/modules/apps/playwright.nix` runs the Homebrew `playwright-cli` script (plain JS) with `pkgs.nodejs` through a zsh alias. An alias rather than a package, because `/opt/homebrew/bin` precedes the Nix profiles in `PATH`.
+
+**Applying home-manager changes while the switch keeps failing.** Commit and push first — the daily run does `git reset --hard origin/main` and will discard anything local. Then build and run the home-manager activation directly, as the user:
+
+```sh
+nix build .#darwinConfigurations.Cyrils-MacBook-Pro.config.home-manager.users.cyrilledru.home.activationPackage --no-link --print-out-paths
+<printed path>/activate
+```
+
+This applies every home-manager change pending since the last complete run, not only yours. It needs `dangerouslyDisableSandbox: true`.
+
+**Resolution.** Upgrade macOS to a version Homebrew still bottles for (see `agents/docs/macos-upgrade-nix-recovery.md`), then remove the Sonoma workarounds. Setting `homebrew.onActivation.upgrade = false` would let switches complete in the meantime, but it freezes brew versions — the user's call, not a default fix.
