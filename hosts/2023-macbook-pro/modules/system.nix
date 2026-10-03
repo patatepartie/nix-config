@@ -53,9 +53,6 @@
 
         persistent-apps = [
           {
-            app = "/System/Applications/Launchpad.app";
-          }
-          {
             app = "/Applications/Google Chrome.app";
           }
           {
