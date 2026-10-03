@@ -35,8 +35,6 @@
       inputs.nixpkgs.follows = "nixpkgs-x86-darwin";
     };
 
-    nixpkgs-azure.url = "github:nixos/nixpkgs/d6c71932130818840fc8fe9509cf50be8c64634f";
-
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
     # WORKAROUND: nix-homebrew (even at HEAD) still pins brew-src to 6.0.13,
     # which lags the InstallSteps DSL that current homebrew-core formulae use.

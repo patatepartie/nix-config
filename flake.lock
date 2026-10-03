@@ -214,22 +214,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-azure": {
-      "locked": {
-        "lastModified": 1770562336,
-        "narHash": "sha256-ub1gpAONMFsT/GU2hV6ZWJjur8rJ6kKxdm9IlCT0j84=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "d6c71932130818840fc8fe9509cf50be8c64634f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "d6c71932130818840fc8fe9509cf50be8c64634f",
-        "type": "github"
-      }
-    },
     "nixpkgs-x86-darwin": {
       "locked": {
         "lastModified": 1790692979,
@@ -259,7 +243,6 @@
         "nix-darwin-x86": "nix-darwin-x86",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-azure": "nixpkgs-azure",
         "nixpkgs-x86-darwin": "nixpkgs-x86-darwin"
       }
     }

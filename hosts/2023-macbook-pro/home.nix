@@ -1,4 +1,4 @@
-{ username, config, lib, pkgs, pkgs-azure, ... }:
+{ username, config, lib, pkgs, ... }:
 let
 in
 {
@@ -34,7 +34,7 @@ in
     #   echo "Hello, ${config.home.username}!"
     # '')
 
-    (pkgs-azure.azure-cli.withExtensions [ pkgs-azure.azure-cli.extensions.quota ])
+    (pkgs.azure-cli.withExtensions [ pkgs.azure-cli.extensions.quota ])
     # bat installed via programs.bat below
     pkgs.btop
     pkgs.curl

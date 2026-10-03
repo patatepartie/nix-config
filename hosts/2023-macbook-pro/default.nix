@@ -57,7 +57,6 @@ nix-darwin.lib.darwinSystem {
       home-manager.users.${username} = import ./home.nix;
       home-manager.extraSpecialArgs = {
         inherit username;
-        pkgs-azure = inputs.nixpkgs-azure.legacyPackages.aarch64-darwin;
       };
     }
   ];
