@@ -12,13 +12,15 @@ Expect that to be the likely failure next time too, and see `agents/instructions
 
 ## Why this document exists
 
+The expensive failure mode is losing the Nix store, so the facts needed to recover it are recorded here even though the 2026-10-03 upgrade did not need them.
+
 `/nix` on this machine is a **separate APFS volume**, not a directory.
 It is mounted by `/etc/synthetic.conf` (which creates the empty `/nix` mountpoint at boot) plus `/Library/LaunchDaemons/org.nixos.darwin-store.plist` (which mounts the volume there).
-macOS major upgrades are known to reset `/etc/synthetic.conf` and `/etc/fstab`.
-When that happens the volume is still on disk and intact, but nothing mounts it: `/nix` looks empty and every Nix-installed binary disappears from `PATH`.
+macOS major upgrades can reset `/etc/synthetic.conf` and `/etc/fstab` — widely reported, though it did not happen here.
+If it does, the volume is still on disk and intact but nothing mounts it: `/nix` looks empty and every Nix-installed binary disappears from `PATH`.
 
-This is a mount problem, never data loss.
-Do not reinstall Nix as a first response.
+That is a mount problem, never data loss.
+Do not reinstall Nix as a first response — an unmounted volume and a damaged store look identical from a shell with no `nix` on `PATH`.
 
 ## Recovery facts
 
@@ -31,7 +33,7 @@ Keep these readable from another device — you will want them when the terminal
 | Volume label | `Nix Store` |
 | Nix version | 2.34.8 |
 | Installer | Determinate `nix-installer` 0.19.0, at `/nix/nix-installer` |
-| Current darwin generation | `system-600-link` |
+| Darwin generation when last verified | `system-608-link` (2026-10-03) |
 
 The device node (`disk3s7`) can change; the UUID cannot. Always mount by UUID.
 
@@ -61,21 +63,27 @@ UUID=a49a89f9-6616-47c2-b7a9-17545005150c /nix apfs rw,noauto,nobrowse,suid,owne
 
 ## Expected breakage
 
-Four things, in rough order of likelihood. None is data loss.
+Ordered by what actually happened on 2026-10-03, not by what was anticipated. None is data loss.
 
-**1. `/nix` disappears.** The most probable. Covered above; fix is to restore the two files and reboot.
+**1. Command Line Tools need reinstalling.** The only breakage observed, and it blocks `just switch` entirely. A major upgrade leaves the old CLT in place rather than removing it, and brew will not build against it. Fix, which needs a TTY for sudo and so belongs to the user: `sudo rm -rf /Library/Developer/CommandLineTools` then `sudo xcode-select --install`. The plain `xcode-select --install` does nothing while the old directory is still there, so the removal is not optional. Verify with `pkgutil --pkg-info=com.apple.pkg.CLTools_Executables` — the version must match the new OS.
 
-**2. Command Line Tools need reinstalling.** This is the one that actually bit on 2026-10-03, and it blocks `just switch` entirely. A major upgrade leaves the old CLT in place rather than removing it, and brew will not build against it. Fix, which needs a TTY for sudo and so belongs to the user: `sudo rm -rf /Library/Developer/CommandLineTools` then `sudo xcode-select --install`. Verify with `pkgutil --pkg-info=com.apple.pkg.CLTools_Executables` — the version must match the new OS.
+**2. `/nix` disappears.** Anticipated as the most likely failure and it did not occur; the volume stayed mounted. Still worth checking first in the recovery order below, because it is cheap to rule out and everything else depends on it. Fix is to restore the two files and reboot, or the remount one-liner in step 3.
 
-**3. nix-darwin launch daemons unloaded.** Five live in `/Library/LaunchDaemons/`: `org.nixos.darwin-store` (mounts the volume), `org.nixos.nix-daemon`, `org.nixos.activate-system`, `org.nixos.nix-gc`, `org.nixos.nix-auto-update`. A successful `just switch` re-establishes them.
+**3. Third-party tools lose their system approvals.** Karabiner-Elements was installed but not running: macOS 27 revoked its driver extension and Input Monitoring grants, and `/Library/LaunchAgents/org.pqrs.karabiner.*` was a 0-byte stub. No `just switch` can fix this — the approvals are user gestures, re-granted in System Settings → General → Login Items & Extensions → Driver Extensions, then Privacy & Security → Input Monitoring. Note the caps-lock and tilde remaps come from nix-darwin's `system.keyboard`, so they return with the switch regardless.
 
-**4. Homebrew wants relinking.** Expected, and the point of the upgrade — once on Tahoe, `arm64_tahoe` bottles exist and the formulae currently stuck on Sonoma resolve.
+**4. nix-darwin launch daemons unloaded.** Five live in `/Library/LaunchDaemons/`: `org.nixos.darwin-store` (mounts the volume), `org.nixos.nix-daemon`, `org.nixos.activate-system`, `org.nixos.nix-gc`, `org.nixos.nix-auto-update`. A successful `just switch` re-establishes them. They were intact in 2026-10-03.
+
+**5. Dock entries for apps the new OS removed.** macOS 26 deleted Launchpad, so the `persistent-apps` entry for `/System/Applications/Launchpad.app` in `system.nix` rendered as a `?`. Cosmetic, but it means `system.defaults.dock.persistent-apps` is worth re-reading after a major upgrade.
+
+**6. Homebrew wants relinking.** Expected, and the point of the upgrade — bottles for the new OS exist, so formulae stuck on the old one resolve. The 2026-10-03 upgrade took the outdated count from 24 to 6.
 
 ## Recovery order
 
 Sequence matters; each step depends on the one before.
 
-1. Reinstall CLT: `xcode-select --install`
+1. Reinstall CLT — the removal first, or the install is a no-op:
+   `sudo rm -rf /Library/Developer/CommandLineTools`, then `sudo xcode-select --install`.
+   It is a multi-GB download behind a GUI dialog, so start it before anything else.
 
 2. Check whether `/nix` is mounted: `mount | grep nix`
    Expect `/dev/diskNsN on /nix (apfs, local, journaled, nobrowse, protect)`.
@@ -111,7 +119,7 @@ Treat this as the last resort, not the plan. Inspect the actual state first — 
 `darwin-rebuild --rollback` returns to the previous generation, or activate a specific one directly:
 
 ```
-sudo /nix/var/nix/profiles/system-600-link/activate
+sudo /nix/var/nix/profiles/system-608-link/activate
 ```
 
 Substitute whichever generation you recorded in "Before upgrading" — the number will have moved on by then.
