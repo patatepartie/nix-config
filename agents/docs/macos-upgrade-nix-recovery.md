@@ -3,8 +3,12 @@
 Scope: the Nix/nix-darwin slice of a macOS major upgrade only.
 Broader upgrade prep (backups, app compatibility, work tooling) lives in the vault upgrade doc.
 
-Written 2026-09-18, ahead of Sonoma 14.8.9 → Tahoe 26.7.
-Facts below were verified on this machine on that date; re-verify if much time has passed.
+Written 2026-09-18 ahead of a Sonoma 14.8.9 upgrade; the machine went to macOS 27.0.1 (Golden Gate) on 2026-10-03 rather than the Tahoe 26.7 originally planned.
+Facts below were verified on 2026-10-03 and describe the live setup, so they stay usable for the next major upgrade; re-verify if much time has passed.
+
+**What actually happened on 2026-10-03.** The Nix volume survived untouched — it stayed mounted at `/dev/disk3s7` and none of the recovery procedure below was needed.
+The one breakage that did occur was the Command Line Tools: they remained at the Sonoma version, and brew refused to build against them until they were reinstalled.
+Expect that to be the likely failure next time too, and see `agents/instructions/troubleshooting.md` → "no bottle available" / "Tier 3 configuration" for the symptom, which misleadingly names a single formula.
 
 ## Why this document exists
 
@@ -61,7 +65,7 @@ Four things, in rough order of likelihood. None is data loss.
 
 **1. `/nix` disappears.** The most probable. Covered above; fix is to restore the two files and reboot.
 
-**2. Command Line Tools need reinstalling.** This machine runs CLT 16.2.0 with no full Xcode. Major upgrades typically invalidate CLT, and Nix needs it. Fix: `xcode-select --install`.
+**2. Command Line Tools need reinstalling.** This is the one that actually bit on 2026-10-03, and it blocks `just switch` entirely. A major upgrade leaves the old CLT in place rather than removing it, and brew will not build against it. Fix, which needs a TTY for sudo and so belongs to the user: `sudo rm -rf /Library/Developer/CommandLineTools` then `sudo xcode-select --install`. Verify with `pkgutil --pkg-info=com.apple.pkg.CLTools_Executables` — the version must match the new OS.
 
 **3. nix-darwin launch daemons unloaded.** Five live in `/Library/LaunchDaemons/`: `org.nixos.darwin-store` (mounts the volume), `org.nixos.nix-daemon`, `org.nixos.activate-system`, `org.nixos.nix-gc`, `org.nixos.nix-auto-update`. A successful `just switch` re-establishes them.
 

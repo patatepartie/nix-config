@@ -543,3 +543,14 @@ nix build .#darwinConfigurations.Cyrils-MacBook-Pro.config.home-manager.users.cy
 This applies every home-manager change pending since the last complete run, not only yours. It needs `dangerouslyDisableSandbox: true`.
 
 **Resolution.** Upgrade macOS to a version Homebrew still bottles for (see `agents/docs/macos-upgrade-nix-recovery.md`), then remove the Sonoma workarounds. Setting `homebrew.onActivation.upgrade = false` would let switches complete in the meantime, but it freezes brew versions — the user's call, not a default fix.
+
+**Resolved on MBP2023 on 2026-10-03** by upgrading to macOS 27 (Golden Gate). The outdated-formula count went 24 → 6, and the `simdutf` / `merve` linkage healed on its own once both had bottles again, so the `pkgs.nodejs` indirection in `playwright.nix` is gone.
+
+**The macOS upgrade alone does not fix it — reinstall the Command Line Tools first.** A major upgrade leaves the previous version's CLT in place, and brew refuses to build against it:
+
+```
+Error: Your Command Line Tools are too outdated.
+You should download the Command Line Tools for Xcode 27.0.
+```
+
+That surfaces as a single formula failing (`Upgrading gastownhall/gascity/gascity has failed!`), which reads like a problem with that formula rather than with the toolchain — it is simply the first one in the Brewfile that needs a compiler. Check `pkgutil --pkg-info=com.apple.pkg.CLTools_Executables` against the new OS before investigating any individual formula. The fix needs a TTY for sudo, so it belongs to the user: `sudo rm -rf /Library/Developer/CommandLineTools` then `sudo xcode-select --install`.
