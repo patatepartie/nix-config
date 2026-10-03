@@ -131,11 +131,18 @@ Other forms of the same failure: `undefined local variable or method 'configure_
 
 There is no version contract to catch this: `homebrew-core` declares no minimum brew version, so the only symptom is a parse failure. (`compatibility_version` exists in brew but concerns dependency-upgrade minimisation, not DSL gating — it is not relevant here.)
 
-**The pin is deliberate and load-bearing. Do not remove it, and do not make it auto-track brew's latest tag** — auto-tracking latest is equivalent to having no pin, which is the state that caused continuous breakage. Upstream `nix-homebrew` is itself still on an older `brew-src` than this repo, so waiting for upstream to catch up does not resolve it either (tried; the gap did not close the next day). Manually bumping the pin is the accepted cost.
+**There is no `brew-src` override in `flake.nix` any more, and re-adding one is how this failure comes back.** It was removed on 2026-10-03: `nix-homebrew` now tracks a brew new enough for the DSL features `homebrew-core` uses, so following its own `brew-src` is both current and matched to the `bin/brew` wrapper it generates. An override pins brew *behind* the wrapper, which is what breaks activation outright — see "`key not found: \"HOMEBREW_ORIGINAL_BREW_FILE\"`" below.
 
-**Expect recurrence, and expect the pin to persist.** This is not a one-off to be cleared. Each bump fixes the formula that broke today and buys time until `homebrew-core` adopts the next DSL feature; it is not progress toward removing the pin. Treat a recurrence as routine maintenance, not as evidence that the previous fix was wrong.
+So reach for an override only if a formula genuinely fails to parse under the brew `nix-homebrew` ships, and then only forward, never back. The first thing to check is whether `nix-homebrew` has already moved:
 
-**Resolution.** Bump the pin to the brew version that adds the missing feature.
+```sh
+agents/scripts/flake-input-freshness.sh nix-homebrew
+curl -s https://raw.githubusercontent.com/zhaofengli/nix-homebrew/main/flake.nix | grep -A3 brew-src
+```
+
+If its `brew-src` is newer than what `flake.lock` holds, a plain `nix flake update` is the whole fix.
+
+**Resolution, when an override really is needed.** Pin forward to the brew version that adds the missing feature.
 
 1. Identify the failing keyword/method from the error (e.g. `:overwrite`).
 2. Find the newest brew tag: `curl -s https://api.github.com/repos/Homebrew/brew/releases/latest | grep tag_name`
@@ -150,7 +157,7 @@ There is no version contract to catch this: `homebrew-core` declares no minimum 
    grep -rn "def <method>\|<keyword>:" $(readlink /opt/homebrew/Library/Homebrew)/
    ```
    That greps the *currently installed* brew. To check a candidate tag before bumping, clone shallowly to a temp dir and grep that, or browse the tag on GitHub. Only conclude the feature is absent after searching the whole `Library/Homebrew/` tree.
-4. Edit the `nix-homebrew.inputs.brew-src.url` tag in `flake.nix` and update the comment above it to record the new keyword.
+4. Add `nix-homebrew.inputs.brew-src.url` to `flake.nix` with that tag, and a comment recording the keyword it supplies and that the exit condition is `nix-homebrew` shipping a brew at least that new. Never point it at a tag older than `nix-homebrew`'s own.
 5. Re-lock **only** that input, so the nightly Action's other updates are not swept in:
    ```sh
    nix flake lock --update-input nix-homebrew/brew-src
@@ -467,35 +474,26 @@ error: recipe `switch` failed on line 11 with exit code 1
 
 This is **not** the `brew bundle` formula failures documented above; it happens earlier and stops the switch before `brew bundle` runs at all. If both are present, this one masks the other — fix this first, then expect the bundle failures to appear behind it.
 
-**Cause.** nix-homebrew does not use brew's own `bin/brew`. It generates `<prefix>/bin/brew` from a hardcoded header plus a *vendored copy* of upstream's `bin/brew` tail (`modules/brew.tail.sh`). That copy exports `HOMEBREW_BREW_FILE`, `HOMEBREW_PREFIX`, `HOMEBREW_REPOSITORY` and `HOMEBREW_LIBRARY`, but not `HOMEBREW_ORIGINAL_BREW_FILE` — while the brew it launches reads that variable with a hard `ENV.fetch` (no default) in `Library/Homebrew/startup/config.rb`. Upstream's real `bin/brew` exports it; the vendored copy is older and was never regenerated with `scripts/update-brew-tail.sh`.
+**Cause: a `brew-src` override pinning brew older than the wrapper.** nix-homebrew does not use brew's own `bin/brew`. It generates `<prefix>/bin/brew` from a hardcoded header plus a *vendored copy* of upstream's `bin/brew` tail (`modules/brew.tail.sh`), which exports `HOMEBREW_BREW_FILE`, `HOMEBREW_PREFIX`, `HOMEBREW_REPOSITORY`, `HOMEBREW_LIBRARY` and `HOMEBREW_USER_CONFIG_HOME` — and not `HOMEBREW_ORIGINAL_BREW_FILE`.
 
-Upstream issue: <https://github.com/zhaofengli/nix-homebrew/issues/187> (open, no fix merged and no PR as of 2026-09-28; the last commit on `main` is the `brew-src` 6.0.22 → 7.0.4 bump that exposed it).
+That tail matches the brew version nix-homebrew pins, so as shipped the pair is consistent. The mismatch appears only when `flake.nix` overrides `brew-src` to an **older** brew whose `startup/config.rb` still reads the variable with a hard `ENV.fetch`:
 
-**Do not "fix" this by reverting or dropping the `brew-src` pin.** The upstream issue recommends pinning nix-homebrew back to `09a921d` (brew 6.0.x); that does not work here, and neither does removing our override to let `brew-src` follow nix-homebrew's own lock:
+| brew | `config.rb` reads it | its own `bin/brew` exports it |
+|---|---|---|
+| 6.0.15 | yes, line 36 | yes |
+| 7.0.4 | no | no |
 
-- The hard `ENV.fetch` is **not** new in 7.0.4. Our pinned 6.0.15 has it at `config.rb:36`, and so does 6.0.11 — the commit the issue names.
-- The vendored tail lacks the export entirely, so it is out of sync with *every* brew version in play, not just 7.0.4.
-- Dropping the override moves brew to 7.0.4 and leaves this equally broken, while losing the InstallSteps DSL protection that pin exists for (see "formula unreadable" above).
+Brew dropped the requirement in 7.x. So an override to 6.x pairs a brew that demands the variable with a wrapper generated from 7.x that never exports it, and every brew call aborts.
 
-The 7.0.4 bump is what made this bite every nix-homebrew user at once; the desync was already latent.
+**Resolution: remove the `brew-src` override.** Letting it follow nix-homebrew's own pin restores the matched pair. Verified on 2026-10-03 — with no override and no `extraEnv`, `just switch` completes and `env -u HOMEBREW_ORIGINAL_BREW_FILE /opt/homebrew/bin/brew --version` succeeds, which is the real test because activation runs brew with a filtered env.
 
-**Resolution.** Export the variable via nix-homebrew's own `extraEnv`, in each host's `nix-homebrew` block:
+Upstream issue <https://github.com/zhaofengli/nix-homebrew/issues/187> is open with no comments, and public write-ups of it (including <https://github.com/dryvist/nix-darwin/pull/2567>) are right that the override is the cause. An earlier version of this entry claimed the opposite — that the `ENV.fetch` predated 7.0.4 and so dropping the override could not help. The first half is true of 6.0.15 and the conclusion was still wrong: 7.0.4 removed the read. Do not reinstate either the override or the `extraEnv` on that reasoning.
 
-```nix
-extraEnv.HOMEBREW_ORIGINAL_BREW_FILE = "/opt/homebrew/bin/brew";
+**If an override is unavoidable** for a DSL feature (see "formula unreadable" above), pin *forward* of nix-homebrew's own `brew-src`, never behind it. Should a future desync need the variable exported anyway, `extraEnv.HOMEBREW_ORIGINAL_BREW_FILE` in the host's `nix-homebrew` block does it, with two traps: the value must be a literal path, since `extraEnv` passes through `lib.escapeShellArg` and `"$HOMEBREW_BREW_FILE"` would be exported verbatim; and the path is per-host — MBP2023 is `/opt/homebrew/bin/brew`, MBP2018 is Intel-only and needs `/usr/local/bin/brew`. Confirm with:
+
+```sh
+nix eval --json '.#darwinConfigurations."<host>".config.nix-homebrew.prefixes' --apply 'p: builtins.mapAttrs (n: v: v.enable or null) p'
 ```
-
-Two constraints, both easy to get wrong:
-
-- **Use a literal path, not `"$HOMEBREW_BREW_FILE"`.** `extraEnv` values pass through `lib.escapeShellArg`, so a variable reference is single-quoted and exported verbatim. Brew then starts but computes wrong paths, which is worse than the crash. Verify the generated wrapper afterwards: `grep ORIGINAL_BREW_FILE /opt/homebrew/bin/brew` must show a `/`-prefixed path, not `'$HOMEBREW_BREW_FILE'`.
-- **The path is per-host.** Upstream defines the variable as `bin/brew` inside `HOMEBREW_PREFIX`, and nix-homebrew links the wrapper there. MBP2023 enables both prefixes (Rosetta) with `/opt/homebrew` native; MBP2018 is Intel and enables **only** `/usr/local`, so it needs `/usr/local/bin/brew`. Check rather than assume:
-  ```sh
-  nix eval --json '.#darwinConfigurations."<host>".config.nix-homebrew.prefixes' --apply 'p: builtins.mapAttrs (n: v: v.enable or null) p'
-  ```
-
-Confirm the fix with `env -u HOMEBREW_ORIGINAL_BREW_FILE /opt/homebrew/bin/brew --version` — it must succeed with the variable absent from the environment, since activation runs brew with a filtered env. An interactive shell can succeed while activation still fails, so do not test by just running `brew` normally.
-
-**Drop this workaround** once nix-homebrew regenerates `brew.tail.sh` (watch #187, or check that the wrapper exports the variable on its own after a `nix flake update`).
 
 **Trap: the store path name lies about the version.** The failing path reads `brew-7.0.4-patched` even with `brew-src` overridden to 6.0.15, because nix-homebrew derives the name from its *own* `flake.lock` ref while using the overridden contents. Do not read it as evidence of which brew is running — same trap as in "formula unreadable" above.
 

@@ -42,7 +42,7 @@ The daily GitHub Action (see "How auto-updates work" below) pushes an "Upgrade f
 
 There are two independent mechanisms.
 
-**1. `flake.lock` updates (GitHub Actions).** `.github/workflows/flake-update.yml` runs `nix flake update` daily at `0 22 * * *` UTC and pushes an "Upgrade flake" commit if anything changed. This advances the locked revs of `nixpkgs`, `nix-darwin`, `home-manager`, `homebrew-cask`, `homebrew-core`, etc. It does NOT touch inputs that are hardcoded to a specific tag in `flake.nix` (e.g. `nix-homebrew.inputs.brew-src.url` is pinned to `github:Homebrew/brew/<tag>`; the manual `nixpkgs` pin if one is in effect).
+**1. `flake.lock` updates (GitHub Actions).** `.github/workflows/flake-update.yml` runs `nix flake update` daily at `0 22 * * *` UTC and pushes an "Upgrade flake" commit if anything changed. This advances the locked revs of `nixpkgs`, `nix-darwin`, `home-manager`, `homebrew-cask`, `homebrew-core`, etc. It does NOT touch inputs that are hardcoded to a specific tag or revision in `flake.nix`, should any be in effect — there are none at present.
 
 **2. System rebuild (launchd / systemd, per host).** Defined in:
 - `hosts/2023-macbook-pro/modules/auto-update.nix`
@@ -62,7 +62,7 @@ There are two independent mechanisms.
 
 **To force an immediate update on every host:** run `just upgrade` locally, then commit and push `flake.lock`. Each host's daemon will pick the new commit up on its next scheduled run. To skip the wait, also run `just switch` (or the underlying `darwin-rebuild` / `nixos-rebuild switch`) on each host. `just upgrade` alone only fixes the machine you ran it on.
 
-**Watch for pinned inputs in `flake.nix`.** One active: `nix-homebrew.inputs.brew-src.url` pins the `brew` CLI to a tag chosen by hand rather than the one `nix-homebrew` ships, because `homebrew-core` formulae keep adopting InstallSteps DSL features that older `brew` cannot parse. It needs a **manual bump** whenever a formula fails to read — the nightly Action advances the taps but can never advance `brew-src`. This is deliberate: tracking brew's latest tag automatically is equivalent to no pin, which is the state that broke `just switch` continuously. See `agents/instructions/troubleshooting.md` → "formula unreadable / unknown DSL keyword" for the bump procedure before touching it.
+**Watch for pinned inputs in `flake.nix`.** None active. `nix-homebrew.inputs.brew-src.url` pinned the `brew` CLI by hand for a long time, because `homebrew-core` formulae adopted InstallSteps DSL features that older `brew` could not parse; it was removed on 2026-10-03 once `nix-homebrew` tracked a brew new enough. Re-adding it is not a neutral act — an override *behind* nix-homebrew's own `brew-src` desyncs brew from the `bin/brew` wrapper nix-homebrew generates and breaks activation outright. Read `agents/instructions/troubleshooting.md` → "formula unreadable / unknown DSL keyword" and "`key not found: \"HOMEBREW_ORIGINAL_BREW_FILE\"`" before adding any `brew-src` override.
 
 When upstream regressions force a temporary pin (commit-pinned `nixpkgs.url`, an explicit `inputs.<name>.url` override on a sub-flake, etc.), the pin should carry a comment above the line explaining what it works around and the trigger to drop it. Treat any pin as a workaround that needs removing — not as established configuration. To check whether a pin can now be removed, run `agents/scripts/flake-input-freshness.sh [input-name]` and verify the upstream issue tracked by the pin's comment is resolved.
 
