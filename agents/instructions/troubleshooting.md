@@ -343,13 +343,13 @@ ps aux | grep playwright_chromiumdev_profile | grep -v grep
 
 **Resolution.** Run `playwright-cli kill-all` first, then `pkill -f playwright_chromiumdev_profile` and `pkill -f cliDaemon.js`. `kill-all` alone is not enough: it matches only daemon patterns, not the browser processes those daemons spawned, so an orphaned browser survives it and keeps blocking Chrome (upstream issue #388, closed without a fix). Then start Chrome normally.
 
-**Prevention.** Always pass `--browser=chromium`, which selects the separate Chrome for Testing build under `~/Library/Caches/ms-playwright/` instead of the user's Chrome. The `playwright-cli` skill in `~/Tech/agent-config/skills/` carries this and the rest of the usage rules.
+**Prevention.** `~/.playwright/cli.config.json` sets `browser.browserName = "chromium"` for every session, so the flag is no longer needed. It is deployed by `hosts/2023-macbook-pro/modules/apps/playwright.nix` and is the lowest-precedence config the CLI reads, so a project's own `.playwright/cli.config.json` or an explicit `--browser` still wins. Confirm a session picked it up with `playwright-cli list`, which reports `browser-type: chromium`; the browser process must come from `~/Library/Caches/ms-playwright/`, never `/Applications`.
 
-`chromium` is undocumented — `--help` and the CLI's own bundled skill list only `chrome`, `firefox`, `webkit`, `msedge` — but it is accepted, and maps to the `chrome-for-testing` channel.
+The config key and the flag do not share a vocabulary. `browserName` accepts `chromium`; the `--browser` flag does not list it — `--help` offers only `chrome`, `firefox`, `webkit`, `msedge` — though it accepts `chromium` and maps it to the `chrome-for-testing` channel.
 
-Neither a config file nor an env var can replace the flag. `.playwright/cli.config.json` cannot clear the default channel (upstream issue #320), and `PLAYWRIGHT_MCP_BROWSER` applies only to sessions whose own caller had it set, since each session spawns its own daemon.
+An earlier note here said a config file could not clear the default channel (upstream issue #320) and that the flag was therefore unavoidable. That is fixed as of `playwright-cli` 0.1.22: the launched process carries no `--channel`. `PLAYWRIGHT_MCP_BROWSER` is still no use, since it applies only to sessions whose own caller had it set and each session spawns its own daemon.
 
-**The browser must be installed** or `--browser=chromium` fails hard, with no auto-download and no fallback. `hosts/2023-macbook-pro/modules/apps/playwright.nix` installs it on every activation via `home.activation.installPlaywrightBrowsers`:
+**The browser must be installed** or selecting chromium fails hard, with no auto-download and no fallback. `hosts/2023-macbook-pro/modules/apps/playwright.nix` installs it on every activation via `home.activation.installPlaywrightBrowsers`:
 
 ```sh
 playwright-cli install-browser chromium
