@@ -29,6 +29,7 @@ Read the relevant section below before answering or running commands. The repo's
 | ghostty tabs not restored after quit, `window-save-state`, doubled herdr notifications | `agents/instructions/troubleshooting.md` — new value needs a Ghostty restart; `command` re-runs in restored tabs |
 | "would like to receive keystrokes", Input Monitoring prompt during a rebuild | `agents/instructions/troubleshooting.md` — `hidutil` key remap, blamed on the terminal; deny it |
 | playwright, chrome won't start, stuck browser process        | `agents/instructions/troubleshooting.md` — chromium is the configured default; kill-all leaves orphans |
+| git "insufficient permission for adding an object"          | `agents/instructions/troubleshooting.md` — root-owned object from `sudo darwin-rebuild`; user runs `chown` |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 

@@ -588,3 +588,17 @@ You should download the Command Line Tools for Xcode 27.0.
 ```
 
 That surfaces as a single formula failing (`Upgrading gastownhall/gascity/gascity has failed!`), which reads like a problem with that formula rather than with the toolchain — it is simply the first one in the Brewfile that needs a compiler. Check `pkgutil --pkg-info=com.apple.pkg.CLTools_Executables` against the new OS before investigating any individual formula. The fix needs a TTY for sudo, so it belongs to the user: `sudo rm -rf /Library/Developer/CommandLineTools` then `sudo xcode-select --install`.
+
+## `git commit` fails: "insufficient permission for adding an object to repository database"
+
+**Symptom.** A commit, or any git write, fails with `error: insufficient permission for adding an object to repository database .git/objects`. It may succeed when retried outside the sandbox, which makes it look like a sandbox problem.
+
+**Cause.** A root-owned directory under `.git/objects`. `just switch` runs `sudo darwin-rebuild switch --flake .`, so Nix reads the repo as root, and with uncommitted changes in the tree it can write a loose object into `.git/objects` as root. The observed case, on 2026-10-03, was `.git/objects/e6/e69de29…` (git's empty-file blob), created by a switch on a dirty tree and touched again by the next one. Why Nix writes into `.git` here is unconfirmed; the timing against `/usr/bin/log` `sudo` entries is the evidence. It has happened once in the repo's history.
+
+The read-only (`r--r--r--`) permission on every loose object is normal git behaviour, not part of this. Ownership is the signal:
+
+```sh
+find .git -not -user cyrilledru
+```
+
+**Resolution.** Needs sudo, so it is the user's to run: `sudo chown -R cyrilledru:staff <the paths find printed>`. It does not recur for that object: once it exists, a later root switch only updates its timestamp, not its owner.
