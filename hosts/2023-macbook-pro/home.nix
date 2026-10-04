@@ -249,7 +249,9 @@ in
     settings = {
       theme = "Catppuccin Mocha";
       desktop-notifications = true;
-      command = "${pkgs.herdr}/bin/herdr --session main";
+      initial-command = "${pkgs.herdr}/bin/herdr --session main";
+      quit-after-last-window-closed = true;
+      window-save-state = "always";
       keybind = "option+backspace=text:\\x1b\\x7f";
       macos-option-as-alt = true;
     };
