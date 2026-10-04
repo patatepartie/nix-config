@@ -92,6 +92,9 @@
           {
             app = "/Applications/Windows App.app";
           }
+          {
+            app = "/Applications/Gnucash.app";
+          }
         ];
 
         persistent-others = [
