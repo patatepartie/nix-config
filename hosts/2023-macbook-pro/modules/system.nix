@@ -6,13 +6,6 @@
 
     primaryUser = username;
 
-    # Applying this mapping triggers an Input Monitoring prompt on rebuild; see agents/instructions/troubleshooting.md.
-    keyboard = {
-      enableKeyMapping = true;
-      remapCapsLockToControl = true;
-      nonUS.remapTilde = true;
-    };
-
     defaults = {
       NSGlobalDomain = {
         ApplePressAndHoldEnabled = true;

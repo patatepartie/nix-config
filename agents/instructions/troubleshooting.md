@@ -479,7 +479,9 @@ Reload itself is not the problem and is silent on macOS. Confirm it happened wit
 
 ## `darwin-rebuild switch` raises an Input Monitoring prompt blamed on the terminal
 
-**Symptom.** During a rebuild, macOS shows "<Terminal>.app would like to receive keystrokes from any application", where `<Terminal>` is whatever app the rebuild was launched from (Ghostty on the 2023 MacBook).
+**Symptom.** During a rebuild, macOS shows "<Terminal>.app would like to receive keystrokes from any application", where `<Terminal>` is whatever app the rebuild was launched from.
+
+**Scope: 2018 MacBook only.** The 2023 MacBook relies on Karabiner (`hosts/2023-macbook-pro/dotfiles/karabiner`) for its Caps Lock mappings and no longer declares a `system.keyboard` block, so its activation does not run `hidutil` and no longer triggers the prompt. The 2023 block was a copy of the 2018 one and was redundant there: Karabiner already maps Caps Lock → fn on all keyboards and Caps Lock → Left Control on the external Apple keyboard, and `nonUS.remapTilde` only affects the ISO key next to left Shift, which neither the external US (ANSI) keyboard nor the built-in JIS keyboard has.
 
 **Cause.** The nix-darwin activation script applies the `system.keyboard` remapping (Caps Lock → Left Control, and the ISO § key → backtick) by running `hidutil property --set '{"UserKeyMapping":[...]}'` as root. `hidutil` makes a non-preflight `kTCCServiceListenEvent` (Input Monitoring) request, and TCC charges it to the "responsible" process, which is the GUI app the rebuild was launched from, not to `hidutil` or root.
 
