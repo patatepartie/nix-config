@@ -475,6 +475,26 @@ Reload itself is not the problem and is silent on macOS. Confirm it happened wit
 
 **Restore and the herdr command.** Restore recreates layout and working directories, not processes; every restored terminal runs the configured command again. With `command = herdr …` each restored tab attaches another herdr client and every notification doubles. With `initial-command` only the first terminal of the launch runs herdr, and in testing that was the first restored tab.
 
+## `darwin-rebuild switch` raises an Input Monitoring prompt blamed on the terminal
+
+**Symptom.** During a rebuild, macOS shows "<Terminal>.app would like to receive keystrokes from any application", where `<Terminal>` is whatever app the rebuild was launched from (Ghostty on the 2023 MacBook).
+
+**Cause.** The nix-darwin activation script applies the `system.keyboard` remapping (Caps Lock → Left Control, and the ISO § key → backtick) by running `hidutil property --set '{"UserKeyMapping":[...]}'` as root. `hidutil` makes a non-preflight `kTCCServiceListenEvent` (Input Monitoring) request, and TCC charges it to the "responsible" process, which is the GUI app the rebuild was launched from, not to `hidutil` or root.
+
+**Evidence (2026-10-03, 2023 MacBook).** System generation 601 was created at 18:35. The TCC log at 18:35:07 shows `Notifying for access kTCCServiceListenEvent for target PID[20073], responsiblePID[2830], responsiblePath: /Applications/Ghostty.app`, where PID 20073 was `/usr/bin/hidutil` running with euid 0. The dialog appeared only once; every later rebuild that evening made the same `hidutil` TCC checks with no new prompt.
+
+**Response.** Deny. The terminal does not need Input Monitoring, and granting it would let every process launched from that terminal read keystrokes from all apps.
+
+**Unverified.** Whether the remap still applies when Input Monitoring is denied has not been checked yet.
+
+**Diagnosing it again.** Find the prompt in the TCC log (use `/usr/bin/log`, because zsh has a `log` builtin):
+
+```
+/usr/bin/log show --start "<time>" --end "<time>" --predicate 'process == "tccd" AND eventMessage CONTAINS "Notifying for access"' --style compact
+```
+
+Then match the target PID and its time against the generation timestamps in `ls -la /nix/var/nix/profiles/`.
+
 ## `just switch` dies at "setting up Homebrew": `key not found: "HOMEBREW_ORIGINAL_BREW_FILE"`
 
 **Symptom.** `just switch` fails immediately after `setting up Homebrew (/opt/homebrew)...`, before any cask or formula is evaluated:
