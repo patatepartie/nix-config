@@ -461,6 +461,20 @@ If every window dies on launch and you have no working terminal left, use **Term
 
 **One thing to know before quitting.** `Cmd+Q` ends every Claude session running in a Ghostty tab, so commit in-flight work first. On a machine where herdr or tmux holds the sessions, they survive independently of the client and come back on reattach.
 
+The 2023 MacBook sets `quit-after-last-window-closed = true`, so there closing the last window does quit the process. The paragraph above still describes the 2018.
+
+## Ghostty does not restore tabs after `window-save-state` changes
+
+**Symptom.** `window-save-state = always` is in `~/.config/ghostty/config` and the config has been reloaded, yet `Cmd+Q` and relaunch brings back a single fresh window. On the 2023 MacBook that window runs herdr via `initial-command`, which makes it look as though restore worked and only the extra tabs went missing.
+
+**Cause.** Ghostty does not save windows itself. On a config change it writes the macOS preference `NSQuitAlwaysKeepsWindows` (`defaults read com.mitchellh.ghostty NSQuitAlwaysKeepsWindows`), and AppKit decides at quit whether to keep window state. AppKit does not pick the new value up in the already-running process. Evidence from 2026-10-04: the preference read `1`, yet the quit logged `_setShouldRestoreStateOnNextLaunch: shouldRestore=0` and `discardAllPersistentStateAndClose`. The next launch logged `hasPersistentStateToRestore=0`.
+
+Reload itself is not the problem and is silent on macOS. Confirm it happened with `/usr/bin/log show --info --start "<time>" --predicate 'process == "ghostty" AND eventMessage CONTAINS "config reload"'` (needs the sandbox disabled, and the full path because zsh has a `log` builtin).
+
+**Resolution.** Nothing is wrong on disk. The first `Cmd+Q` after the change is the restart that makes the setting live, so it cannot itself be restored. Open the tabs again; from the next quit on they come back.
+
+**Restore and the herdr command.** Restore recreates layout and working directories, not processes; every restored terminal runs the configured command again. With `command = herdr …` each restored tab attaches another herdr client and every notification doubles. With `initial-command` only the first terminal of the launch runs herdr, and in testing that was the first restored tab.
+
 ## `just switch` dies at "setting up Homebrew": `key not found: "HOMEBREW_ORIGINAL_BREW_FILE"`
 
 **Symptom.** `just switch` fails immediately after `setting up Homebrew (/opt/homebrew)...`, before any cask or formula is evaluated:

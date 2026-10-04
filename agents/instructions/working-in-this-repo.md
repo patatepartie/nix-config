@@ -26,6 +26,7 @@ Read the relevant section below before answering or running commands. The repo's
 | activation script declared but never runs, adding an activation script | `agents/instructions/troubleshooting.md` — custom attribute names are silently dropped |
 | vscode extensions, copilot install fails the switch          | `agents/instructions/troubleshooting.md` — github.copilot is deprecated |
 | ghostty tab won't launch, "failed to launch the requested command", missing store path | `agents/instructions/troubleshooting.md` — stale in-memory config; quit and relaunch |
+| ghostty tabs not restored after quit, `window-save-state`, doubled herdr notifications | `agents/instructions/troubleshooting.md` — new value needs a Ghostty restart; `command` re-runs in restored tabs |
 | playwright, chrome won't start, stuck browser process        | `agents/instructions/troubleshooting.md` — chromium is the configured default; kill-all leaves orphans |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
