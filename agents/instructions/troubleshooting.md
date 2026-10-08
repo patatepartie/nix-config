@@ -429,11 +429,12 @@ Both need `dangerouslyDisableSandbox`. Confirm with `launchctl print` (`state = 
 
 **Fix.** Migrate through `gc bd`, which supplies the Dolt port; a bare `bd -C <dir>` fails with `Dolt server unreachable at 127.0.0.1:0`. The Dolt server must be running, and `gc start` brings it up even when the beads init then fails.
 
-1. Back up first: `tar` the city's `.beads` and every rig's `.beads`.
+1. Back up first: `tar` the city's `.beads` and every rig's `.beads`. Do it before anything runs the new bd against the stores — even `bd export` can trigger the migration, which makes its output useless as a pre-upgrade backup.
 2. `gc --city ~/Tech/pata-city bd migrate schema`
 3. `gc --city ~/Tech/pata-city --rig cash22 bd migrate schema --force` — `--force` declares this machine the single migrator for the remote-backed database.
 4. `gc --city ~/Tech/pata-city --rig cash22 bd dolt push` to publish the migrated schema.
-5. `gc start ~/Tech/pata-city`, then `gc doctor --fix` and `gc doctor`.
+5. `bd recompute-blocked` on each database (`gc --city ~/Tech/pata-city bd recompute-blocked`, then with `--rig cash22`). The beads 1.3 upgrade notes prescribe it after a migration so a stale `is_blocked` flag cannot hide ready work; it is idempotent.
+6. `gc start ~/Tech/pata-city`, then `gc doctor --fix` and `gc doctor`.
 
 The supervisor retries a failed start on its own and can contend with a manual migration for the schema migration lock (`schema migration lock unavailable: timeout` in the log). If a start right after the migration still reports a missing column, check the columns with `gc bd sql --json "SHOW COLUMNS FROM leases"` and retry the start before migrating again.
 
