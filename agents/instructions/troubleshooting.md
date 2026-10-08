@@ -390,19 +390,52 @@ Escalate only if the profile changes shape: the main thread no longer dominated 
 
 **Symptom.** Activity Monitor shows sustained high CPU that tracks gascity activity rather than a specific busy process. `gc doctor` reports `✗ order-firing-current — scheduled orders are stale`. `gc` feels sluggish. A single `ps aux -r` snapshot often shows nothing: `gc supervisor run` sits near 1% CPU, which reads as innocent and is misleading.
 
+Onset is delayed: a freshly started city usually looks healthy for a while before the CPU climbs, so a few minutes of clean sampling after a start proves nothing either way.
+
 **Cause.** Upstream <https://github.com/gastownhall/gascity/issues/5164>. gascity's `version_compat` preflight gate requires an *exact* string match between the installed `bd` CLI version and the beads library version `gc` was compiled against. When `bd` is newer but semver-compatible the gate fails silently, and gascity falls back to BdStore — fork-per-operation mode. The cost lands in a storm of short-lived `bd` subprocesses (upstream measured 170+ forks/s against a 100/s threshold), not in any one long-lived process, which is exactly why a point-in-time `ps` misses it.
 
 The skew is structural, not accidental: the Homebrew formula declares an unversioned `depends_on "beads"`, so `beads` always installs at its latest release and drifts ahead of the version `gc`'s `go.mod` pins. Every new beads release re-opens the gap.
 
-Check for the skew with `brew list --versions gascity beads` plus `bd --version`. Note that `gc` exposes no way to read the gate's verdict or the linked beads version — `gc --version` does not exist (`gc version` prints only gascity's own version), and no `gc doctor` check reports the active store mode. Adding that visibility is part of the same upstream issue, so until it ships the stale-orders check is the most reliable local tell.
+Check for the skew with `brew list --versions gascity beads` plus `bd --version`. `gc version` prints only gascity's own version, not the linked beads library, and no `gc doctor` check reports the active store mode. The supervisor log does: `gc supervisor logs -n 200` prints `WARN native_store_unavailable gate=native_open reason=...` whenever gascity falls back to BdStore, with the reason. No such line after a successful start means the native store is in use.
 
-**Resolution.** None available yet — wait for an upstream release.
+**Resolution.** Fixed upstream in **gascity v1.5.0** (2026-10-05), which contains PR #5252: the gate now accepts a same-major `bd` at or above the library version (`newerSemverCompatibleBD` in `internal/beads/contract/preflight_checker.go`). v1.5.0 also pins beads `v1.3.1` in `go.mod`, matching Homebrew's `bd` 1.3.1 at release time. v1.4.2 and earlier do not contain the fix.
 
-The fix (PR #5252, merged 2026-08-30) relaxes the gate to accept a same-major `bd` at or above the library version. As of 2026-10-04 it is **not in any stable release**, only in the rolling `edge` pre-release. The formula tracks stable tags and declares no `head` spec, so there is no `--HEAD` install path, and gascity is not Nix-packaged here — nothing in this repo can pull the fix forward. `GC_BEADS_FORCE_FALLBACK` is not a workaround; it forces the slow path rather than avoiding it.
+Upgrading gascity alone is not enough. The supervisor keeps running the old binary until it restarts, and a plain restart fails — see "gascity supervisor will not restart after a gascity upgrade" below. A bd upgrade can also leave the database schema behind — see "gascity city will not start after a bd upgrade" below.
 
-**v1.4.2 (2026-09-18) does not contain the fix.** It was cut from a release branch, not from `main`, and only adds Beads 1.3.0 compatibility. Its `checkVersionCompat` is still an exact string compare, and its `go.mod` pins beads `v1.3.0` while Homebrew installs `bd` 1.3.1, so the skew persists. A newer installed gascity version is therefore not evidence the fix arrived.
+If the symptom ever returns on v1.5.0 or later, the gate is no longer the explanation by itself: check the supervisor log for `native_store_unavailable` and read its reason. Do not chase this by pinning or hand-installing beads at an older version: the redundant `"beads"` entry in `hosts/2023-macbook-pro/modules/apps/brews.nix` is a deliberate transitive-dep marker, and downgrading it would fight the formula on every update. `GC_BEADS_FORCE_FALLBACK` is not a workaround; it forces the slow path rather than avoiding it.
 
-To check a later release, look for `newerSemverCompatibleBD` in `internal/beads/contract/preflight_checker.go` at that tag (`gh api "repos/gastownhall/gascity/contents/internal/beads/contract/preflight_checker.go?ref=<tag>" -H "Accept: application/vnd.github.raw"`); its presence means the fix shipped. `just switch` picks up a new release through the normal tap path once `flake.lock`'s tap rev advances. Confirm on the running city by checking that `gc doctor` no longer reports stale orders. Do not chase this by pinning or hand-installing beads at an older version: the redundant `"beads"` entry in `hosts/2023-macbook-pro/modules/apps/brews.nix` is a deliberate transitive-dep marker, and downgrading it would fight the formula on every update.
+## gascity supervisor will not restart after a gascity upgrade
+
+**Symptom.** Homebrew has upgraded gascity (through `just switch` or the 07:30 auto-update), and macOS shows a "can run in the background" notification for `gc`. The supervisor keeps running the old binary, because nothing restarts it: the launch agent `~/Library/LaunchAgents/com.gascity.supervisor.plist` was installed by `gc supervisor` itself, not by `brew services` or nix-darwin, so activation does not know it exists. `launchctl kickstart -k gui/501/com.gascity.supervisor` kills the old process, but the new one never comes up. `launchctl print gui/501/com.gascity.supervisor` shows `last exit reason = OS_REASON_CODESIGNING`, `job state = spawn failed`, and `needs LWCR update` in its properties.
+
+**Cause.** launchd holds a launch constraint (LWCR) pinned to the cdhash of the binary it first launched. The upgrade swaps `/opt/homebrew/bin/gc` for a binary with a different cdhash, and launchd refuses to spawn it. Approval in System Settings is not the issue: `sfltool dumpbtm` shows the `gc` item as `enabled, allowed`.
+
+**Fix.** Unload and reload the agent so launchd recomputes the constraint:
+
+```sh
+launchctl bootout gui/501/com.gascity.supervisor
+launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.gascity.supervisor.plist
+```
+
+Both need `dangerouslyDisableSandbox`. Confirm with `launchctl print` (`state = running`, no `LWCR` properties). Whether a logout or reboot would clear the constraint on its own is untested.
+
+`gc start` does not catch a stale supervisor. It regenerates the plist, and when the content is unchanged and a supervisor answers, it returns without comparing builds (`installSupervisorLaunchd` in `cmd/gc/cmd_supervisor_lifecycle.go`). The plist points at the `/opt/homebrew/bin/gc` symlink, so an upgrade never changes its content. When no supervisor answers, `gc start` runs `launchctl unload` + `load` itself, which should clear the constraint the same way — so a supervisor that is down heals on the next `gc start`, while one still running the old binary is left alone.
+
+## gascity city will not start after a bd upgrade
+
+**Symptom.** `gc start <city-dir>` fails at `init city beads` with `table "i" does not have column "row_lock"` or `table "leases" does not have column "granted_node"`, and the supervisor log shows `native_store_unavailable ... refusing to auto-apply N pending schema migrations to a shared server database`. `gc doctor` fails or skips every store-backed check with the same column errors.
+
+**Cause.** The city's Dolt databases were last written by an older bd, and the current bd needs a newer schema. bd normally migrates on open, but refuses on a shared Dolt server (it would lock out co-resident clients on the old schema) and on a database with a Dolt remote (two clones migrating independently fork the schema). Both apply here: the city's `hq` and the rig's `cash22` share gc's Dolt server, and `cash22` pushes to GitHub. `bd migrate --inspect` shows the bd version that last wrote each database.
+
+**Fix.** Migrate through `gc bd`, which supplies the Dolt port; a bare `bd -C <dir>` fails with `Dolt server unreachable at 127.0.0.1:0`. The Dolt server must be running, and `gc start` brings it up even when the beads init then fails.
+
+1. Back up first: `tar` the city's `.beads` and every rig's `.beads`.
+2. `gc --city ~/Tech/pata-city bd migrate schema`
+3. `gc --city ~/Tech/pata-city --rig cash22 bd migrate schema --force` — `--force` declares this machine the single migrator for the remote-backed database.
+4. `gc --city ~/Tech/pata-city --rig cash22 bd dolt push` to publish the migrated schema.
+5. `gc start ~/Tech/pata-city`, then `gc doctor --fix` and `gc doctor`.
+
+The supervisor retries a failed start on its own and can contend with a manual migration for the schema migration lock (`schema migration lock unavailable: timeout` in the log). If a start right after the migration still reports a missing column, check the columns with `gc bd sql --json "SHOW COLUMNS FROM leases"` and retry the start before migrating again.
 
 ## GNOME misbehaves after a daily update: greyed-out "Empty Trash", audio gone, portals broken
 

@@ -12,7 +12,9 @@ Read the relevant section below before answering or running commands. The repo's
 | claude-code banner ("Update available")                     | `agents/instructions/troubleshooting.md`                           |
 | a tap package stuck at an old version, tap not updating     | `agents/instructions/troubleshooting.md` — check for a duplicate tap dir |
 | gascity / `gc`                                              | "gascity" (below)                                                  |
-| gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — unreleased upstream fix, nothing to pull |
+| gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — fixed in gascity 1.5.0; onset is delayed |
+| gascity supervisor not restarting after an upgrade, "can run in the background" for `gc`, `OS_REASON_CODESIGNING` | `agents/instructions/troubleshooting.md` — `launchctl bootout` + `bootstrap`, not `kickstart` |
+| gascity city won't start, `does not have column`, pending schema migrations | `agents/instructions/troubleshooting.md` — `gc bd migrate schema`, back up first |
 | herdr high CPU, herdr server CPU time                        | `agents/instructions/troubleshooting.md` — expected, scales with live panes |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
 | `brew bundle` "no bottle available" / "Tier 3", dylib not loaded in a brew binary, home-manager changes not applied | `agents/instructions/troubleshooting.md` — home-manager never runs; fix from the Nix side, never with brew |
@@ -110,7 +112,9 @@ herdr handles this itself — one server writes `~/.config/herdr/sessions/<sessi
 
 **The `gc` name collides with oh-my-zsh.** The git plugin aliases `gc` to `git commit -v`, shadowing the binary. gascity cannot yield the name: it bakes `gc` into the hook commands it injects into agent panes, and its completion registers as `#compdef gc`. `dotfiles/oh-my-zsh/plugins/gascity/` drops the alias and adds `gci` for git commit. **That plugin must stay LAST in the `oh-my-zsh.plugins` list** — plugins are sourced in array order, so listing it alphabetically (before `git`) lets the git plugin recreate the alias immediately afterwards. This is documented at <https://docs.gascity.com/getting-started/troubleshooting#oh-my-zsh-git-plugin-hides-gc>, though the doc's `$ZSH_CUSTOM`-loads-last claim holds for loose `.zsh` files, not for a named custom plugin.
 
-**`bd` version skew costs CPU, and cannot be fixed from here.** The Homebrew formula's unversioned `depends_on "beads"` lets `beads` drift ahead of the version `gc` was built against, which trips gascity's strict `version_compat` gate and drops it into fork-per-op mode — high CPU plus `✗ order-firing-current` in `gc doctor`. Upstream fix is merged but unreleased as of 2026-10-04 — v1.4.2 does not contain it. See `agents/instructions/troubleshooting.md` → "gascity burns CPU" before investigating; a plain `ps` snapshot will look innocent and mislead you.
+**`bd` version skew used to cost CPU.** The Homebrew formula's unversioned `depends_on "beads"` lets `beads` drift ahead of the version `gc` was built against, which tripped gascity's strict `version_compat` gate and dropped it into fork-per-op mode — high CPU plus `✗ order-firing-current` in `gc doctor`. gascity v1.5.0 relaxes the gate; v1.4.2 and earlier do not. See `agents/instructions/troubleshooting.md` → "gascity burns CPU" before investigating; a plain `ps` snapshot will look innocent and mislead you.
+
+**A gascity or bd upgrade needs follow-up by hand.** Activation upgrades the formulae but does not touch the running city. The supervisor keeps the old binary, and restarting it needs a `launchctl bootout` + `bootstrap`; a bd upgrade can leave the city's databases on an older schema that blocks `gc start`. Both are in `agents/instructions/troubleshooting.md`.
 
 **It starts tmux servers on its own socket**, named by `[session].socket` in `city.toml`. This used to be hazardous — see "tmux session save/restore" above — but is now unremarkable, since tmux no longer loads any plugins.
 
