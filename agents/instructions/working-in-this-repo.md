@@ -54,12 +54,12 @@ There are two independent mechanisms.
 - `hosts/2018-macbook-pro/modules/auto-update.nix`
 - `hosts/home-server/auto-update.nix` (note: no `modules/` segment — the home-server tree is flatter)
 
-| Host           | Schedule (in module)                                | Action                                                    |
+| Host           | Schedule (exact time in the module)                 | Action                                                    |
 |----------------|-----------------------------------------------------|-----------------------------------------------------------|
-| MBP 2023, 2018 | launchd `StartCalendarInterval { Hour=7; Minute=30; }` (machine-local time) | `git fetch && git reset --hard origin/main && darwin-rebuild switch` |
-| home-server    | systemd `OnCalendar = "Wed *-*-* 07:30:00 Asia/Tokyo"` (**weekly**) | `git fetch && git reset --hard origin/main && nixos-rebuild switch`, then **reboots** (falls back to `boot` if `switchInhibitors` blocks) |
+| MBP 2023, 2018 | launchd `StartCalendarInterval`, **daily**, early morning (machine-local time) | `git fetch && git reset --hard origin/main && darwin-rebuild switch` |
+| home-server    | systemd `OnCalendar`, **weekly**, early morning | `git fetch && git reset --hard origin/main && nixos-rebuild switch`, then **reboots** (falls back to `boot` if `switchInhibitors` blocks) |
 
-**The two cadences now differ.** The GitHub Action still re-locks `flake.lock` **daily**; the home-server only *applies* it **weekly** (Wednesday 07:30 JST), and reboots afterwards. So the server can be up to a week behind the committed lock, and applies a week's accumulated input updates in one run. The MacBooks are still daily. The weekly cadence and the reboot exist together for one reason — see `agents/docs/home-server-session-decoupling.md` work item 4 — and changing either without the other reintroduces the bug.
+**The two cadences now differ.** The GitHub Action still re-locks `flake.lock` **daily**; the home-server only *applies* it **weekly**, and reboots afterwards. So the server can be up to a week behind the committed lock, and applies a week's accumulated input updates in one run. The MacBooks are still daily. The weekly cadence and the reboot exist together for one reason — see `agents/docs/home-server-session-decoupling.md` work item 4 — and changing either without the other reintroduces the bug.
 
 **The auto-update script does NOT run `nix flake update`.** It only applies whatever `flake.lock` is committed in the repo. Tap revisions are therefore at most as fresh as the most recent GitHub-Action commit; if the Action ran at 22:00 UTC and a `homebrew-cask` rev was tagged 23:00 UTC, no host will see it until the next Action run.
 
@@ -88,7 +88,7 @@ Both scripts use only the GitHub commits API and `formulae.brew.sh` — read-onl
 
 Never run `brew tap`, `brew install`, `brew uninstall`, `brew bundle`, or `brew cleanup`. All Homebrew config (taps, brews, casks) is managed declaratively through nix-darwin. To add a package, modify the appropriate nix file (`brews.nix`, `casks.nix`) and apply via `just switch`. Read-only commands (`brew list`, `brew info`, `brew outdated`) are fine.
 
-**This is mechanical, not stylistic, and the distinction matters because it rules out the exception you are about to propose.** nix-homebrew owns the prefix: `brew bundle` reconciles the installed set against the Brewfile generated from `brews.nix` / `casks.nix` on every activation, and `homebrew.onActivation.cleanup = "uninstall"` removes whatever is not declared there. A hand-installed formula therefore does not survive — the next `just switch`, or the 07:30 auto-update, reverts it. Installing by hand is **futile**, not merely off-book.
+**This is mechanical, not stylistic, and the distinction matters because it rules out the exception you are about to propose.** nix-homebrew owns the prefix: `brew bundle` reconciles the installed set against the Brewfile generated from `brews.nix` / `casks.nix` on every activation, and `homebrew.onActivation.cleanup = "uninstall"` removes whatever is not declared there. A hand-installed formula therefore does not survive — the next `just switch`, or the next daily auto-update, reverts it. Installing by hand is **futile**, not merely off-book.
 
 So there is no "deliberate one-off to escape a wedged state", no "just to unblock this switch", and no temporary hand-install to be tidied up later. If a package cannot be installed declaratively, the answer is to change the declaration or to accept that it is unavailable — never to reach for `brew install` and plan to reconcile afterwards. The same reasoning kills hand-repair of brew state: `brew link`, `brew reinstall --build-from-source`, and hand-edited symlinks under `/opt/homebrew/opt` are all writes that activation will undo, so a broken linkage gets worked around from the Nix side instead (see `agents/instructions/troubleshooting.md` for a worked example).
 
