@@ -86,6 +86,11 @@ Under `agents/scripts/`. Run from the repo root.
 
 Both scripts use only read-only public endpoints (GitHub and `formulae.brew.sh`), no auth required. Prefer running them over ad-hoc `curl`s to `raw.githubusercontent.com` or similar.
 
+## Docs and the context hook point at code, never copy it
+
+Do not restate a value that lives in code (a schedule, a version, a pin, a path) in `agents/instructions/`, `CLAUDE.md` or `.claude/hooks/inject-context.sh`. Name the file that defines it instead, and describe only what the code cannot say: the cadence, the reason, the constraint.
+A copied value goes stale silently when the code changes, and the hook is the worst place for it: its text is injected as authoritative on every matching prompt. A stale "22:00 UTC" there once sent an auto-update diagnosis down the wrong path.
+
 ## Homebrew
 
 Never run `brew tap`, `brew install`, `brew uninstall`, `brew bundle`, or `brew cleanup`. All Homebrew config (taps, brews, casks) is managed declaratively through nix-darwin. To add a package, modify the appropriate nix file (`brews.nix`, `casks.nix`) and apply via `just switch`. Read-only commands (`brew list`, `brew info`, `brew outdated`) are fine.
