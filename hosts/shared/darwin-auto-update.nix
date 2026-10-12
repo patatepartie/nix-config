@@ -11,8 +11,7 @@ let
   runnerPath = "${stateDir}/run-update.sh";
   switchLog = "${stateDir}/switch-output.log";
 
-  unknownWarnings = import ./unknown-warnings.nix { inherit pkgs; };
-  acceptedWarnings = "${checkoutPath}/hosts/shared/accepted-warnings.txt";
+  functions = import ./auto-update-functions.nix { inherit pkgs envFile checkoutPath; };
 
   updateRunner = pkgs.writeShellScript "nix-auto-update-runner" ''
     set -euo pipefail
@@ -21,30 +20,7 @@ let
     HOSTNAME=$(hostname)
     RUN_ID="$1"
 
-    log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*"; }
-
-    notify() {
-      if [ -f ${envFile} ]; then
-        source ${envFile}
-        curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-          -d chat_id="$TELEGRAM_CHAT_ID" \
-          --data-urlencode text="$1" > /dev/null
-      fi
-    }
-
-    notify_failure() {
-      notify "nix auto-update failed on $HOSTNAME: $1"
-    }
-
-    report_warnings() {
-      local warnings
-      warnings=$(${unknownWarnings} ${switchLog} ${acceptedWarnings})
-      if [ -n "$warnings" ]; then
-        notify "nix auto-update on $HOSTNAME printed warnings that are not in hosts/shared/accepted-warnings.txt ($BEFORE -> $AFTER):
-    $warnings"
-      fi
-    }
-
+    ${functions}
     trap 'notify_failure "unexpected error on line $LINENO"' ERR
 
     if [ -f ${markerFile} ]; then
@@ -81,7 +57,7 @@ let
     log "Rebuilding system ($BEFORE -> $AFTER)"
     switch_status=0
     darwin-rebuild switch --flake ${checkoutPath} 2>&1 | tee ${switchLog} || switch_status=$?
-    report_warnings
+    report_warnings ${switchLog}
 
     if [ "$switch_status" -ne 0 ]; then
       notify_failure "darwin-rebuild switch failed ($BEFORE -> $AFTER)"

@@ -11,13 +11,10 @@ let
 
   message = "${config.networking.hostName} now runs FreeRDP ${pkgs.freerdp.version} without the NLA patch: check Windows App still connects, then delete ${thisFile}";
 
-  noticeScript = pkgs.writeShellScript "freerdp-nla-patch-notice" ''
-    set -euo pipefail
+  telegramNotify = import ../shared/telegram-notify.nix { inherit pkgs; };
 
-    source ${envFile}
-    curl -sf --retry 5 --retry-all-errors "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-      -d chat_id="$TELEGRAM_CHAT_ID" \
-      --data-urlencode text="${message}" > /dev/null
+  noticeScript = pkgs.writeShellScript "freerdp-nla-patch-notice" ''
+    exec ${telegramNotify} ${envFile} "${message}"
   '';
 in
 {
@@ -45,7 +42,6 @@ in
     wantedBy = [ "multi-user.target" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
-    path = [ pkgs.curl ];
     serviceConfig = {
       Type = "oneshot";
       # The "-" keeps a failed send from failing the nixos-rebuild switch that starts this unit.

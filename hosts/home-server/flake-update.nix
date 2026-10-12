@@ -7,6 +7,8 @@ let
   checkoutPath = "${stateDir}/nix-config";
   keyPath = "${stateDir}/id_ed25519";
 
+  telegramNotify = import ../shared/telegram-notify.nix { inherit pkgs; };
+
   flakeUpdateScript = pkgs.writeShellScript "nix-flake-update" ''
     set -euo pipefail
 
@@ -15,12 +17,7 @@ let
     log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*"; }
 
     notify() {
-      if [ -f "$CREDENTIALS_DIRECTORY/telegram" ]; then
-        source "$CREDENTIALS_DIRECTORY/telegram"
-        curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-          -d chat_id="$TELEGRAM_CHAT_ID" \
-          -d text="$1" > /dev/null
-      fi
+      ${telegramNotify} "$CREDENTIALS_DIRECTORY/telegram" "$1" || log "Telegram notification failed"
     }
 
     trap 'notify "flake.lock update failed on $HOSTNAME: unexpected error on line $LINENO"' ERR
@@ -76,7 +73,7 @@ in
 
   systemd.services.nix-flake-update = {
     description = "Update flake.lock and push it to GitHub";
-    path = [ pkgs.git pkgs.openssh pkgs.curl pkgs.hostname config.nix.package ];
+    path = [ pkgs.git pkgs.openssh pkgs.hostname config.nix.package ];
     restartIfChanged = false;
     serviceConfig = {
       Type = "oneshot";
