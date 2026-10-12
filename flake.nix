@@ -1,15 +1,6 @@
 {
   description = "My systems";
 
-  # the nixConfig here only affects the flake itself, not the system configuration!
-  nixConfig = {
-    experimental-features = [ "nix-command" "flakes" ];
-
-    substituters = [
-      "https://cache.nixos.org"
-    ];
-  };
-
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     # nixpkgs 26.11+ dropped x86_64-darwin; pin 2018 MBP to last supported stable branch.
