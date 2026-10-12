@@ -81,10 +81,10 @@ No packages are pinned this way at present.
 
 Under `agents/scripts/`. Run from the repo root.
 
-- `agents/scripts/cask-version-gap.sh <cask-name>` — prints the cask version locked by `flake.lock`, the version `formulae.brew.sh` is currently advertising (this is the source claude-code's banner compares against), and the locally-installed version. Used to diagnose "Update available" banners and similar version-skew symptoms without manually curling raw.githubusercontent.com.
+- `agents/scripts/cask-version-gap.sh <cask-name>` — prints the cask version locked by `flake.lock` on GitHub's `main` (what the hosts' auto-updates apply, so a stale local checkout cannot skew it, and it says when the local lock differs), the version `formulae.brew.sh` is currently advertising (this is the source claude-code's banner compares against), and the locally-installed version. Used to diagnose "Update available" banners and similar version-skew symptoms without manually curling raw.githubusercontent.com.
 - `agents/scripts/flake-input-freshness.sh [input-name]` — reports each `flake.lock` input's staleness against its upstream default branch via the GitHub commits API. With no argument scans every input; with an input name scans only that one. Useful to verify whether `nixpkgs` / `nix-homebrew` pins can be dropped, and to gauge how far behind `flake.lock` is overall.
 
-Both scripts use only the GitHub commits API and `formulae.brew.sh` — read-only public endpoints, no auth required. Prefer running them over ad-hoc `curl`s to `raw.githubusercontent.com` or similar.
+Both scripts use only read-only public endpoints (GitHub and `formulae.brew.sh`), no auth required. Prefer running them over ad-hoc `curl`s to `raw.githubusercontent.com` or similar.
 
 ## Homebrew
 

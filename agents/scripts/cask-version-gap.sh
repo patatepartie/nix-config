@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Report the version gap for a Homebrew cask between:
-#   - the cask file at the homebrew-cask rev locked in flake.lock
+#   - the cask file at the homebrew-cask rev locked in flake.lock on GitHub's main,
+#     which is what the hosts' auto-updates apply
 #   - what formulae.brew.sh (Homebrew's metadata API) reports — this is the
 #     source that drives the "Update available" banner inside claude-code
 #   - what brew has actually installed locally
@@ -17,13 +18,14 @@ if [ -z "$cask" ]; then
 fi
 
 repo_root=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
-lock="$repo_root/flake.lock"
 
-locked_rev=$(jq -r '.nodes."homebrew-cask".locked.rev' "$lock")
+main_lock_url="https://raw.githubusercontent.com/patatepartie/nix-config/main/flake.lock"
+locked_rev=$(curl -fsSL "$main_lock_url" 2>/dev/null | jq -r '.nodes."homebrew-cask".locked.rev' || true)
 if [ "$locked_rev" = "null" ] || [ -z "$locked_rev" ]; then
-  echo "could not read homebrew-cask rev from $lock" >&2
+  echo "could not read homebrew-cask rev from $main_lock_url" >&2
   exit 1
 fi
+local_rev=$(jq -r '.nodes."homebrew-cask".locked.rev' "$repo_root/flake.lock")
 
 first_letter=$(printf '%s' "$cask" | cut -c1)
 locked_url="https://raw.githubusercontent.com/Homebrew/homebrew-cask/${locked_rev}/Casks/${first_letter}/${cask}.rb"
@@ -47,7 +49,10 @@ if [ -n "$brew_prefix" ] && [ -d "$brew_prefix/Caskroom/$cask" ]; then
 fi
 
 printf 'cask:              %s\n' "$cask"
-printf 'flake.lock rev:    %s\n' "$locked_rev"
+printf 'flake.lock rev:    %s (main on GitHub)\n' "$locked_rev"
+if [ "$local_rev" != "$locked_rev" ]; then
+  printf 'local checkout:    %s (differs from main; pull before a local switch)\n' "$local_rev"
+fi
 printf 'locked version:    %s\n' "${locked_version:-(failed to fetch)}"
 printf 'formulae.brew.sh:  %s\n' "${upstream_version:-(failed to fetch)}"
 printf 'installed:         %s\n' "$installed_version"
