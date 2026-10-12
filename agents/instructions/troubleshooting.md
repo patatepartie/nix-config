@@ -62,9 +62,9 @@ The app's user config (e.g. `~/.config/karabiner/`) is not touched by this proce
 `brew bundle` — the Homebrew-side install path that nix-homebrew drives during `just switch` — is bound to the `homebrew-cask` rev locked in `flake.lock`. Until that rev advances past the new cask version, `brew bundle` won't install the upgrade. So the gap is:
 
 - `formulae.brew.sh` — minutes behind upstream `homebrew-cask` master.
-- `flake.lock`'s `homebrew-cask` rev — at most as fresh as the most recent `Update flake inputs` GitHub Action run (daily at 22:00 UTC). See `agents/instructions/working-in-this-repo.md` → "How auto-updates work" for the full pipeline.
+- `flake.lock`'s `homebrew-cask` rev — at most as fresh as the most recent "Upgrade flake" commit, pushed daily by the home-server. See `agents/instructions/working-in-this-repo.md` → "How auto-updates work" for the full pipeline.
 
-Result: when upstream `homebrew-cask` ships a new `claude-code` cask version, the banner appears in every claude-code session until the GitHub Action commits a new `flake.lock`, you pull that commit, and `just switch` (or the per-host auto-update daemon) installs the cask.
+Result: when upstream `homebrew-cask` ships a new `claude-code` cask version, the banner appears in every claude-code session until the home-server's daily update commits a new `flake.lock`, you pull that commit, and `just switch` (or the per-host auto-update daemon) installs the cask.
 
 Historical note: the cask used to be referenced as `claude-code@latest`, which tracked beta builds with version `"0.0.0"` and made livecheck unhelpful. Commit `f78ccbe` switched to the stable cask (`claude-code`), which carries a real semver — that's the fix the banner has been working against ever since.
 

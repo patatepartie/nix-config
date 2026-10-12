@@ -41,13 +41,15 @@ Read the relevant section below before answering or running commands. The repo's
 
 Before making any change in this repo, run `git fetch` and check the local branch against `origin/main` (`git status` after fetching, or `git rev-list --count HEAD..@{u}`). If local is behind, pull (fast-forward) before editing.
 
-The daily GitHub Action (see "How auto-updates work" below) pushes an "Upgrade flake" commit most days, often re-locking `flake.lock` inputs unrelated to whatever you're changing. Editing on a stale base and then hand-updating `flake.lock` for your own change can silently drop that commit's updates — there's no merge conflict to flag it, since `flake.lock` edits are usually non-overlapping. Fetching first avoids reconstructing the merge after the fact.
+The home-server's daily flake.lock update (see "How auto-updates work" below) pushes an "Upgrade flake" commit most days, often re-locking `flake.lock` inputs unrelated to whatever you're changing. Editing on a stale base and then hand-updating `flake.lock` for your own change can silently drop that commit's updates — there's no merge conflict to flag it, since `flake.lock` edits are usually non-overlapping. Fetching first avoids reconstructing the merge after the fact.
 
 ## How auto-updates work
 
 There are two independent mechanisms.
 
-**1. `flake.lock` updates (GitHub Actions).** `.github/workflows/flake-update.yml` runs `nix flake update` daily at `0 22 * * *` UTC and pushes an "Upgrade flake" commit if anything changed. This advances the locked revs of `nixpkgs`, `nix-darwin`, `home-manager`, `homebrew-cask`, `homebrew-core`, etc. It does NOT touch inputs that are hardcoded to a specific tag or revision in `flake.nix`, should any be in effect — there are none at present.
+**1. `flake.lock` updates (home-server).** A systemd timer in `hosts/home-server/flake-update.nix` runs `nix flake update` daily, shortly before the hosts' rebuilds, and pushes an "Upgrade flake" commit if anything changed. It runs as the `nix-flake-update` system account, in its own checkout under `/var/lib/nix-flake-update/`, and pushes over SSH with a deploy key that has write access to this repo only. The auto-update checkout cannot be shared, because its rebuild skips when HEAD has not moved. This advances the locked revs of `nixpkgs`, `nix-darwin`, `home-manager`, `homebrew-cask`, `homebrew-core`, etc. It does NOT touch inputs that are hardcoded to a specific tag or revision in `flake.nix`, should any be in effect — there are none at present. This used to be a scheduled GitHub Action; it moved to the server in October 2026 because GitHub had started running it 3 to 5 hours late, after the MacBooks had already rebuilt.
+
+**The deploy key is created on the server, never in the repo.** On its first run the service generates `/var/lib/nix-flake-update/id_ed25519`, prints the public key to its journal and exits. Register it with `gh repo deploy-key add <file> --allow-write --title home-server` (public key from `ssh home-server.local journalctl -u nix-flake-update --no-pager`). Until then every run fails at the clone and notifies on Telegram. To rotate it or recover from a leak: delete the deploy key on GitHub, delete the file on the server (as root), run the service once, and register the new key.
 
 **2. System rebuild (launchd / systemd, per host).** Defined in:
 - `hosts/2023-macbook-pro/modules/auto-update.nix`
@@ -59,9 +61,9 @@ There are two independent mechanisms.
 | MBP 2023, 2018 | launchd `StartCalendarInterval`, **daily**, early morning (machine-local time) | `git fetch && git reset --hard origin/main && darwin-rebuild switch` |
 | home-server    | systemd `OnCalendar`, **weekly**, early morning | `git fetch && git reset --hard origin/main && nixos-rebuild switch`, then **reboots** (falls back to `boot` if `switchInhibitors` blocks) |
 
-**The two cadences now differ.** The GitHub Action still re-locks `flake.lock` **daily**; the home-server only *applies* it **weekly**, and reboots afterwards. So the server can be up to a week behind the committed lock, and applies a week's accumulated input updates in one run. The MacBooks are still daily. The weekly cadence and the reboot exist together for one reason — see `agents/docs/home-server-session-decoupling.md` work item 4 — and changing either without the other reintroduces the bug.
+**The two cadences now differ.** The flake.lock update still re-locks `flake.lock` **daily**; the home-server only *applies* it **weekly**, and reboots afterwards. So the server can be up to a week behind the committed lock, and applies a week's accumulated input updates in one run. The MacBooks are still daily. The weekly cadence and the reboot exist together for one reason — see `agents/docs/home-server-session-decoupling.md` work item 4 — and changing either without the other reintroduces the bug.
 
-**The auto-update script does NOT run `nix flake update`.** It only applies whatever `flake.lock` is committed in the repo. Tap revisions are therefore at most as fresh as the most recent GitHub-Action commit; if the Action ran at 22:00 UTC and a `homebrew-cask` rev was tagged 23:00 UTC, no host will see it until the next Action run.
+**The auto-update script does NOT run `nix flake update`.** It only applies whatever `flake.lock` is committed in the repo. Tap revisions are therefore at most as fresh as the most recent "Upgrade flake" commit; a `homebrew-cask` rev tagged after that run is invisible to every host until the next one.
 
 **A run that looks successful may have applied only half the config.** On the MacBooks, exit status 0 does not mean the run finished — the daemon can be killed mid-activation, silently skipping the Homebrew phase and home-manager. Check the log ends with `Update complete`, not `reloading service org.nixos.nix-auto-update`. See `agents/instructions/troubleshooting.md`.
 

@@ -6,6 +6,7 @@ nixpkgs.lib.nixosSystem {
   modules = [
     ./configuration.nix
     ./auto-update.nix
+    ./flake-update.nix
     home-manager.nixosModules.home-manager
     {
       home-manager.useGlobalPkgs = true;
