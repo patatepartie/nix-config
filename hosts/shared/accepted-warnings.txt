@@ -1,0 +1,10 @@
+# Warnings that are known and accepted, so the unattended rebuilds do not report them.
+# One entry per line: a fixed piece of text, matched anywhere in the warning.
+# Leave out the parts that change from one rebuild to the next (versions, numbers, store paths).
+# A line starting with # gives the reason for the entry below it.
+
+# Upstream nixpkgs is dropping x86_64-darwin, and the 2018 MacBook stops receiving updates when it does; nothing can be done about it from this repo.
+Nixpkgs 26.05 will be the last release to support x86_64-darwin
+
+# Harmless Ruby noise from the nix-built brew; see agents/instructions/troubleshooting.md.
+callcc is obsolete

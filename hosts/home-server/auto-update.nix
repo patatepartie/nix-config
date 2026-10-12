@@ -6,6 +6,9 @@ let
 
   envFile = "/var/lib/nix-auto-update/telegram.env";
 
+  unknownWarnings = import ../shared/unknown-warnings.nix { inherit pkgs; };
+  acceptedWarnings = "${checkoutPath}/hosts/shared/accepted-warnings.txt";
+
   autoUpdateScript = pkgs.writeShellScript "nix-auto-update" ''
     set -euo pipefail
     export PATH=/run/current-system/sw/bin:/usr/bin:/bin
@@ -19,12 +22,21 @@ let
         source ${envFile}
         curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
           -d chat_id="$TELEGRAM_CHAT_ID" \
-          -d text="$1" > /dev/null
+          --data-urlencode text="$1" > /dev/null
       fi
     }
 
     notify_failure() {
       notify "nix auto-update failed on $HOSTNAME: $1"
+    }
+
+    report_warnings() {
+      local warnings
+      warnings=$(${unknownWarnings} "$switch_log" ${acceptedWarnings})
+      if [ -n "$warnings" ]; then
+        notify "nix auto-update on $HOSTNAME printed warnings that are not in hosts/shared/accepted-warnings.txt ($BEFORE -> $AFTER):
+    $warnings"
+      fi
     }
 
     trap 'notify_failure "unexpected error on line $LINENO"' ERR
@@ -57,7 +69,11 @@ let
 
     # The reboot keeps the GNOME session from outliving the user services this
     # switch restarts. See agents/docs/home-server-session-decoupling.md.
-    if nixos-rebuild switch --flake ${checkoutPath} 2>&1 | tee "$switch_log"; then
+    switch_status=0
+    nixos-rebuild switch --flake ${checkoutPath} 2>&1 | tee "$switch_log" || switch_status=$?
+    report_warnings
+
+    if [ "$switch_status" -eq 0 ]; then
       log "Update complete, rebooting"
       notify "nix auto-update on $HOSTNAME: update applied, rebooting ($BEFORE -> $AFTER)"
       # Detached: this unit has Conflicts=shutdown.target, so an inline

@@ -66,6 +66,8 @@ There are two independent mechanisms.
 
 **A run that looks successful may have applied only half the config.** On the MacBooks, exit status 0 does not mean the run finished — the daemon can be killed mid-activation, silently skipping the Homebrew phase and home-manager. Check the log ends with `Update complete`, not `reloading service org.nixos.nix-auto-update`. See `agents/instructions/troubleshooting.md`.
 
+**Each run reports the warnings it does not know about.** After the rebuild, the script sends on Telegram every warning in the rebuild's output that matches no entry of `hosts/shared/accepted-warnings.txt`, and it does so again after every later rebuild until the warning is fixed or accepted. To accept one, add an entry to that file and push: each host reads the list from the checkout it has just reset to `main`, so the entry takes effect on the run that pulls it. The filter is `hosts/shared/unknown-warnings.nix`.
+
 **To force an immediate update on every host:** run `just upgrade` locally, then commit and push `flake.lock`. Each host's daemon will pick the new commit up on its next scheduled run. To skip the wait, also run `just switch` (or the underlying `darwin-rebuild` / `nixos-rebuild switch`) on each host. `just upgrade` alone only fixes the machine you ran it on.
 
 **Watch for pinned inputs in `flake.nix`.** None active. `nix-homebrew.inputs.brew-src.url` pinned the `brew` CLI by hand for a long time, because `homebrew-core` formulae adopted InstallSteps DSL features that older `brew` could not parse; it was removed on 2026-10-03 once `nix-homebrew` tracked a brew new enough. Re-adding it is not a neutral act — an override *behind* nix-homebrew's own `brew-src` desyncs brew from the `bin/brew` wrapper nix-homebrew generates and breaks activation outright. Read `agents/instructions/troubleshooting.md` → "formula unreadable / unknown DSL keyword" and "`key not found: \"HOMEBREW_ORIGINAL_BREW_FILE\"`" before adding any `brew-src` override.
@@ -141,11 +143,13 @@ Prefix commit titles based on which hosts are affected:
 
 After any `just switch` or nix eval, report all warnings to the user — don't silently ignore them.
 
-**Except these, which are known, accepted, and must not be reported again.** They are permanent facts about this setup, not new information; repeating them is noise.
+**Except the accepted ones, which must not be reported again.** They are listed in `hosts/shared/accepted-warnings.txt`, each with its reason; read that file before reporting. They are permanent facts about this setup, not new information; repeating them is noise. Do not raise them, and do not suggest migrations or workarounds for them unless explicitly asked.
 
-- `Nixpkgs 26.05 will be the last release to support x86_64-darwin` — emitted by any eval of the MBP2018 (Intel) configuration. Upstream nixpkgs is dropping x86_64-darwin; that machine stops receiving updates when it does. Nothing can be done about it from this repo, the decision is understood and accepted, and there is no action to propose. Do not raise it, and do not suggest migrations or workarounds for it unless explicitly asked.
+That file is also what silences a warning in the unattended rebuilds (see "How auto-updates work"), so accepting a warning is one entry there, never a second list here.
+
+One exception lives here and not in the file, because it is expected in a session and would be worth hearing about from an unattended run:
+
 - `Git tree '...' is dirty` — expected whenever the working tree has uncommitted changes, which is normal mid-task.
-- `continuation.bundle: warning: callcc is obsolete` — harmless Ruby noise from the nix-built brew; see `agents/instructions/troubleshooting.md`.
 
 Genuinely new warnings still get reported.
 
