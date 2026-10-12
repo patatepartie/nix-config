@@ -32,6 +32,8 @@ Read the relevant section below before answering or running commands. The repo's
 | "would like to receive keystrokes", Input Monitoring prompt during a rebuild | `agents/instructions/troubleshooting.md` — `hidutil` key remap, blamed on the terminal; deny it; 2018 host only |
 | playwright, chrome won't start, stuck browser process        | `agents/instructions/troubleshooting.md` — chromium is the configured default; kill-all leaves orphans |
 | git "insufficient permission for adding an object"          | `agents/instructions/troubleshooting.md` — root-owned object from `sudo darwin-rebuild`; user runs `chown` |
+| changing or testing the auto-update scripts, forcing an unattended run, `just test` | `agents/instructions/testing-auto-update-scripts.md` |
+| a Telegram message about warnings from a rebuild, accepting a warning | "How auto-updates work" (below) → "Each run reports the warnings it does not know about" |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
 
@@ -66,7 +68,7 @@ There are two independent mechanisms.
 
 **A run that looks successful may have applied only half the config.** On the MacBooks, exit status 0 does not mean the run finished — the daemon can be killed mid-activation, silently skipping the Homebrew phase and home-manager. Check the log ends with `Update complete`, not `reloading service org.nixos.nix-auto-update`. See `agents/instructions/troubleshooting.md`.
 
-**Each run reports the warnings it does not know about.** After the rebuild, the script sends on Telegram every warning in the rebuild's output that matches no entry of `hosts/shared/accepted-warnings.txt`, and it does so again after every later rebuild until the warning is fixed or accepted. To accept one, add an entry to that file and push: each host reads the list from the checkout it has just reset to `main`, so the entry takes effect on the run that pulls it. The filter is `hosts/shared/unknown-warnings.nix`.
+**Each run reports the warnings it does not know about.** After the rebuild, the script sends on Telegram every warning in the rebuild's output that matches no entry of `hosts/shared/accepted-warnings.txt`, and it does so again after every later rebuild until the warning is fixed or accepted. To accept one, add an entry to that file and push: each host reads the list from the checkout it has just reset to `main`, so the entry takes effect on the run that pulls it. The filter is `hosts/shared/unknown-warnings.nix`. Why it works this way, and what it does not catch, is in `agents/docs/adr/0001-report-unknown-warnings-from-unattended-rebuilds.md`.
 
 **To force an immediate update on every host:** run `just upgrade` locally, then commit and push `flake.lock`. Each host's daemon will pick the new commit up on its next scheduled run. To skip the wait, also run `just switch` (or the underlying `darwin-rebuild` / `nixos-rebuild switch`) on each host. `just upgrade` alone only fixes the machine you ran it on.
 
