@@ -93,7 +93,7 @@ in
     description = "Daily flake.lock update";
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      # Half an hour ahead of the rebuilds in hosts/*/auto-update.nix, so they apply today's lock.
+      # Half an hour ahead of the rebuilds in hosts/shared/darwin-auto-update.nix and ./auto-update.nix, so they apply today's lock.
       OnCalendar = "*-*-* 07:00:00 Asia/Tokyo";
       Persistent = true;
     };

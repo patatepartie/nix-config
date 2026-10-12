@@ -52,9 +52,8 @@ There are two independent mechanisms.
 **The deploy key is created on the server, never in the repo.** On its first run the service generates `/var/lib/nix-flake-update/id_ed25519`, prints the public key to its journal and exits. Register it with `gh repo deploy-key add <file> --allow-write --title home-server` (public key from `ssh home-server.local journalctl -u nix-flake-update --no-pager`). Until then every run fails at the clone and notifies on Telegram. To rotate it or recover from a leak: delete the deploy key on GitHub, delete the file on the server (as root), run the service once, and register the new key.
 
 **2. System rebuild (launchd / systemd, per host).** Defined in:
-- `hosts/2023-macbook-pro/modules/auto-update.nix`
-- `hosts/2018-macbook-pro/modules/auto-update.nix`
-- `hosts/home-server/auto-update.nix` (note: no `modules/` segment — the home-server tree is flatter)
+- `hosts/shared/darwin-auto-update.nix` (one module, imported by both MacBooks)
+- `hosts/home-server/auto-update.nix`
 
 | Host           | Schedule (exact time in the module)                 | Action                                                    |
 |----------------|-----------------------------------------------------|-----------------------------------------------------------|

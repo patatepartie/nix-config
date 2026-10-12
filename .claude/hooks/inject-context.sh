@@ -9,7 +9,7 @@ prompt=$(jq -r '.prompt // empty')
 context=""
 
 if echo "$prompt" | grep -qiE 'auto[- ]?update|cron|launchd|systemd timer|scheduled rebuild|update lag'; then
-  context="${context}- For auto-update questions: read agents/instructions/working-in-this-repo.md section 'How auto-updates work' before answering. The two mechanisms (a home-server systemd timer for flake.lock, launchd/systemd for darwin-rebuild/nixos-rebuild) live in hosts/home-server/flake-update.nix and hosts/<host>/modules/auto-update.nix (or hosts/home-server/auto-update.nix).
+  context="${context}- For auto-update questions: read agents/instructions/working-in-this-repo.md section 'How auto-updates work' before answering. The two mechanisms (a home-server systemd timer for flake.lock, launchd/systemd for darwin-rebuild/nixos-rebuild) live in hosts/home-server/flake-update.nix and hosts/shared/darwin-auto-update.nix (or hosts/home-server/auto-update.nix).
 "
 fi
 
