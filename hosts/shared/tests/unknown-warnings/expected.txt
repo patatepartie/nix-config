@@ -1,0 +1,5 @@
+evaluation warning: The default value of `programs.git.signing.format` has changed from `"openpgp"` to `null`.
+                    To silence this warning and keep legacy behavior, set:
+                      programs.git.signing.format = "openpgp";
+warning: not applying UID change of user 'gdm-greeter-2' (60578 -> 60579) in /etc/passwd
+WARNING: upper case, with an & and a 100% in it

@@ -1,0 +1,12 @@
+building the system configuration...
+evaluation warning: The default value of `programs.git.signing.format` has changed from `"openpgp"` to `null`.
+                    To silence this warning and keep legacy behavior, set:
+                      programs.git.signing.format = "openpgp";
+evaluation warning: An accepted warning, version 1.2.3
+                    with a continuation line that is dropped with it.
+building '/nix/store/abc-warnings-1.0.drv'...
+warning: not applying UID change of user 'gdm-greeter-2' (60578 -> 60579) in /etc/passwd
+warning: not applying UID change of user 'gdm-greeter-2' (60578 -> 60579) in /etc/passwd
+some-tool: warning: accepted noise in the middle of a line
+WARNING: upper case, with an & and a 100% in it
+setting up /etc...

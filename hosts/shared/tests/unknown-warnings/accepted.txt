@@ -1,0 +1,4 @@
+# A comment line is not an entry, even though the output contains the word warning.
+
+An accepted warning, version
+accepted noise

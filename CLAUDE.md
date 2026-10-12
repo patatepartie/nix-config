@@ -16,6 +16,7 @@ Day-to-day operations go through `just` recipes (run `just --list` to see all of
 ```bash
 just switch    # Apply configuration for the current machine
 just build     # Build without applying
+just test      # Run the unit tests in hosts/shared/tests
 just update    # Update flake inputs (nix flake update)
 just upgrade   # update + switch
 ```

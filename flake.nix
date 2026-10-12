@@ -66,5 +66,11 @@
     nixosConfigurations = {
       home-server = import ./hosts/home-server { inherit inputs nixpkgs home-manager; };
     };
+
+    checks = nixpkgs.lib.genAttrs [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ] (system:
+      import ./hosts/shared/tests {
+        pkgs = (if system == "x86_64-darwin" then nixpkgs-x86-darwin else nixpkgs).legacyPackages.${system};
+      }
+    );
   };
 }
