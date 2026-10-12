@@ -4,6 +4,9 @@
 pkgs.writeShellScript "unknown-warnings" ''
   set -euo pipefail
 
+  # Byte semantics, so that undecodable output is passed through and the truncation below is predictable.
+  export LC_ALL=C
+
   ${pkgs.gawk}/bin/awk -v accepted="$2" '
     function flush(  i) {
       if (block == "") return
@@ -19,6 +22,7 @@ pkgs.writeShellScript "unknown-warnings" ''
 
     BEGIN {
       while ((getline line < accepted) > 0) {
+        sub(/[ \t\r]+$/, "", line)
         if (line != "" && line !~ /^#/) patterns[++count] = line
       }
     }
@@ -30,7 +34,12 @@ pkgs.writeShellScript "unknown-warnings" ''
     END {
       flush()
       # Telegram rejects a message longer than 4096 characters.
-      if (length(report) > 3000) report = substr(report, 1, 3000) "\n[truncated]\n"
+      if (length(report) > 3000) {
+        report = substr(report, 1, 3000)
+        # Drop a UTF-8 character cut in half, which Telegram would reject.
+        sub(/[\300-\377][\200-\277]*$/, "", report)
+        report = report "\n[truncated]\n"
+      }
       printf "%s", report
     }
   ' "$1"
