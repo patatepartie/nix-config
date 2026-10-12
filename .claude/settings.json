@@ -55,6 +55,9 @@
     ],
     "filesystem": {
       "allowWrite": ["~/.cache/nix"]
+    },
+    "network": {
+      "allowedDomains": ["channels.nixos.org"]
     }
   }
 }
