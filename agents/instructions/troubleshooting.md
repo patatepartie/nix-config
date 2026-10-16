@@ -114,6 +114,27 @@ Once the key is fixed, the vestigial directory is orphaned and safe to remove (`
 
 **When adding any new third-party tap**, write the key as `<owner>/homebrew-<name>` from the start. Only the `homebrew/*` taps look "unprefixed", and that is because their repos are genuinely named `homebrew-core` / `homebrew-cask` — those keys already carry the prefix.
 
+## `Untapping … Permission denied` after removing a tap
+
+**Symptom.** After a tap is dropped from `nix-homebrew.taps`, every `just switch` prints, after `brew bundle`:
+
+```
+Untapping hashicorp/tap...
+Error: Permission denied @ apply2files - /opt/homebrew/Library/Taps/hashicorp/homebrew-tap/NOTICES.txt
+```
+
+The switch still succeeds, and `brew tap` keeps listing the tap. Formulae from the tap are uninstalled normally.
+
+**Cause.** nix-homebrew copies declared taps into `/opt/homebrew/Library/Taps/` during `sudo darwin-rebuild`, so their files are root-owned and read-only. When the tap is no longer declared, nix-homebrew leaves the directory in place, and `cleanup = "uninstall"` tries to untap it as the user, which cannot delete root-owned files. It retries on every activation, the unattended auto-update included.
+
+**Resolution.** The user runs, for the tap's owner directory:
+
+```sh
+sudo rm -rf /opt/homebrew/Library/Taps/<owner>
+```
+
+Remove only the dropped tap's directory, and only after the switch that removed it from the config. Verify with `brew tap`. Observed on 2026-10-16 with `hashicorp/homebrew-tap`.
+
 ## `just switch` fails: formula "unreadable" / unknown DSL keyword or method
 
 **Symptom.** `just switch` fails during `brew bundle`, with a formula reported as unreadable:

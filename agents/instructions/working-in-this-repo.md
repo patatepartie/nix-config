@@ -11,6 +11,7 @@ Read the relevant section below before answering or running commands. The repo's
 | brew / cask / homebrew                                      | "Homebrew" (below) — never run mutating brew commands              |
 | claude-code banner ("Update available")                     | `agents/instructions/troubleshooting.md`                           |
 | a tap package stuck at an old version, tap not updating     | `agents/instructions/troubleshooting.md` — check for a duplicate tap dir |
+| removing a tap, `Untapping … Permission denied`              | `agents/instructions/troubleshooting.md` — root-owned tap dir; user runs `sudo rm -rf` |
 | gascity / `gc`                                              | "gascity" (below)                                                  |
 | gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — fixed in gascity 1.5.0; onset is delayed |
 | gascity supervisor not restarting after an upgrade, "can run in the background" for `gc`, `OS_REASON_CODESIGNING` | `agents/instructions/troubleshooting.md` — `launchctl bootout` + `bootstrap`, not `kickstart` |
