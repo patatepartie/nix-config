@@ -224,6 +224,31 @@ This is intermittent — it only fires when the plist changes, which happens whe
 
 If you see this symptom again, first check the plist actually points at the current launcher (`plutil -p /Library/LaunchDaemons/org.nixos.nix-auto-update.plist`) — on the 2018 the fix had been committed but never applied, so the host was still running the old script. The diagnosis, the rejected `AbandonProcessGroup` approach (it governs orphaned children, not the job's own process — do not re-propose it), and both verification records are in `agents/docs/mbp-auto-update-self-kill.md`.
 
+## Auto-update fails after `No process to signal.` (macOS)
+
+**Symptom.** Telegram reports `darwin-rebuild switch failed`, and the run's output in `/var/log/nix-auto-update.log` ends with:
+
+```
+reloading nix-daemon...
+No process to signal.
+```
+
+A manual `just switch` of the same commit, run around the same time, succeeds. It may print `error (ignored): SQLite database '/private/var/root/.cache/nix/eval-cache-v6/<hash>.sqlite' is busy`.
+
+**Cause.** Two rebuilds ran at once: the unattended run and a manual `just switch`. When the update changes the nix-daemon's launchd plist (a Nix version bump does), the activation that gets there first unloads and reloads the daemon. If the other activation reaches nix-darwin's `launchctl kill HUP system/org.nixos.nix-daemon` (`modules/nix/default.nix`) inside that window, `launchctl` finds no process, exits 3, and `set -e` aborts that activation. The two runs share root's eval cache, hence the "busy" message, which is harmless.
+
+The overlap happens when a run is frozen by sleep and resumes as the user opens the laptop and runs `just switch`. The runner holds `caffeinate -is` for this reason, so on AC power a run started in a maintenance wake now finishes before the lid opens.
+
+**Resolution.** Nothing to repair: the manual switch applied the update. To confirm the overlap, look at launchd's log around the failure on the affected host; a `removing service: org.nixos.nix-daemon` initiated by `sudo` ← `just` ← the terminal is the manual switch:
+
+```sh
+/usr/bin/log show --start "<time>" --end "<time>" --predicate 'eventMessage CONTAINS "org.nixos.nix-daemon"' --style compact
+```
+
+A single system generation for that day does not rule out a manual switch: a second rebuild of the same commit produces the same system and adds no generation.
+
+**Seen** on the 2018 MacBook on 2026-10-16, before the runner held a sleep assertion.
+
 ## Home server unreachable after an auto-update; desktop session gone
 
 **Symptom.** The home server stops answering SSH and mDNS, often hours after a daily update, and needs a physical power-button press to come back. On return it shows the GDM login screen (unanswerable — no keyboard is attached). Shaking the attached mouse produces no display activity. `nix-auto-update.service` failed with exit code 1 and `switch-to-configuration` returned **4**; a Telegram alert *was* sent.
