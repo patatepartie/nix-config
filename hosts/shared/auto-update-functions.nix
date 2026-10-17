@@ -13,6 +13,7 @@ in
   }
 
   notify_failure() {
+    log "Failed: $1"
     notify "nix auto-update failed on $HOSTNAME: $1"
   }
 

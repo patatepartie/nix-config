@@ -21,7 +21,7 @@ let
     RUN_ID="$1"
 
     ${functions}
-    trap 'notify_failure "unexpected error on line $LINENO"' ERR
+    trap 'rm -f ${markerFile}; notify_failure "unexpected error on line $LINENO"' ERR
 
     if [ -f ${markerFile} ]; then
       PREVIOUS=$(cat ${markerFile})
@@ -60,6 +60,7 @@ let
     report_warnings ${switchLog}
 
     if [ "$switch_status" -ne 0 ]; then
+      rm -f ${markerFile}
       notify_failure "darwin-rebuild switch failed ($BEFORE -> $AFTER)"
       exit 1
     fi
