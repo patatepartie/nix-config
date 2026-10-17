@@ -35,6 +35,7 @@ nix-darwin.lib.darwinSystem {
 
     ./modules/apps
     ./modules/host-users.nix
+    ./modules/remote-login.nix
 
     home-manager.darwinModules.home-manager
     {
