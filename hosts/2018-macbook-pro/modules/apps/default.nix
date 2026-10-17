@@ -4,6 +4,5 @@
     ./brews.nix
     ./casks.nix
     ./mas.nix
-    ./vscode.nix
   ];
 }

@@ -65,19 +65,7 @@
             app = "/Applications/Google Chrome.app";
           }
           {
-            app = "/Applications/Firefox.app";
-          }
-          {
-            app = "/Applications/Slack.app";
-          }
-          {
             app = "/Applications/Ghostty.app";
-          }
-          {
-            app = "/Applications/Obsidian.app";
-          }
-          {
-            app = "/Applications/Spotify.app";
           }
           {
             app = "/System/Applications/Utilities/Activity Monitor.app";

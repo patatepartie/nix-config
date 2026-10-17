@@ -4,15 +4,11 @@ in {
   homebrew.casks = [
     (greedy "gnucash")
     (greedy "google-drive")
-    (greedy "obsidian")
-    (greedy "spotify")
     (greedy "vlc")
-    (greedy "windows-app")
   ] ++ [
     "claude-code"
-    "firefox"
+    "coteditor"
     "ghostty"
     "google-chrome"
-    "slack"
   ];
 }
