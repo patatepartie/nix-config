@@ -13,7 +13,7 @@
 
     home.activation.installPlaywrightBrowsers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       if [ -x /opt/homebrew/bin/playwright-cli ]; then
-        run /opt/homebrew/bin/playwright-cli install-browser chromium
+        run env NO_UPDATE_NOTIFIER=1 /opt/homebrew/bin/playwright-cli install-browser chromium
       fi
     '';
   };
