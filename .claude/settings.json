@@ -25,6 +25,14 @@
       "Bash(ssh home-server.local systemd-inhibit:*)",
       "Bash(ssh home-server.local uname:*)",
       "Bash(ssh home-server.local uptime:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local /usr/bin/log show:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local cat:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local darwin-rebuild --list-generations:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local ls:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local pmset -g:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local tail:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local uname:*)",
+      "Bash(ssh Cyrils-2018-MacBook-Pro.local uptime:*)",
       "Grep(//nix/store/**)",
       "Read(//nix/store/**)",
       "WebFetch(domain:discourse.nixos.org)",
@@ -52,7 +60,8 @@
       "just build",
       "just switch",
       "just upgrade",
-      "ssh home-server.local *"
+      "ssh home-server.local *",
+      "ssh Cyrils-2018-MacBook-Pro.local *"
     ],
     "filesystem": {
       "allowWrite": ["~/.cache/nix"]
