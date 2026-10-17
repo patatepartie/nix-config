@@ -9,7 +9,7 @@ This is a Nix flake-based configuration for managing multiple machines:
 - **Cyrils-2018-MacBook-Pro**: Intel macOS using nix-darwin
 - **home-server**: NixOS x86_64 Linux server
 
-Before diagnosing a host-specific problem, check which host this session runs on with `hostname -s` (not `scutil --get LocalHostName`, which can differ from the flake's host name). Only the home-server is reachable over SSH; for the other MacBook, ask the user to run the commands there and paste the output.
+Before diagnosing a host-specific problem, check which host this session runs on with `hostname -s` (not `scutil --get LocalHostName`, which can differ from the flake's host name). The home-server and, from the 2023 MacBook, the 2018 one are reachable over SSH; see "Remote machines" in `agents/instructions/working-in-this-repo.md`.
 
 ## Common Commands
 

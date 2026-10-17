@@ -20,7 +20,7 @@ Read the relevant section below before answering or running commands. The repo's
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
 | `brew bundle` "no bottle available" / "Tier 3", dylib not loaded in a brew binary, home-manager changes not applied | `agents/instructions/troubleshooting.md` — home-manager never runs; fix from the Nix side, never with brew |
 | `just switch` dies at "setting up Homebrew", `HOMEBREW_ORIGINAL_BREW_FILE` | `agents/instructions/troubleshooting.md` — nix-homebrew bug; reverting the pin does NOT help |
-| ssh / home-server commands, host unreachable, `.local` not resolving | "SSH to home-server.local" (below)                          |
+| ssh / home-server or 2018 MacBook commands, host unreachable, `.local` not resolving | "Remote machines" + "SSH to home-server.local" (below) |
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
 | MacBook auto-update failed after `No process to signal.`, eval-cache "is busy" | `agents/instructions/troubleshooting.md` — overlapped with a manual `just switch`; nothing to repair |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
@@ -169,7 +169,9 @@ Bash tool calls are sandboxed to a write allowlist that covers this repo and a f
 
 ## Remote machines
 
-Cannot run `sudo` over SSH to remote machines. When an operation needs sudo on the home server, tell the user what command to run rather than attempting it.
+Cannot run `sudo` over SSH to remote machines. When an operation needs sudo on the home server or the other MacBook, tell the user what command to run rather than attempting it.
+
+The 2018 MacBook is reachable from the 2023 one as `Cyrils-2018-MacBook-Pro.local` (Remote Login, key-only, declared in `hosts/2018-macbook-pro/modules/remote-login.nix`). Everything in "SSH to home-server.local" below applies to it unchanged: plain unquoted form, no flags, hostname not IP. It answers only while awake; "Connect to server" in Finder on the 2023 wakes it.
 
 ## SSH to home-server.local
 
