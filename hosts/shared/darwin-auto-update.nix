@@ -116,7 +116,7 @@ let
 
     RUN_ID="$(date '+%Y%m%dT%H%M%S')-$$"
 
-    ${detachHelper} ${runnerPath} "$RUN_ID" >> ${logFile} 2>&1
+    ${detachHelper} /usr/bin/caffeinate -is ${runnerPath} "$RUN_ID" >> ${logFile} 2>&1
   '';
 in
 {
