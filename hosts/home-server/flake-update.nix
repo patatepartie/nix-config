@@ -90,8 +90,9 @@ in
     description = "Daily flake.lock update";
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      # Half an hour ahead of the rebuilds in hosts/shared/darwin-auto-update.nix and ./auto-update.nix, so they apply today's lock.
-      OnCalendar = "*-*-* 07:00:00 Asia/Tokyo";
+      # Just ahead of the rebuilds in hosts/shared/darwin-auto-update.nix and ./auto-update.nix, so they apply today's lock.
+      # As late as that allows, because Homebrew's daily cask bumps mostly merge between 07:00 and 07:20 Tokyo time.
+      OnCalendar = "*-*-* 07:25:00 Asia/Tokyo";
       Persistent = true;
     };
   };
