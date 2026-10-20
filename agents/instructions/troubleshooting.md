@@ -53,6 +53,26 @@ Despite the "Upgraded" line, `brew info --cask <cask>` shows the old version `(d
 
 The app's user config (e.g. `~/.config/karabiner/`) is not touched by this process. After reinstall, macOS may prompt to re-approve a system extension if the app uses one.
 
+## Auto-update fails a cask upgrade: "a terminal is required to read the password"
+
+**Symptom.** The unattended rebuild on a MacBook fails at `brew bundle`, and the log ends in `Failed: darwin-rebuild switch failed`:
+
+```
+Upgrading google-drive has failed!
+`brew bundle` failed! 1 Brewfile dependency failed to install
+==> Uninstalling packages with `sudo` (which may request your password)...
+sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
+Error: google-drive: Failure while executing; `/usr/bin/sudo -u root -E -- /usr/bin/xargs -0 -- /bin/rm --` exited with 1.
+```
+
+Seen with `google-drive` on the 2018 MBP (2026-10-03, 2026-10-21). Any cask whose uninstall step removes pkg-installed files behaves the same.
+
+**Cause.** brew runs as the user, and the cask's uninstall step calls `sudo` to remove root-owned files from the old version's pkg. The auto-update has no terminal to answer the password prompt, so the upgrade aborts and the rest of activation (home-manager included) is skipped. The cask stays at the old version, so the failure repeats on every run until someone runs it interactively. Nothing in the config is wrong.
+
+**Resolution.** Run `just switch` in a terminal on the affected machine. It needs sudo, so on the other MacBook it is the user's to run.
+
+**Dead end.** A sudoers `NOPASSWD` rule for the command brew runs (`xargs -0 -- /bin/rm --`) would let anything running as the user delete any file as root. Don't add it.
+
 ## "Update available! Run: brew upgrade claude-code" banner persists
 
 **Symptom.** Every claude-code shell session prints `Update available! Run: brew upgrade claude-code`, even sessions that were just started, even after `just switch` ran.
