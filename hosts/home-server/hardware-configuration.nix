@@ -41,4 +41,8 @@
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
   hardware.xone.enable = true;
+  # Workaround: xpad-noone (wired Xbox 360 pads) ships no .ko.cer, which breaks
+  # aggregateModules (https://github.com/NixOS/nixpkgs/issues/575192).
+  # Drop once https://github.com/NixOS/nixpkgs/pull/576469 reaches the lock.
+  hardware.xpad-noone.enable = false;
 }
