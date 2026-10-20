@@ -26,6 +26,11 @@
       inputs.nixpkgs.follows = "nixpkgs-x86-darwin";
     };
 
+    # WORKAROUND: nixpkgs marks fabric broken with invoke >= 3 (fabric/fabric#2376), which
+    # breaks azure-cli's evaluation. Pinned to the last revision the 2023 MBP applied, so az
+    # comes from the binary cache. Drop once https://github.com/NixOS/nixpkgs/issues/575989 is fixed.
+    nixpkgs-azure.url = "github:nixos/nixpkgs/fe13242281a67641c0102cdb1087f0ebe586c7df";
+
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
 
     homebrew-core = {
