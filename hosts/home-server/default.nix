@@ -7,7 +7,6 @@ nixpkgs.lib.nixosSystem {
     ./configuration.nix
     ./auto-update.nix
     ./flake-update.nix
-    ./freerdp-nla-patch.nix
     home-manager.nixosModules.home-manager
     {
       home-manager.useGlobalPkgs = true;
