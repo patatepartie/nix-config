@@ -19,7 +19,7 @@ if echo "$prompt" | grep -qiE 'claude[- ]?code|update available|brew upgrade cla
 fi
 
 if echo "$prompt" | grep -qiE 'flake\.lock|flake input|pinned|brew-src|nixpkgs pin'; then
-  context="${context}- For pinned inputs and flake.lock freshness: agents/scripts/flake-input-freshness.sh [input-name] reports how far each locked input is behind its upstream default branch via the GitHub commits API. Any pin in flake.nix is a tracked workaround, not established practice — read the comment above the line for the open upstream issue and the trigger to drop the override.
+  context="${context}- For pinned inputs and flake.lock freshness: agents/scripts/flake-input-freshness.sh [--local] [input-name] reports how far each input locked on main is behind its upstream default branch via the GitHub commits API; --local checks the checkout's unpushed flake.lock instead. Any pin in flake.nix is a tracked workaround, not established practice — read the comment above the line for the open upstream issue and the trigger to drop the override.
 "
 fi
 
