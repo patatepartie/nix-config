@@ -249,6 +249,16 @@ A single system generation for that day does not rule out a manual switch: a sec
 
 **Seen** on the 2018 MacBook on 2026-10-16, before the runner held a sleep assertion.
 
+## An unscheduled "Upgrade flake" commit right after rescheduling the lock update (home-server)
+
+**Symptom.** A switch that changes the `OnCalendar` of `nix-flake-update.timer` (`hosts/home-server/flake-update.nix`) also starts `nix-flake-update.service`: the switch output lists it under "the following new units were started", and an "Upgrade flake" commit lands on `main` minutes later, outside the daily schedule.
+
+**Cause.** The timer is `Persistent = true`, so systemd keeps its last trigger time and computes the next one from it when it reloads the unit. If the new time of day has already passed since that last trigger, it is overdue and fires during activation. The journal shows the service starting before the switch restarts the timer itself.
+
+**Resolution.** Nothing to repair: the run is a normal lock update. Pull before editing, since your checkout is now behind `main`. The timer is back on its schedule afterwards; `systemctl list-timers nix-flake-update` shows the next run.
+
+**Seen** on 2026-10-20, when the lock update moved later in the morning and the switch ran after the new time had passed.
+
 ## Home server unreachable after an auto-update; desktop session gone
 
 **Symptom.** The home server stops answering SSH and mDNS, often hours after a daily update, and needs a physical power-button press to come back. On return it shows the GDM login screen (unanswerable — no keyboard is attached). Shaking the attached mouse produces no display activity. `nix-auto-update.service` failed with exit code 1 and `switch-to-configuration` returned **4**; a Telegram alert *was* sent.

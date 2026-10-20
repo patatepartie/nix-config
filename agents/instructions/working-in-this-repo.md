@@ -23,6 +23,7 @@ Read the relevant section below before answering or running commands. The repo's
 | ssh / home-server or 2018 MacBook commands, host unreachable, `.local` not resolving | "Remote machines" + "SSH to home-server.local" (below) |
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
 | MacBook auto-update failed after `No process to signal.`, eval-cache "is busy" | `agents/instructions/troubleshooting.md` — overlapped with a manual `just switch`; nothing to repair |
+| unexpected "Upgrade flake" commit after rescheduling the lock update | `agents/instructions/troubleshooting.md` — a persistent timer firing an overdue run; nothing to repair |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
 | trash won't empty, greyed-out Empty Trash, GNOME odd after an update | `agents/instructions/troubleshooting.md` — session outlives ~35 restarted user services |
 | Touch ID not offered for sudo, password modal instead        | `agents/instructions/troubleshooting.md` — unsigned PAM module; no fix, two dead ends already tested |
