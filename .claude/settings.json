@@ -1,6 +1,5 @@
 {
   "alwaysThinkingEnabled": false,
-  "autoMemoryEnabled": false,
   "enabledPlugins": {
     "code-review@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": false,
