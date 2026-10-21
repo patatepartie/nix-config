@@ -38,6 +38,7 @@ Read the relevant section below before answering or running commands. The repo's
 | git "insufficient permission for adding an object"          | `agents/instructions/troubleshooting.md` — root-owned object from `sudo darwin-rebuild`; user runs `chown` |
 | changing or testing the auto-update scripts, forcing an unattended run, `just test` | `agents/instructions/testing-auto-update-scripts.md` |
 | a Telegram message about warnings from a rebuild, accepting a warning | "How auto-updates work" (below) → "Each run reports the warnings it does not know about" |
+| checking a home-server change builds, from a Mac            | "Remote machines" (below) — `--store ssh-ng://`, never rsync the tree |
 | a nixpkgs package fails to evaluate or build, "Refusing to evaluate package", marked broken | "How auto-updates work" (below) → "pin that package, not its dependencies" |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
@@ -179,6 +180,16 @@ Bash tool calls are sandboxed to a write allowlist that covers this repo and a f
 Cannot run `sudo` over SSH to remote machines. When an operation needs sudo on the home server or the other MacBook, tell the user what command to run rather than attempting it.
 
 The 2018 MacBook is reachable from the 2023 one as `Cyrils-2018-MacBook-Pro.local` (Remote Login, key-only, declared in `hosts/2018-macbook-pro/modules/remote-login.nix`). Everything in "SSH to home-server.local" below applies to it unchanged: plain unquoted form, no flags, hostname not IP. It answers only while awake; "Connect to server" in Finder on the 2023 wakes it.
+
+**Checking that a home-server change builds, before pushing.** The 2023 MBP cannot build x86_64-linux, but it can evaluate it. First evaluate locally, in the sandbox, which catches evaluation errors:
+```
+nix eval --raw .#nixosConfigurations.home-server.config.system.build.toplevel.drvPath
+```
+Then build on the server without copying the tree: evaluation stays on the Mac, and only the derivations go to the server's store, which builds them.
+```
+nix build --no-link --print-out-paths --eval-store auto --store ssh-ng://home-server.local .#nixosConfigurations.home-server.config.system.build.toplevel
+```
+This needs `dangerouslyDisableSandbox: true`: nix spawns its own `ssh`, which the `ssh home-server.local *` exclusion does not match, so inside the sandbox `.local` does not resolve. `patate` is not a trusted user on the server, and that is fine, because `.drv` files are content-addressed and an untrusted user may add them without signatures. It works from the uncommitted tree, but like any flake build it sees only tracked files, so `git add` new files first. It writes nothing on the server outside the Nix store, so there is nothing to clean up. Don't copy the tree there with rsync instead: that also needs the sandbox off, sends gitignored files along, and leaves a directory to delete. The same command against the 2018 MBP (`.#darwinConfigurations.Cyrils-2018-MacBook-Pro.system`, `ssh-ng://Cyrils-2018-MacBook-Pro.local`) has not been tried.
 
 ## SSH to home-server.local
 
