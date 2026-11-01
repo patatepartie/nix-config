@@ -100,6 +100,8 @@ Under `agents/scripts/`. Run from the repo root.
 
 Both scripts use only read-only public endpoints (GitHub and `formulae.brew.sh`), no auth required. Prefer running them over ad-hoc `curl`s to `raw.githubusercontent.com` or similar.
 
+**Reproduce a daemon's environment from `env -i`, not from your own shell.** The agent's shell is an interactive login environment and exports variables that a launchd job or a daemon's child never has, `__NIX_DARWIN_SET_ENVIRONMENT_DONE` among them, which makes `/etc/zshenv` skip its `PATH` reset. A test run from that shell can pass while the daemon fails. Start from `env -i HOME=$HOME USER=$USER …` and add only what the daemon's launch agent or unit sets.
+
 ## Docs and the context hook point at code, never copy it
 
 Do not restate a value that lives in code (a schedule, a version, a pin, a path) in `agents/instructions/`, `CLAUDE.md` or `.claude/hooks/inject-context.sh`. Name the file that defines it instead, and describe only what the code cannot say: the cadence, the reason, the constraint.
@@ -136,6 +138,8 @@ herdr handles this itself — one server writes `~/.config/herdr/sessions/<sessi
 **`bd` version skew used to cost CPU.** The Homebrew formula's unversioned `depends_on "beads"` lets `beads` drift ahead of the version `gc` was built against, which tripped gascity's strict `version_compat` gate and dropped it into fork-per-op mode — high CPU plus `✗ order-firing-current` in `gc doctor`. gascity v1.5.0 relaxes the gate; v1.4.2 and earlier do not. See `agents/instructions/troubleshooting.md` → "gascity burns CPU" before investigating; a plain `ps` snapshot will look innocent and mislead you.
 
 **A gascity or bd upgrade needs follow-up by hand.** Activation upgrades the formulae but does not touch the running city. The supervisor keeps the old binary, and restarting it needs a `launchctl bootout` + `bootstrap`; a bd upgrade can leave the city's databases on an older schema that blocks `gc start`. Both are in `agents/instructions/troubleshooting.md`.
+
+**Running `gc` from this repo.** Outside the city directory most commands fail with `not in a city directory`; pass `gc --city /Users/cyrilledru/Tech/pata-city …`, in that literal form, which is what `.claude/settings.json` allows without a prompt (`doctor`, `order check`, `rig list`, `session list`, `supervisor logs`). `gc start /Users/cyrilledru/Tech/pata-city` and `gc stop /Users/cyrilledru/Tech/pata-city` are allowed too: when the user says to start or stop the city, run them rather than handing them back. `gc *` and `tmux -L gascity *` are sandbox-excluded, because nearly every `gc` command writes to the city directory or talks to the supervisor's socket; a `python3 -c` loop that calls them is still sandboxed. The city's own beads carry the prefix `pc` and live in the `hq` Dolt database; `gc doctor` prints the Dolt port. `curl http://127.0.0.1:<port>/health`, on the HTTP API port `gc doctor` reports, shows the version the supervisor is actually running, which differs from `gc version` until the supervisor is restarted after an upgrade.
 
 **It starts tmux servers on its own socket**, named by `[session].socket` in `city.toml`. This used to be hazardous — see "tmux session save/restore" above — but is now unremarkable, since tmux no longer loads any plugins.
 

@@ -10,6 +10,13 @@
   "permissions": {
     "allow": [
       "Bash(claude hooks:*)",
+      "Bash(gc --city /Users/cyrilledru/Tech/pata-city doctor:*)",
+      "Bash(gc --city /Users/cyrilledru/Tech/pata-city order check:*)",
+      "Bash(gc --city /Users/cyrilledru/Tech/pata-city rig list:*)",
+      "Bash(gc --city /Users/cyrilledru/Tech/pata-city session list:*)",
+      "Bash(gc --city /Users/cyrilledru/Tech/pata-city supervisor logs:*)",
+      "Bash(gc start /Users/cyrilledru/Tech/pata-city)",
+      "Bash(gc stop /Users/cyrilledru/Tech/pata-city)",
       "Bash(just:*)",
       "Bash(nix-prefetch-url:*)",
       "Bash(nix:*)",
@@ -56,6 +63,8 @@
   },
   "sandbox": {
     "excludedCommands": [
+      "gc *",
+      "tmux -L gascity *",
       "just build",
       "just switch",
       "just upgrade",
