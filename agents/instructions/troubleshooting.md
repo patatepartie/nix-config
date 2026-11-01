@@ -480,6 +480,8 @@ Upgrading gascity alone is not enough. The supervisor keeps running the old bina
 
 If the symptom ever returns on v1.5.0 or later, the gate is no longer the explanation by itself: check the supervisor log for `native_store_unavailable` and read its reason. Do not chase this by pinning or hand-installing beads at an older version: the redundant `"beads"` entry in `hosts/2023-macbook-pro/modules/apps/brews.nix` is a deliberate transitive-dep marker, and downgrading it would fight the formula on every update. `GC_BEADS_FORCE_FALLBACK` is not a workaround; it forces the slow path rather than avoiding it.
 
+**A running city costs CPU even when idle, and that is not this bug.** With no `native_store_unavailable` in the log, `dolt sql-server` still averages roughly a third of a core, in bursts up to 200%, and `gc supervisor run` a few percent more. That is the scheduled orders: every one leaves an order-tracking bead (about 9,000 a day, kept 7 days), and `jsonl-export` dumps the whole store and pushes it every ~10 minutes. Measure it as CPU time over minutes (`ps -o time=` twice), not one `top` sample. The user's choice so far is to `gc stop ~/Tech/pata-city` when not working in the city, rather than tune the orders.
+
 ## gascity supervisor will not restart after a gascity upgrade
 
 **Symptom.** Homebrew has upgraded gascity (through `just switch` or the daily auto-update), and macOS shows a "can run in the background" notification for `gc`. The supervisor keeps running the old binary, because nothing restarts it: the launch agent `~/Library/LaunchAgents/com.gascity.supervisor.plist` was installed by `gc supervisor` itself, not by `brew services` or nix-darwin, so activation does not know it exists. `launchctl kickstart -k gui/501/com.gascity.supervisor` kills the old process, but the new one never comes up. `launchctl print gui/501/com.gascity.supervisor` shows `last exit reason = OS_REASON_CODESIGNING`, `job state = spawn failed`, and `needs LWCR update` in its properties.
@@ -513,6 +515,20 @@ Both need `dangerouslyDisableSandbox`. Confirm with `launchctl print` (`state = 
 6. `gc start ~/Tech/pata-city`, then `gc doctor --fix` and `gc doctor`.
 
 The supervisor retries a failed start on its own and can contend with a manual migration for the schema migration lock (`schema migration lock unavailable: timeout` in the log). If a start right after the migration still reports a missing column, check the columns with `gc bd sql --json "SHOW COLUMNS FROM leases"` and retry the start before migrating again.
+
+## gascity agent sessions time out at start, or die with `claude: not found`
+
+**Symptom.** `gc supervisor logs` repeats `session lifecycle: op=start … outcome=deadline_exceeded duration=1m0…s … fresh start after stale key: context deadline exceeded` for a pool such as `bd.dog`, every few minutes. `gc doctor` fails `order-firing-current` and `startup-health-episodes`. gascity 1.5.1 and later add `session died during startup` with `exec: claude: not found` and write the pane output to `.gc/sessions/<session>/start-stderr.log`; 1.5.0 shows only the timeout.
+
+**Cause.** gascity starts each session as `/bin/zsh -c "<command>"`, and nix-darwin's `/etc/zshenv` replaces `PATH` with `environment.systemPath` in every zsh, so the session never sees `/opt/homebrew/bin` unless that path is on the system path. Fixed on 2026-11-01 by adding it there; the reasoning and the rejected alternatives are in `agents/docs/adr/0002-put-homebrew-on-the-system-path.md`.
+
+**If it returns,** check what a session sees, from a shell stripped like the launch agent's:
+
+```sh
+env -i HOME=$HOME USER=$USER /bin/zsh -c 'echo $PATH; command -v gc claude'
+```
+
+A missing tool means it lives outside the system path (`~/.local/bin` and mise's directories are not on it). Do not fix it in `city.toml`: a `PATH` in `[providers.<name>].env` is overwritten by the same `/etc/zshenv`.
 
 ## GNOME misbehaves after a daily update: greyed-out "Empty Trash", audio gone, portals broken
 

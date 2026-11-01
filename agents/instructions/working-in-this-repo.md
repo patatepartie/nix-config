@@ -16,6 +16,7 @@ Read the relevant section below before answering or running commands. The repo's
 | gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — fixed in gascity 1.5.0; onset is delayed |
 | gascity supervisor not restarting after an upgrade, "can run in the background" for `gc`, `OS_REASON_CODESIGNING` | `agents/instructions/troubleshooting.md` — `launchctl bootout` + `bootstrap`, not `kickstart` |
 | gascity city won't start, `does not have column`, pending schema migrations | `agents/instructions/troubleshooting.md` — `gc bd migrate schema`, back up first |
+| gascity sessions time out at start, `claude: not found`, a tool missing in a non-interactive zsh | `agents/instructions/troubleshooting.md` — `/etc/zshenv` resets `PATH`; Homebrew is on `environment.systemPath` |
 | herdr high CPU, herdr server CPU time                        | `agents/instructions/troubleshooting.md` — expected, scales with live panes |
 | `just switch` / bundler error, formula unreadable, DSL keyword | `agents/instructions/troubleshooting.md` — bump the pin, never remove it |
 | `brew bundle` "no bottle available" / "Tier 3", dylib not loaded in a brew binary, home-manager changes not applied | `agents/instructions/troubleshooting.md` — home-manager never runs; fix from the Nix side, never with brew |

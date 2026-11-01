@@ -16,4 +16,8 @@
 
     taps = builtins.attrNames config.nix-homebrew.taps;
   };
+
+  # /etc/zshenv resets PATH to this in every zsh, so non-interactive shells
+  # never see the `brew shellenv` in home.nix. See ADR 0002.
+  environment.systemPath = [ "/opt/homebrew/bin" ];
 }
