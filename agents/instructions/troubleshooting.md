@@ -269,6 +269,22 @@ A single system generation for that day does not rule out a manual switch: a sec
 
 **Seen** on the 2018 MacBook on 2026-10-16, before the runner held a sleep assertion.
 
+## Auto-update fails: "Truncated tar archive" after a download warning (macOS)
+
+**Symptom.** Telegram reports an unknown warning and `darwin-rebuild switch failed`. The run's output in `/var/log/nix-auto-update.log` has a download retry, then an evaluation error while unpacking a Homebrew tap:
+
+```
+warning: unable to download 'https://cache.nixos.org/nar/<hash>.nar.zst': HTTP error 200 (curl error: Failure when receiving data from the peer); retrying from offset <n> …
+…
+error: cannot read file from tarball: Truncated tar archive detected while reading data
+```
+
+**Cause.** A flaky network during the fetch; nothing in the config. The cause of the slowness is unknown.
+
+**Resolution.** Re-run `just switch`; the same commit applies cleanly. Do not accept the warning in `hosts/shared/accepted-warnings.txt`: it tends to come with a real failure.
+
+**Seen** on MBP2023 on 2026-11-08: the run started at 07:39 and failed an hour later, so a download stalled for most of the run. If this recurs, the stall is the thing to investigate, and a single retry of the switch on a network error is the candidate fix.
+
 ## An unscheduled "Upgrade flake" commit right after rescheduling the lock update (home-server)
 
 **Symptom.** A switch that changes the `OnCalendar` of `nix-flake-update.timer` (`hosts/home-server/flake-update.nix`) also starts `nix-flake-update.service`: the switch output lists it under "the following new units were started", and an "Upgrade flake" commit lands on `main` minutes later, outside the daily schedule.

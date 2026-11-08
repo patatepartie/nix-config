@@ -25,6 +25,7 @@ Read the relevant section below before answering or running commands. The repo's
 | auto-update finished but changes missing, brew not applied  | `agents/instructions/troubleshooting.md`                           |
 | auto-update cask upgrade fails, "a terminal is required to read the password", google-drive | `agents/instructions/troubleshooting.md` — needs one interactive `just switch`; no config fix |
 | MacBook auto-update failed after `No process to signal.`, eval-cache "is busy" | `agents/instructions/troubleshooting.md` — overlapped with a manual `just switch`; nothing to repair |
+| auto-update fails with "Truncated tar archive", `unable to download` warning | `agents/instructions/troubleshooting.md` — flaky network; re-run `just switch`, record the recurrence |
 | unexpected "Upgrade flake" commit after rescheduling the lock update | `agents/instructions/troubleshooting.md` — a persistent timer firing an overdue run; nothing to repair |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
 | trash won't empty, greyed-out Empty Trash, GNOME odd after an update | `agents/instructions/troubleshooting.md` — session outlives ~35 restarted user services |
