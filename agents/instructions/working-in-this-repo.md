@@ -28,6 +28,7 @@ Read the relevant section below before answering or running commands. The repo's
 | auto-update fails with "Truncated tar archive", `unable to download` warning | `agents/instructions/troubleshooting.md` — flaky network; re-run `just switch`, record the recurrence |
 | unexpected "Upgrade flake" commit after rescheduling the lock update | `agents/instructions/troubleshooting.md` — a persistent timer firing an overdue run; nothing to repair |
 | server suspended / unreachable, GNOME session killed by update | `agents/instructions/troubleshooting.md`                        |
+| `cash22.local` / `transmission.local` unreachable in the browser, `ERR_ADDRESS_UNREACHABLE`, SSH/RDP still fine | `agents/instructions/troubleshooting.md` — Chrome updated under a running browser; restart Chrome, not the server |
 | trash won't empty, greyed-out Empty Trash, GNOME odd after an update | `agents/instructions/troubleshooting.md` — session outlives ~35 restarted user services |
 | Touch ID not offered for sudo, password modal instead        | `agents/instructions/troubleshooting.md` — unsigned PAM module; no fix, two dead ends already tested |
 | `als` missing an alias, alias not found in a running shell  | `agents/instructions/troubleshooting.md` — stale shell, or it's a function |

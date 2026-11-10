@@ -316,6 +316,25 @@ ssh home-server.local journalctl -b -1 --no-pager | grep -iE 'PM: suspend entry|
 
 `PM: suspend entry (deep)` followed later by `Waking up from system sleep state S3` means it slept. A clean `shutdown`/`reboot` pair in `last -x` immediately before a boot is consistent with a *graceful* power-button press, not a power cut.
 
+## Chrome cannot reach `cash22.local` / `transmission.local`: `ERR_ADDRESS_UNREACHABLE`
+
+**Symptom.** Chrome shows "This site can't be reached" with `ERR_ADDRESS_UNREACHABLE` for the home-server's `.local` sites, and for `http://192.168.0.17` too, while SSH and RDP to the server still work. It can start mid-session, with nothing changed on the server.
+
+**Cause.** macOS Local Network privacy, not the network. Chrome updates itself on disk while the running browser keeps the old build. nehelper (the daemon that enforces Local Network permissions) keeps a cache of the allowed apps' executable UUIDs; when it rebuilds that cache, which can be triggered by an unrelated app, it reads the new build from disk, and the old running processes stop matching. Their local connections then fail at once with `EHOSTUNREACH`. Turning Chrome off and on in System Settings → Privacy & Security → Local Network only rebuilds the cache from disk again, so it does not help.
+
+**Diagnosis.** Rule out the server first: from an unsandboxed Bash call, `/usr/bin/curl -sS -o /dev/null -w "%{http_code}\n" http://cash22.local/` should return 200. Apple's `/usr/bin` binaries are exempt from the check, so they succeed where the browser fails; the Nix `curl` on `PATH` is not exempt and can fail with `No route to host`, so don't use it to judge the server. Then compare Chrome's builds, also unsandboxed since the sandbox refuses `ps`:
+
+```sh
+ls "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/"
+ps -axo lstart,comm | grep "Google Chrome Framework"
+```
+
+Two version directories, with the running processes under the one that `Current` does not point to, confirm it. The cache rebuild shows in `log show --last 1h --predicate 'process == "nehelper"'` as `Clearing cached UUIDs and restarting session`.
+
+**Resolution.** Restart Chrome (`chrome://restart` reopens the tabs).
+
+**Seen** on MBP2023 on 2026-11-10: Chrome updated on disk at 07:59 but kept working until a Spotify prompt made nehelper rebuild its cache at 21:10. Starting gascity around the same time was a coincidence.
+
 ## Touch ID for sudo stops working after a macOS update (Intel/T2)
 
 **Symptom.** sudo asks for a password instead of offering Touch ID — an **OS modal prompting for the password**, not a silent terminal prompt. It had been working on this machine, and still works on the other MacBook. Config is unchanged. Observed on the 2018 MBP after the macOS 15.7.9 update (2026-08-02); Touch ID for *unlock* and Apple Pay still work fine.
