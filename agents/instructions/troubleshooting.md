@@ -65,7 +65,7 @@ sudo: a terminal is required to read the password; either use the -S option to r
 Error: google-drive: Failure while executing; `/usr/bin/sudo -u root -E -- /usr/bin/xargs -0 -- /bin/rm --` exited with 1.
 ```
 
-Seen with `google-drive` on the 2018 MBP (2026-10-03, 2026-10-21). Any cask whose uninstall step removes pkg-installed files behaves the same.
+Seen with `google-drive` on the 2018 MBP (2026-10-03, 2026-10-21) and on both MacBooks (2026-11-12). Any cask whose uninstall step removes pkg-installed files behaves the same.
 
 **Cause.** brew runs as the user, and the cask's uninstall step calls `sudo` to remove root-owned files from the old version's pkg. The auto-update has no terminal to answer the password prompt, so the upgrade aborts and the rest of activation (home-manager included) is skipped. The cask stays at the old version, so the failure repeats on every run until someone runs it interactively. Nothing in the config is wrong.
 
