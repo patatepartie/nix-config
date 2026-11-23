@@ -32,6 +32,9 @@
     nixpkgs-azure.url = "github:nixos/nixpkgs/fe13242281a67641c0102cdb1087f0ebe586c7df";
 
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    # brew 7.0.11 (nix-homebrew's own pin) lacks BottleSpecification#manifest_sha256, which homebrew-core bottle blocks now use.
+    # Drop once nix-homebrew's brew-src is at least 7.0.15.
+    nix-homebrew.inputs.brew-src.url = "github:Homebrew/brew/7.0.15";
 
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
