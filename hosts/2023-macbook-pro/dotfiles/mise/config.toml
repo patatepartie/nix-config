@@ -5,3 +5,11 @@ trusted_config_paths = [ "~/Tech/Perso/cash22", "~/Tech/Bespoke/beall" ]
 
 [tools]
 node = "24"
+
+# Claude Code's ruby-lsp plugin runs the ruby-lsp gem of the project's Ruby, so every new Ruby needs it.
+[hooks]
+postinstall = '''
+printf '%s' "$MISE_INSTALLED_TOOLS" | jq -r '.[] | select(.name == "ruby") | .install_path' | while read -r ruby_path; do
+  "$ruby_path/bin/gem" install ruby-lsp
+done
+'''
