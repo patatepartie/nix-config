@@ -42,6 +42,13 @@
         };
       };
 
+      # Lets the App Store update mas apps as root, before the unattended rebuild meets them and fails on mas's sudo prompt.
+      CustomSystemPreferences = {
+        "/Library/Preferences/com.apple.commerce" = {
+          AutoUpdate = true;
+        };
+      };
+
       ActivityMonitor = {
         IconType = 6;
         OpenMainWindow = true;
@@ -83,7 +90,7 @@
             app = "/Applications/VLC.app";
           }
           {
-            app = "/Applications/Windows App.app";
+            app = "/Applications/GarageBand.app";
           }
         ];
 

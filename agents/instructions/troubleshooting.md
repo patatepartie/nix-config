@@ -73,6 +73,18 @@ Seen with `google-drive` on the 2018 MBP (2026-10-03, 2026-10-21) and on both Ma
 
 **Dead end.** A sudoers `NOPASSWD` rule for the command brew runs (`xargs -0 -- /bin/rm --`) would let anything running as the user delete any file as root. Don't add it.
 
+**Same failure from a Mac App Store app.** An app declared in `homebrew.masApps` fails the same way when the App Store has a new version of it, because `mas` runs the package installer through `sudo`:
+
+```
+Installing GarageBand
+sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
+Installing GarageBand has failed!
+```
+
+The app is **not** missing. `brew bundle` labels every `mas` action "Installing", upgrades included, so the log reads like a reinstall. Seen with GarageBand on the 2018 MBP (2026-04-24, 2026-11-20 and 2026-11-21), once per GarageBand release. `/var/log/install.log` on the host shows when the update finally went in. The resolution is the same interactive `just switch`.
+
+To make it rarer, the 2018 MBP turns on the App Store's own automatic app updates (`CustomSystemPreferences` in `hosts/2018-macbook-pro/modules/system.nix`), which install as root without a prompt. That only narrows the window: a release the App Store has not installed yet when the rebuild runs still fails it.
+
 ## "Update available! Run: brew upgrade claude-code" banner persists
 
 **Symptom.** Every claude-code shell session prints `Update available! Run: brew upgrade claude-code`, even sessions that were just started, even after `just switch` ran.
