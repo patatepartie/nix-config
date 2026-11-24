@@ -191,32 +191,6 @@
     };
   };
 
-  systemd.services.avahi-publish-cash22 = {
-    description = "Publish cash22.local mDNS address";
-    after = [ "avahi-daemon.service" "network-online.target" ];
-    requires = [ "avahi-daemon.service" ];
-    wants = [ "network-online.target" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.avahi}/bin/avahi-publish -a -R cash22.local 192.168.0.17";
-      Restart = "on-failure";
-      RestartSec = "5s";
-    };
-  };
-
-  systemd.services.avahi-publish-transmission = {
-    description = "Publish transmission.local mDNS address";
-    after = [ "avahi-daemon.service" "network-online.target" ];
-    requires = [ "avahi-daemon.service" ];
-    wants = [ "network-online.target" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.avahi}/bin/avahi-publish -a -R transmission.local 192.168.0.17";
-      Restart = "on-failure";
-      RestartSec = "5s";
-    };
-  };
-
   # Serves the Transmission web UI at a bare http://transmission.local, with no
   # :9091. Port 80 is held by kamal-proxy, which routes by Host header, so the
   # UI is added there as a second service rather than by standing up a competing
