@@ -1,7 +1,7 @@
 [settings]
 experimental = true
 idiomatic_version_file_enable_tools = ["ruby"]
-trusted_config_paths = [ "~/Tech/Perso/cash22", "~/Tech/Bespoke/beall" ]
+trusted_config_paths = [ "~/Tech/Perso/cash22", "~/Tech/Perso/pata-track", "~/Tech/Bespoke/beall" ]
 
 [tools]
 node = "24"
