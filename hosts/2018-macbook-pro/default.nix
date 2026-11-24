@@ -13,6 +13,7 @@ nix-darwin.lib.darwinSystem {
     ./modules/nix-core.nix
     ./modules/system.nix
     ../shared/darwin-auto-update.nix
+    ../shared/vlc-default-player.nix
 
     nix-homebrew.darwinModules.nix-homebrew {
       nix-homebrew = {
