@@ -717,6 +717,22 @@ hdiutil detach /dev/diskN
 
 `hdiutil detach` needs `dangerouslyDisableSandbox: true` — it fails with `Operation not permitted` inside the sandbox. Then re-run `just switch`; the cask reinstalls from the cached DMG. Check `ls /Applications` for the app before assuming the run only failed cosmetically.
 
+## `just switch` fails after `brew bundle` complete: "Refusing to uninstall … because it is required by …"
+
+**Symptom.** `brew bundle` upgrades a formula and reports `complete!`, then its cleanup fails and the switch exits 1 before home-manager runs:
+
+```
+Error: Refusing to uninstall /opt/homebrew/Cellar/<dep>/<version>
+because it is required by <formula>, which is currently installed.
+Error: Failed to uninstall formulae. Some may have been removed.
+```
+
+**Cause.** A Homebrew bug, triggered when the upgrade of a declared formula brings in a dependency its previous install did not have. `brew bundle` runs the upgrade as a separate `brew upgrade` process and does not clear its own in-memory cache of install receipts afterwards (its reinstall path does; `upgrade_formula!` in `Library/Homebrew/bundle/brew.rb` does not). The cleanup that follows (`homebrew.onActivation.cleanup = "uninstall"`) reads the cached receipt of the old version, finds no formula that needs the new dependency, and tries to uninstall it; `brew uninstall` refuses because the new version needs it.
+
+**Resolution.** Re-run `just switch`. The new process reads the fresh receipt, keeps the dependency, and home-manager runs. Never uninstall the dependency by hand. On an unattended run the failure fixes itself on the next day's run, but that day's home-manager changes are missing until then.
+
+**Seen** on MBP2023 on 2026-11-25, when `yt-dlp` 2026.11.23 brought in `curl-impersonate`.
+
 ## `just switch` fails at `brew bundle` with "no bottle available" / "Tier 3 configuration"
 
 **Symptom.** Every `just switch` and every daily auto-update fails during `Homebrew bundle...`, with several formulae printing:
