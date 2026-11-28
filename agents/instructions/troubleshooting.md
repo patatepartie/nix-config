@@ -527,7 +527,7 @@ Upgrading gascity alone is not enough. The supervisor keeps running the old bina
 
 If the symptom ever returns on v1.5.0 or later, the gate is no longer the explanation by itself: check the supervisor log for `native_store_unavailable` and read its reason. Do not chase this by pinning or hand-installing beads at an older version: the redundant `"beads"` entry in `hosts/2023-macbook-pro/modules/apps/brews.nix` is a deliberate transitive-dep marker, and downgrading it would fight the formula on every update. `GC_BEADS_FORCE_FALLBACK` is not a workaround; it forces the slow path rather than avoiding it.
 
-**A running city costs CPU even when idle, and that is not this bug.** With no `native_store_unavailable` in the log, `dolt sql-server` still averages roughly a third of a core, in bursts up to 200%, and `gc supervisor run` a few percent more. That is the scheduled orders: every one leaves an order-tracking bead (about 9,000 a day, kept 7 days), and `jsonl-export` dumps the whole store and pushes it every ~10 minutes. Measure it as CPU time over minutes (`ps -o time=` twice), not one `top` sample. The user's choice so far is to `gc stop ~/Tech/pata-city` when not working in the city, rather than tune the orders.
+**A running city costs CPU even when idle, and that is not this bug.** With no `native_store_unavailable` in the log, `dolt sql-server` still averages roughly a third of a core, in bursts up to 200%, and `gc supervisor run` a few percent more. That is the scheduled orders: every one leaves an order-tracking bead (about 9,000 a day, kept 7 days), and `jsonl-export` dumps the whole store and pushes it on the order's cooldown (`gc order list`). Measure it as CPU time over minutes (`ps -o time=` twice), not one `top` sample. The user's choice so far is to `gc stop ~/Tech/pata-city` when not working in the city, rather than tune the orders.
 
 ## gascity supervisor will not restart after a gascity upgrade
 
@@ -550,16 +550,14 @@ Both need `dangerouslyDisableSandbox`. Confirm with `launchctl print` (`state = 
 
 **Symptom.** `gc start <city-dir>` fails at `init city beads` with `table "i" does not have column "row_lock"` or `table "leases" does not have column "granted_node"`, and the supervisor log shows `native_store_unavailable ... refusing to auto-apply N pending schema migrations to a shared server database`. `gc doctor` fails or skips every store-backed check with the same column errors.
 
-**Cause.** The city's Dolt databases were last written by an older bd, and the current bd needs a newer schema. bd normally migrates on open, but refuses on a shared Dolt server (it would lock out co-resident clients on the old schema) and on a database with a Dolt remote (two clones migrating independently fork the schema). Both apply here: the city's `hq` and the rig's `cash22` share gc's Dolt server, and `cash22` pushes to GitHub. `bd migrate --inspect` shows the bd version that last wrote each database.
+**Cause.** The city's Dolt databases were last written by an older bd, and the current bd needs a newer schema. bd normally migrates on open, but refuses on a shared Dolt server (it would lock out co-resident clients on the old schema) and on a database with a Dolt remote (two clones migrating independently fork the schema). The first applies here: `hq`, `cash22` and `pt` all share gc's Dolt server. None has a Dolt remote any more (see "Beads and backup" in `working-in-this-repo.md`); if one is ever re-added, its migration needs `bd migrate schema --force` from the single machine that migrates it, then `bd dolt push`. `bd migrate --inspect` shows the bd version that last wrote each database.
 
 **Fix.** Migrate through `gc bd`, which supplies the Dolt port; a bare `bd -C <dir>` fails with `Dolt server unreachable at 127.0.0.1:0`. The Dolt server must be running, and `gc start` brings it up even when the beads init then fails.
 
 1. Back up first: `tar` the city's `.beads` and every rig's `.beads`. Do it before anything runs the new bd against the stores — even `bd export` can trigger the migration, which makes its output useless as a pre-upgrade backup.
-2. `gc --city ~/Tech/pata-city bd migrate schema`
-3. `gc --city ~/Tech/pata-city --rig cash22 bd migrate schema --force` — `--force` declares this machine the single migrator for the remote-backed database.
-4. `gc --city ~/Tech/pata-city --rig cash22 bd dolt push` to publish the migrated schema.
-5. `bd recompute-blocked` on each database (`gc --city ~/Tech/pata-city bd recompute-blocked`, then with `--rig cash22`). The beads 1.3 upgrade notes prescribe it after a migration so a stale `is_blocked` flag cannot hide ready work; it is idempotent.
-6. `gc start ~/Tech/pata-city`, then `gc doctor --fix` and `gc doctor`.
+2. `gc --city ~/Tech/pata-city bd migrate schema`, then the same with `--rig cash22` and `--rig pata-track`. On a shared server with no remote, the plain command is the consent bd asks for; `--force` is only for a remote-backed database.
+3. `bd recompute-blocked` on each database (`gc --city ~/Tech/pata-city bd recompute-blocked`, then with `--rig cash22` and `--rig pata-track`). The beads 1.3 upgrade notes prescribe it after a migration so a stale `is_blocked` flag cannot hide ready work; it is idempotent.
+4. `gc start ~/Tech/pata-city`, then `gc doctor --fix` and `gc doctor`.
 
 The supervisor retries a failed start on its own and can contend with a manual migration for the schema migration lock (`schema migration lock unavailable: timeout` in the log). If a start right after the migration still reports a missing column, check the columns with `gc bd sql --json "SHOW COLUMNS FROM leases"` and retry the start before migrating again.
 

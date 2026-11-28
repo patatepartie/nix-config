@@ -169,16 +169,18 @@ A session in `gc --city /Users/cyrilledru/Tech/pata-city session list` is theref
 
 **Beads and backup.** Issue data lives in Dolt databases under `~/Tech/pata-city/.beads/dolt/`, one per bead prefix: `hq` (the city's own, `pc`), `cash22` and `pt` (pata-track).
 Adopting cash22 into the city on 2026-05-11 moved its data out of the cash22 git repo and added `.beads/*` to its `.gitignore`, which silently ended the GitHub backup that had been working.
-Two backups replace it:
-- **A JSONL archive, automatic.** The supervisor runs gascity's `jsonl-export` exec order, which exports every database with `gc bd export` into `~/Tech/pata-city/.gc/runtime/packs/maintenance/jsonl-archive`, a git repo, and commits and pushes it to `github.com/patatepartie/pata-city-archive`.
-  A run in which nothing changed makes no commit, so the archive's log is sparser than the order's cooldown.
-  `gc --city /Users/cyrilledru/Tech/pata-city order history jsonl-export` lists the runs; a snapshot restores with `gc bd import <file>`.
-- **Dolt remotes, manual.** `cash22` and `pt` each push to their rig's GitHub repo, since Dolt supports git remotes natively; `hq` has no remote.
-  **`dolt push` is manual.**
-  gascity's `dolt-remotes-patrol` order runs `gc dolt sync` on a cooldown, but `sync` skips every database whose remotes are not `file://` unless `GC_DOLT_REMOTE_<DB>` names one, and nothing here sets it, so the patrol pushes nothing.
-  `export.auto` and `backup.enabled` are `false` in all three `.beads/config.yaml`.
+**The JSONL archive is the only backup of all three databases.**
+The supervisor runs gascity's `jsonl-export` exec order, which exports every database with `gc bd export` into `~/Tech/pata-city/.gc/runtime/packs/maintenance/jsonl-archive`, a git repo, and commits and pushes it to `github.com/patatepartie/pata-city-archive`.
+A run in which nothing changed makes no commit, so the archive's log is sparser than the order's cooldown.
+`gc --city /Users/cyrilledru/Tech/pata-city order history jsonl-export` lists the runs; the tested restore procedure is `~/Tech/pata-city/patate/docs/restore-beads.md`.
 
-A `dolt remote -v` URL rendered as `git+ssh://git@github.com/./owner/repo.git` is Dolt's own normalization of `git@github.com:owner/repo.git`, not corruption.
+There is no other backup, by decision: `~/Tech/pata-city/patate/decisions/2026-11-28-jsonl-archive-is-the-only-beads-backup.md` and `2026-11-28-disable-local-dolt-backup.md` give the reasons.
+- **No Dolt remotes.** `cash22` and `pt` used to push to their rig's GitHub repo; the remotes were removed, and the `refs/dolt/data` left on GitHub are a frozen copy that nothing updates.
+  Don't run `bd dolt push`.
+- **No local Dolt backup.** `mol-dog-backup` is disabled in `city.toml`, so `gc doctor` warns `rig:cash22:dolt-backup` and `rig:pata-track:dolt-backup`; that is expected, and its hint to register a backup is not to be followed.
+- `export.auto` and `backup.enabled` are `false` in all three `.beads/config.yaml`.
+
+The city's decisions are recorded in `~/Tech/pata-city/patate/decisions/`; read them before re-enabling an order the city's `city.toml` disables.
 
 ## Commit prefixes
 
