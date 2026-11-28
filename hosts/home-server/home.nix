@@ -136,6 +136,12 @@
       "audio/flac" = [ "vlc.desktop" ];
       "audio/x-wav" = [ "vlc.desktop" ];
       "audio/mp4" = [ "vlc.desktop" ];
+      # Chrome checks its default status against google-chrome.desktop, not the
+      # com.google.Chrome.desktop alias, and cannot write this read-only file itself.
+      "x-scheme-handler/http" = [ "google-chrome.desktop" ];
+      "x-scheme-handler/https" = [ "google-chrome.desktop" ];
+      "text/html" = [ "google-chrome.desktop" ];
+      "application/xhtml+xml" = [ "google-chrome.desktop" ];
     };
   };
 
