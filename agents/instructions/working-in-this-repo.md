@@ -13,6 +13,7 @@ Read the relevant section below before answering or running commands. The repo's
 | a tap package stuck at an old version, tap not updating     | `agents/instructions/troubleshooting.md` — check for a duplicate tap dir |
 | removing a tap, `Untapping … Permission denied`              | `agents/instructions/troubleshooting.md` — root-owned tap dir; user runs `sudo rm -rf` |
 | gascity / `gc`                                              | "gascity" (below)                                                  |
+| gascity beads backup, `dolt push`, the JSONL archive, a Claude session gascity started | "gascity" (below) → "Beads and backup", "No order starts a Claude session" |
 | gascity CPU usage, stale scheduled orders, `bd` version skew | `agents/instructions/troubleshooting.md` — fixed in gascity 1.5.0; onset is delayed |
 | gascity supervisor not restarting after an upgrade, "can run in the background" for `gc`, `OS_REASON_CODESIGNING` | `agents/instructions/troubleshooting.md` — `launchctl bootout` + `bootstrap`, not `kickstart` |
 | gascity city won't start, `does not have column`, pending schema migrations | `agents/instructions/troubleshooting.md` — `gc bd migrate schema`, back up first |
@@ -134,7 +135,7 @@ herdr handles this itself — one server writes `~/.config/herdr/sessions/<sessi
 
 ## gascity
 
-`gc` is the gascity CLI (Homebrew brew from the `gastownhall/gascity` tap). The city lives at `~/Tech/pata-city`; its one rig is `~/Tech/Perso/cash22`. Not managed by this repo — but two things here exist because of it.
+`gc` is the gascity CLI (Homebrew brew from the `gastownhall/gascity` tap). The city lives at `~/Tech/pata-city`; its rigs are `~/Tech/Perso/cash22` and `~/Tech/Perso/pata-track` (`gc --city /Users/cyrilledru/Tech/pata-city rig list`). Not managed by this repo — but two things here exist because of it.
 
 **The `gc` name collides with oh-my-zsh.** The git plugin aliases `gc` to `git commit -v`, shadowing the binary. gascity cannot yield the name: it bakes `gc` into the hook commands it injects into agent panes, and its completion registers as `#compdef gc`. `dotfiles/oh-my-zsh/plugins/gascity/` drops the alias and adds `gci` for git commit. **That plugin must stay LAST in the `oh-my-zsh.plugins` list** — plugins are sourced in array order, so listing it alphabetically (before `git`) lets the git plugin recreate the alias immediately afterwards. This is documented at <https://docs.gascity.com/getting-started/troubleshooting#oh-my-zsh-git-plugin-hides-gc>, though the doc's `$ZSH_CUSTOM`-loads-last claim holds for loose `.zsh` files, not for a named custom plugin.
 
@@ -148,7 +149,22 @@ herdr handles this itself — one server writes `~/.config/herdr/sessions/<sessi
 
 Interaction is **not** via tmux any more, despite what older setups suggest. As of 1.3 the Mayor is a *skill* loadable from any agent (invoke as `@mayor` from Claude Code in a rig folder), not a session you attach to; 1.4 moved observation to `gc dashboard`, a web UI served by the supervisor. `gc session attach <name>` exists and is preferable to raw `tmux attach` (it resumes or restarts a dead session), but you should not need a terminal attached to gascity's socket at all.
 
-**Beads and backup.** Issue data lives in Dolt databases under `~/Tech/pata-city/.beads/dolt/` — `hq` (the city's own beads) and `cash22` (the rig's 34 issues). Adopting the rig into the city on 2026-05-11 moved that data out of the cash22 git repo and added `.beads/*` to its `.gitignore`, which silently ended the GitHub backup that had been working. Dolt supports git remotes natively, so `cash22` pushes to its existing repo — but **`dolt push` is manual**; nothing automates it, and `export.auto` / `backup.enabled` are both `false`. `hq` has no remote at all. A `dolt remote -v` URL rendered as `git+ssh://git@github.com/./owner/repo.git` is Dolt's own normalization of `git@github.com:owner/repo.git`, not corruption.
+**No order starts a Claude session.** The city's `city.toml` disables `mol-dog-stale-db`, the only order that dispatched a formula to an agent, with an `[[orders.overrides]]` entry whose comment says why and how to run the check by hand.
+Every order left in `gc --city /Users/cyrilledru/Tech/pata-city order list` is an `exec` script, run by the supervisor without an agent.
+A session in `gc --city /Users/cyrilledru/Tech/pata-city session list` is therefore one someone started.
+
+**Beads and backup.** Issue data lives in Dolt databases under `~/Tech/pata-city/.beads/dolt/`, one per bead prefix: `hq` (the city's own, `pc`), `cash22` and `pt` (pata-track).
+Adopting cash22 into the city on 2026-05-11 moved its data out of the cash22 git repo and added `.beads/*` to its `.gitignore`, which silently ended the GitHub backup that had been working.
+Two backups replace it:
+- **A JSONL archive, automatic.** The supervisor runs gascity's `jsonl-export` exec order, which exports every database with `gc bd export` into `~/Tech/pata-city/.gc/runtime/packs/maintenance/jsonl-archive`, a git repo, and commits and pushes it to `github.com/patatepartie/pata-city-archive`.
+  A run in which nothing changed makes no commit, so the archive's log is sparser than the order's cooldown.
+  `gc --city /Users/cyrilledru/Tech/pata-city order history jsonl-export` lists the runs; a snapshot restores with `gc bd import <file>`.
+- **Dolt remotes, manual.** `cash22` and `pt` each push to their rig's GitHub repo, since Dolt supports git remotes natively; `hq` has no remote.
+  **`dolt push` is manual.**
+  gascity's `dolt-remotes-patrol` order runs `gc dolt sync` on a cooldown, but `sync` skips every database whose remotes are not `file://` unless `GC_DOLT_REMOTE_<DB>` names one, and nothing here sets it, so the patrol pushes nothing.
+  `export.auto` and `backup.enabled` are `false` in all three `.beads/config.yaml`.
+
+A `dolt remote -v` URL rendered as `git+ssh://git@github.com/./owner/repo.git` is Dolt's own normalization of `git@github.com:owner/repo.git`, not corruption.
 
 ## Commit prefixes
 
