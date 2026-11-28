@@ -47,6 +47,7 @@ Read the relevant section below before answering or running commands. The repo's
 | a nixpkgs package fails to evaluate or build, "Refusing to evaluate package", marked broken | "How auto-updates work" (below) → "pin that package, not its dependencies" |
 | commit message format / prefix                              | "Commit prefixes" (below)                                          |
 | starting any edit in this repo                               | "Sync before editing" (below)                                      |
+| a change for the home-server or the 2018 MacBook only        | "Changes for another host are tested on that host" (below) — user switches there, commit after |
 
 `just --list` shows every recipe. `just upgrade` = `nix flake update && just switch`; it only updates the machine you run it on — other hosts won't pick up the new `flake.lock` until you commit and push.
 
@@ -55,6 +56,19 @@ Read the relevant section below before answering or running commands. The repo's
 Before making any change in this repo, run `git fetch` and check the local branch against `origin/main` (`git status` after fetching, or `git rev-list --count HEAD..@{u}`). If local is behind, pull (fast-forward) before editing.
 
 The home-server's daily flake.lock update (see "How auto-updates work" below) pushes an "Upgrade flake" commit most days, often re-locking `flake.lock` inputs unrelated to whatever you're changing. Editing on a stale base and then hand-updating `flake.lock` for your own change can silently drop that commit's updates — there's no merge conflict to flag it, since `flake.lock` edits are usually non-overlapping. Fetching first avoids reconstructing the merge after the fact.
+
+## Changes for another host are tested on that host before they are committed
+
+A change that affects only the home-server or only the 2018 MacBook is switched and tested on that machine before it is committed, because most behaviour (a button, a default app, the Dock) can only be checked there.
+The checkouts are `/home/patate/tech/nix-config` on the home-server and `/Users/cyrilledru/Tech/nix-config` on the 2018 MacBook.
+
+1. Edit here with the normal tools, and evaluate or build here where possible (for the home-server, the `--store ssh-ng://` build under "Remote machines").
+2. Pull the target's checkout (`ssh <host> git -C <checkout> pull --ff-only`) so both sides share a base.
+3. Send the diff: `git diff -- <paths> | ssh <host> git -C <checkout> apply -v`, with `dangerouslyDisableSandbox: true` since the pipe puts `ssh` back in the sandbox. If the target already holds part of the change, send a patch with only the new hunks rather than resetting its files.
+4. The user runs `just switch` there, since `sudo` does not work over SSH, and tests. Some settings only take effect after a reboot (logind's, for instance).
+5. Once the user confirms it works, commit and push from here, then `ssh <host> git -C <checkout> pull --ff-only --autostash`, which drops the now-identical uncommitted edits without discarding anything.
+
+Don't leave a tested change uncommitted: each host's auto-update resets its own checkout to `main` (daily on the MacBooks, weekly on the home-server), and its rebuild reverts anything that was only switched from the user's checkout.
 
 ## How auto-updates work
 
