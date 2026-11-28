@@ -97,7 +97,8 @@
     };
 
     "org/gnome/settings-daemon/plugins/power" = {
-      power-button-action = "interactive";
+      # A short press only powers on or wakes; a 4 s hold still forces power-off in firmware.
+      power-button-action = "nothing";
       sleep-inactive-ac-type = "nothing";
     };
 

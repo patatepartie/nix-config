@@ -122,6 +122,9 @@
 
   services.logind.settings.Login.IdleAction = "ignore";
 
+  # Backstop for home.nix's power-button-action when no GNOME session holds the key.
+  services.logind.settings.Login.HandlePowerKey = "ignore";
+
   # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
